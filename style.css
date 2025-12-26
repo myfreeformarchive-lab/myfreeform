@@ -1,0 +1,237 @@
+/* === RESET + BASE === */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Georgia', serif;
+  background-color: #f4f4f4;
+  color: #333;
+  line-height: 1.8;
+  padding: 20px;
+}
+
+/* === HEADER + NAV === */
+header {
+  background: #222;
+  color: #fff;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+header h1 {
+  margin-bottom: 8px;
+  font-size: 2.2rem;
+  letter-spacing: 0.5px;
+}
+
+nav a {
+  color: #ddd;
+  margin: 0 12px;
+  text-decoration: none;
+  font-size: 1rem;
+}
+
+nav a:hover {
+  color: #fff;
+}
+
+/* === MAIN LAYOUT === */
+main {
+  max-width: 800px;
+  margin: 40px auto;
+}
+
+.intro {
+  margin-bottom: 40px;
+  font-size: 1.05rem;
+  color: #444;
+}
+
+.content-blocks {
+  margin-top: 30px;
+}
+
+.content-blocks .block {
+  background: #fff;
+  padding: 30px;
+  margin-bottom: 40px;
+  border-left: 4px solid #333;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+}
+
+/* === FOOTER === */
+footer {
+  text-align: center;
+  padding: 20px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* === INPUTS === */
+textarea {
+  width: 100%;
+  padding: 12px;
+  margin: 12px 0;
+  font-family: 'Georgia', serif;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  resize: vertical;
+  border-radius: 4px;
+}
+
+button {
+  background-color: #333;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+button:hover {
+  background-color: #555;
+}
+
+/* === ENTRY BOX (used in history pages) === */
+.entry-box {
+  background-color: #f9f9f9;
+  border-left: 5px solid #3f51b5;
+  border-right: 5px solid #3f51b5;
+  border-bottom: 1px solid #DCDCDC;
+  border-top: 1px solid #DCDCDC;
+  padding: 16px 20px;
+  margin: 15px 0;
+  border-radius: 8px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.07);
+  position: relative;
+  transition: background 0.2s ease;
+}
+
+.entry-box:hover {
+  background-color: #f0f0ff;
+}
+
+.entry-text {
+  font-size: 1.15rem;
+  font-style: italic;
+  color: #444;
+  letter-spacing: 0.3px;
+  line-height: 1.75;
+}
+
+/* === DELETE BUTTON === */
+.delete-entry-btn {
+  background-color: #b71c1c;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.delete-entry-btn:hover {
+  background-color: #c62828;
+}
+
+/* === VIEW HISTORY LINK === */
+.view-history-link {
+  display: inline-block;
+  margin-top: 16px;
+  font-size: 0.95rem;
+  color: #3f51b5;
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.view-history-link:hover {
+  background-color: #e8eaf6;
+  color: #1a237e;
+}
+
+/* === STORAGE METER === */
+.storage-meter {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 0.9rem;
+  color: #666;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.storage-meter strong {
+  color: #000;
+}
+
+.writing-title {
+  font-size: 1.3rem;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.writing-date {
+  font-size: 0.95rem;
+  font-style: italic;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.writing-content {
+  font-size: 1.1rem;
+  line-height: 1.75;
+}
+
+.disclaimer-popover {
+  position: relative;
+  display: inline-block;
+  font-size: 0.9rem;
+  margin: 30px auto;
+  text-align: center;
+  cursor: pointer;
+}
+
+.disclaimer-label {
+  color: #3f51b5;
+  text-decoration: underline dotted;
+}
+
+.disclaimer-box {
+  display: none;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 120%;
+  background-color: #fff;
+  color: #333;
+  padding: 15px 18px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+  width: 280px;
+  z-index: 10;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.disclaimer-popover:hover .disclaimer-box,
+.disclaimer-popover:focus-within .disclaimer-box {
+  display: block;
+}
+
+.disclaimer-box ul {
+  margin-top: 8px;
+  padding-left: 18px;
+}
+
+.disclaimer-box li {
+  margin-bottom: 6px;
+}
