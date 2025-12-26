@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Writings - My Freeform</title>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <header>
+    <h1>Writings</h1>
+    <nav>
+      <a href="../index.html">Home</a>
+      <a href="ideas.html">Ideas</a>
+      <a href="writings.html" class="active">Writings</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="intro">
+      <p>A growing collection of longer writings and essays.</p>
+    </section>
+
+    <section class="content-blocks">
+      <div class="block">
+        <h3>Submit New Writing</h3>
+        <input type="text" id="writingTitle" placeholder="Title" style="width: 100%; padding: 8px; margin-bottom: 10px;" />
+        <textarea id="writingContent" placeholder="Your full writing here..." rows="6"></textarea>
+        <button id="addWritingBtn">Post Writing</button>
+
+        <div id="writingList"></div>
+
+        <a href="writing-history.html" class="view-history-link">View All Writings →</a>
+      </div>
+    </section>
+  </main>
+
+  <section class="storage-meter">
+    <p id="storageInfo">Calculating storage...</p>
+  </section>
+
+  <footer>
+  
+  <div class="disclaimer-popover">
+  <span class="disclaimer-label">Disclaimer</span>
+  <div class="disclaimer-box">
+    <p><strong>Local Storage Only:</strong> All your writings are saved in your browser. Nothing is uploaded or shared.</p>
+    <ul>
+      <li><strong>Private</strong> – Your entries never leave your device.</li>
+      <li><strong>Offline-friendly</strong> – Works without internet once loaded.</li>
+      <li><strong>5MB Limit</strong> – Uses local storage (~5MB available).</li>
+      <li><strong>No Backup</strong> – Clearing browser data erases all entries.</li>
+    </ul>
+  </div>
+</div>
+  
+    <p>&copy; 2025 My Freeform. All rights reserved.</p>
+  </footer>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const writingTitle = document.getElementById("writingTitle");
+      const writingContent = document.getElementById("writingContent");
+      const addWritingBtn = document.getElementById("addWritingBtn");
+      const writingList = document.getElementById("writingList");
+
+      let writings = JSON.parse(localStorage.getItem("writings")) || [];
+
+      const renderWritings = () => {
+        writingList.innerHTML = "";
+        const latestFive = writings.slice(-5).reverse();
+
+        latestFive.forEach(writing => {
+          const box = document.createElement("div");
+box.className = "entry-box";
+
+// Title
+const titleEl = document.createElement("p");
+titleEl.className = "entry-text writing-title";
+titleEl.textContent = writing.title;
+
+// Date
+const dateEl = document.createElement("p");
+dateEl.className = "entry-text writing-date";
+dateEl.textContent = `Date: ${writing.date}`;
+
+// Content (truncated)
+const contentEl = document.createElement("p");
+contentEl.className = "entry-text writing-content";
+contentEl.textContent = `${writing.content.substring(0, 200)}...`;
+
+box.appendChild(titleEl);
+box.appendChild(dateEl);
+box.appendChild(contentEl);
+writingList.appendChild(box);
+
+        });
+      };
+
+      addWritingBtn.addEventListener("click", () => {
+        const title = writingTitle.value.trim();
+        const content = writingContent.value.trim();
+
+        if (!title || !content) return;
+
+        const writing = {
+          title,
+          content,
+          date: new Date().toLocaleDateString()
+        };
+
+        writings.push(writing);
+
+        try {
+          localStorage.setItem("writings", JSON.stringify(writings));
+        } catch (e) {
+          alert("⚠️ Storage full! Cannot save new writing.");
+          console.error("Storage limit reached for writings:", e);
+          writings.pop();
+          return;
+        }
+
+        writingTitle.value = "";
+        writingContent.value = "";
+        renderWritings();
+        updateStorageInfo();
+      });
+
+      function getStorageSize(key) {
+        const item = localStorage.getItem(key);
+        return item ? new Blob([item]).size : 0;
+      }
+
+      function updateStorageInfo() {
+        const beliefsSize = getStorageSize("beliefs");
+        const progressSize = getStorageSize("inProgress");
+        const ideasSize = getStorageSize("ideas");
+        const writingsSize = getStorageSize("writings");
+        const totalUsed = beliefsSize + progressSize + ideasSize + writingsSize;
+
+        const maxStorage = 5 * 1024 * 1024;
+        const usedKB = (totalUsed / 1024).toFixed(1);
+        const freeKB = ((maxStorage - totalUsed) / 1024).toFixed(1);
+        const percentUsed = ((totalUsed / maxStorage) * 100).toFixed(2);
+
+        const infoEl = document.getElementById("storageInfo");
+        if (infoEl) {
+          infoEl.innerHTML = `
+            <strong>Storage Used:</strong> ${usedKB} KB 
+            &nbsp;|&nbsp; 
+            <strong>Free:</strong> ${freeKB} KB 
+            &nbsp;|&nbsp; 
+            <strong>${percentUsed}% of 5MB</strong>
+          `;
+        }
+      }
+
+      renderWritings();
+      updateStorageInfo();
+    });
+  </script>
+</body>
+</html>

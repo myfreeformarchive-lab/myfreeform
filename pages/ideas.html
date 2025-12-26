@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ideas - My Freeform</title>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <header>
+    <h1>Ideas</h1>
+    <nav>
+      <a href="../index.html">Home</a>
+      <a href="ideas.html" class="active">Ideas</a>
+      <a href="writings.html">Writings</a>
+    </nav>
+  </header>
+
+  <main>
+  <section class="intro">
+      <p>A place for ideas that remain internal, unfinished, and unresolved.</p>
+    </section>
+    <section class="content-blocks">
+      <div class="block">
+        <h3>Recent Ideas</h3>
+
+        <!-- Input for new idea -->
+        <textarea id="ideaInput" placeholder="Write your idea here..." rows="4"></textarea>
+        <button id="addIdeaBtn">Post Idea</button>
+
+        <!-- Latest 5 ideas -->
+        <div id="ideaList">
+          <p>Write your philosophical idea here...</p>
+        </div>
+
+        <!-- History link -->
+        <a href="idea-history.html" class="view-history-link">View All Ideas →</a>
+      </div>
+    </section>
+  </main>
+  
+  <section class="storage-meter">
+    <p id="storageInfo">Calculating storage...</p>
+  </section>
+
+  <footer>
+  
+  <div class="disclaimer-popover">
+  <span class="disclaimer-label">Disclaimer</span>
+  <div class="disclaimer-box">
+    <p><strong>Local Storage Only:</strong> All your writings are saved in your browser. Nothing is uploaded or shared.</p>
+    <ul>
+      <li><strong>Private</strong> – Your entries never leave your device.</li>
+      <li><strong>Offline-friendly</strong> – Works without internet once loaded.</li>
+      <li><strong>5MB Limit</strong> – Uses local storage (~5MB available).</li>
+      <li><strong>No Backup</strong> – Clearing browser data erases all entries.</li>
+    </ul>
+  </div>
+</div>
+  
+    <p>&copy; 2025 My Freeform. All rights reserved.</p>
+  </footer>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const ideaInput = document.getElementById("ideaInput");
+    const addIdeaBtn = document.getElementById("addIdeaBtn");
+    const ideaList = document.getElementById("ideaList");
+
+    let ideas = JSON.parse(localStorage.getItem("ideas")) || [];
+
+    const renderIdeas = () => {
+      ideaList.innerHTML = "";
+      const latestFive = ideas.slice(-5).reverse();
+      latestFive.forEach(text => {
+        const p = document.createElement("p");
+        p.textContent = text;
+		p.className = "entry-box entry-text";
+        ideaList.appendChild(p);
+      });
+    };
+
+    addIdeaBtn.addEventListener("click", () => {
+      const text = ideaInput.value.trim();
+      if (!text) return;
+
+      ideas.push(text);
+
+      try {
+        localStorage.setItem("ideas", JSON.stringify(ideas));
+      } catch (e) {
+        alert("⚠️ Storage full! Cannot save new idea.");
+        console.error("Storage limit reached for ideas:", e);
+        ideas.pop();
+        return;
+      }
+
+      ideaInput.value = "";
+      renderIdeas();
+      updateStorageInfo();
+    });
+
+    renderIdeas();
+
+    // STORAGE METER
+    function getStorageSize(key) {
+      const item = localStorage.getItem(key);
+      return item ? new Blob([item]).size : 0;
+    }
+
+    function updateStorageInfo() {
+      const beliefsSize = getStorageSize("beliefs");
+      const progressSize = getStorageSize("inProgress");
+      const ideasSize = getStorageSize("ideas");
+      const totalUsed = beliefsSize + progressSize + ideasSize;
+
+      const maxStorage = 5 * 1024 * 1024;
+      const usedKB = (totalUsed / 1024).toFixed(1);
+      const freeKB = ((maxStorage - totalUsed) / 1024).toFixed(1);
+      const percentUsed = ((totalUsed / maxStorage) * 100).toFixed(2);
+
+      const infoEl = document.getElementById("storageInfo");
+      if (infoEl) {
+        infoEl.innerHTML = `
+          <strong>Storage Used:</strong> ${usedKB} KB
+          &nbsp;|&nbsp;
+          <strong>Free:</strong> ${freeKB} KB
+          &nbsp;|&nbsp;
+          <strong>${percentUsed}% of 5MB</strong>
+        `;
+      }
+    }
+
+    updateStorageInfo();
+  });
+  </script>
+</body>
+</html>

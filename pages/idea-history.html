@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Idea History</title>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <header>
+    <h1>Idea History</h1>
+    <nav>
+      <a href="../index.html">Home</a>
+      <a href="ideas.html">Ideas</a>
+      <a href="writings.html">Writings</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="content-blocks">
+      <div class="block">
+        <h3>All Ideas</h3>
+        <div id="fullIdeaList"></div>
+      </div>
+    </section>
+  </main>
+
+  <section class="storage-meter">
+    <p id="storageInfo">Calculating storage...</p>
+  </section>
+
+  <footer>
+  
+  <div class="disclaimer-popover">
+  <span class="disclaimer-label">Disclaimer</span>
+  <div class="disclaimer-box">
+    <p><strong>Local Storage Only:</strong> All your writings are saved in your browser. Nothing is uploaded or shared.</p>
+    <ul>
+      <li><strong>Private</strong> – Your entries never leave your device.</li>
+      <li><strong>Offline-friendly</strong> – Works without internet once loaded.</li>
+      <li><strong>5MB Limit</strong> – Uses local storage (~5MB available).</li>
+      <li><strong>No Backup</strong> – Clearing browser data erases all entries.</li>
+    </ul>
+  </div>
+</div>
+  
+    <p>&copy; 2025 My Freeform. All rights reserved.</p>
+  </footer>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const container = document.getElementById("fullIdeaList");
+    let allIdeas = JSON.parse(localStorage.getItem("ideas")) || [];
+
+    const renderIdeaHistory = () => {
+      container.innerHTML = "";
+
+      if (allIdeas.length === 0) {
+        container.innerHTML = "<p>No ideas saved yet.</p>";
+        return;
+      }
+
+      allIdeas.slice().reverse().forEach((text, indexFromEnd) => {
+        const index = allIdeas.length - 1 - indexFromEnd;
+
+        const box = document.createElement("div");
+        box.className = "entry-box";
+
+        const p = document.createElement("p");
+        p.className = "entry-text";
+        p.textContent = text;
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "delete-entry-btn";
+        delBtn.textContent = "Delete";
+        delBtn.onclick = () => {
+          if (confirm("Delete this idea?")) {
+            allIdeas.splice(index, 1);
+            localStorage.setItem("ideas", JSON.stringify(allIdeas));
+            renderIdeaHistory();
+            updateStorageInfo();
+          }
+        };
+
+        box.appendChild(p);
+        box.appendChild(delBtn);
+        container.appendChild(box);
+      });
+    };
+
+    // STORAGE METER
+    function getStorageSize(key) {
+      const item = localStorage.getItem(key);
+      return item ? new Blob([item]).size : 0;
+    }
+
+    function updateStorageInfo() {
+      const beliefsSize = getStorageSize("beliefs");
+      const progressSize = getStorageSize("inProgress");
+      const ideasSize = getStorageSize("ideas");
+      const totalUsed = beliefsSize + progressSize + ideasSize;
+
+      const maxStorage = 5 * 1024 * 1024;
+      const usedKB = (totalUsed / 1024).toFixed(1);
+      const freeKB = ((maxStorage - totalUsed) / 1024).toFixed(1);
+      const percentUsed = ((totalUsed / maxStorage) * 100).toFixed(2);
+
+      const infoEl = document.getElementById("storageInfo");
+      if (infoEl) {
+        infoEl.innerHTML = `
+          <strong>Storage Used:</strong> ${usedKB} KB 
+          &nbsp;|&nbsp;
+          <strong>Free:</strong> ${freeKB} KB 
+          &nbsp;|&nbsp;
+          <strong>${percentUsed}% of 5MB</strong>
+        `;
+      }
+    }
+
+    renderIdeaHistory();
+    updateStorageInfo();
+  });
+  </script>
+</body>
+</html>
