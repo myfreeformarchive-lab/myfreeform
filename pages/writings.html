@@ -60,108 +60,136 @@
     <p>&copy; 2025 My Freeform. All rights reserved.</p>
   </footer>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const writingTitle = document.getElementById("writingTitle");
-      const writingContent = document.getElementById("writingContent");
-      const addWritingBtn = document.getElementById("addWritingBtn");
-      const writingList = document.getElementById("writingList");
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-      let writings = JSON.parse(localStorage.getItem("writings")) || [];
+  const firebaseConfig = {
+    apiKey: "AIzaSyBD-8hcoAuTFaAhgSy-WIyQX_iI37uokTw",
+    authDomain: "myfreeformarchive-8a786.firebaseapp.com",
+    projectId: "myfreeformarchive-8a786",
+    storageBucket: "myfreeformarchive-8a786.appspot.com",
+    messagingSenderId: "16237442482",
+    appId: "1:16237442482:web:424f8f2e344a58e7f6a0ab"
+  };
 
-      const renderWritings = () => {
-        writingList.innerHTML = "";
-        const latestFive = writings.slice(-5).reverse();
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-        latestFive.forEach(writing => {
-          const box = document.createElement("div");
-box.className = "entry-box";
+  document.addEventListener("DOMContentLoaded", () => {
+    const writingTitle = document.getElementById("writingTitle");
+    const writingContent = document.getElementById("writingContent");
+    const addWritingBtn = document.getElementById("addWritingBtn");
+    const writingList = document.getElementById("writingList");
+    const toggle = document.getElementById("publicModeToggle");
 
-// Title
-const titleEl = document.createElement("p");
-titleEl.className = "entry-text writing-title";
-titleEl.textContent = writing.title;
+    let writings = JSON.parse(localStorage.getItem("writings")) || [];
 
-// Date
-const dateEl = document.createElement("p");
-dateEl.className = "entry-text writing-date";
-dateEl.textContent = `Date: ${writing.date}`;
+    const renderWritings = () => {
+      writingList.innerHTML = "";
+      const latestFive = writings.slice(-5).reverse();
 
-// Content (truncated)
-const contentEl = document.createElement("p");
-contentEl.className = "entry-text writing-content";
-contentEl.textContent = `${writing.content.substring(0, 200)}...`;
+      latestFive.forEach(writing => {
+        const box = document.createElement("div");
+        box.className = "entry-box";
 
-box.appendChild(titleEl);
-box.appendChild(dateEl);
-box.appendChild(contentEl);
-writingList.appendChild(box);
+        const titleEl = document.createElement("p");
+        titleEl.className = "entry-text writing-title";
+        titleEl.textContent = writing.title;
 
-        });
+        const dateEl = document.createElement("p");
+        dateEl.className = "entry-text writing-date";
+        dateEl.textContent = `Date: ${writing.date}`;
+
+        const contentEl = document.createElement("p");
+        contentEl.className = "entry-text writing-content";
+        contentEl.textContent = `${writing.content.substring(0, 200)}...`;
+
+        box.appendChild(titleEl);
+        box.appendChild(dateEl);
+        box.appendChild(contentEl);
+        writingList.appendChild(box);
+      });
+    };
+
+    addWritingBtn.addEventListener("click", async () => {
+      const title = writingTitle.value.trim();
+      const content = writingContent.value.trim();
+      if (!title || !content) return;
+
+      const writing = {
+        title,
+        content,
+        date: new Date().toLocaleDateString()
       };
 
-      addWritingBtn.addEventListener("click", () => {
-        const title = writingTitle.value.trim();
-        const content = writingContent.value.trim();
+      writings.push(writing);
 
-        if (!title || !content) return;
+      try {
+        localStorage.setItem("writings", JSON.stringify(writings));
 
-        const writing = {
-          title,
-          content,
-          date: new Date().toLocaleDateString()
-        };
+        if (toggle && toggle.checked) {
+          try {
+            const docRef = await addDoc(collection(db, "publicWritings"), {
+              title,
+              content,
+              createdAt: serverTimestamp()
+            });
 
-        writings.push(writing);
-
-        try {
-          localStorage.setItem("writings", JSON.stringify(writings));
-        } catch (e) {
-          alert("⚠️ Storage full! Cannot save new writing.");
-          console.error("Storage limit reached for writings:", e);
-          writings.pop();
-          return;
+            writing.firebaseId = docRef.id;
+            localStorage.setItem("writings", JSON.stringify(writings));
+            console.log("✅ Writing saved to Firestore:", docRef.id);
+          } catch (err) {
+            console.error("❌ Firebase error (writing):", err);
+          }
         }
-
-        writingTitle.value = "";
-        writingContent.value = "";
-        renderWritings();
-        updateStorageInfo();
-      });
-
-      function getStorageSize(key) {
-        const item = localStorage.getItem(key);
-        return item ? new Blob([item]).size : 0;
+      } catch (e) {
+        alert("⚠️ Storage full! Cannot save new writing.");
+        console.error("Storage limit reached for writings:", e);
+        writings.pop();
+        return;
       }
 
-      function updateStorageInfo() {
-        const beliefsSize = getStorageSize("beliefs");
-        const progressSize = getStorageSize("inProgress");
-        const ideasSize = getStorageSize("ideas");
-        const writingsSize = getStorageSize("writings");
-        const totalUsed = beliefsSize + progressSize + ideasSize + writingsSize;
-
-        const maxStorage = 5 * 1024 * 1024;
-        const usedKB = (totalUsed / 1024).toFixed(1);
-        const freeKB = ((maxStorage - totalUsed) / 1024).toFixed(1);
-        const percentUsed = ((totalUsed / maxStorage) * 100).toFixed(2);
-
-        const infoEl = document.getElementById("storageInfo");
-        if (infoEl) {
-          infoEl.innerHTML = `
-            <strong>Storage Used:</strong> ${usedKB} KB 
-            &nbsp;|&nbsp; 
-            <strong>Free:</strong> ${freeKB} KB 
-            &nbsp;|&nbsp; 
-            <strong>${percentUsed}% of 5MB</strong>
-          `;
-        }
-      }
-
+      writingTitle.value = "";
+      writingContent.value = "";
       renderWritings();
       updateStorageInfo();
     });
-  </script>
+
+    // STORAGE METER
+    function getStorageSize(key) {
+      const item = localStorage.getItem(key);
+      return item ? new Blob([item]).size : 0;
+    }
+
+    function updateStorageInfo() {
+      const beliefsSize = getStorageSize("beliefs");
+      const progressSize = getStorageSize("inProgress");
+      const ideasSize = getStorageSize("ideas");
+      const writingsSize = getStorageSize("writings");
+      const totalUsed = beliefsSize + progressSize + ideasSize + writingsSize;
+
+      const maxStorage = 5 * 1024 * 1024;
+      const usedKB = (totalUsed / 1024).toFixed(1);
+      const freeKB = ((maxStorage - totalUsed) / 1024).toFixed(1);
+      const percentUsed = ((totalUsed / maxStorage) * 100).toFixed(2);
+
+      const infoEl = document.getElementById("storageInfo");
+      if (infoEl) {
+        infoEl.innerHTML = `
+          <strong>Storage Used:</strong> ${usedKB} KB 
+          &nbsp;|&nbsp; 
+          <strong>Free:</strong> ${freeKB} KB 
+          &nbsp;|&nbsp; 
+          <strong>${percentUsed}% of 5MB</strong>
+        `;
+      }
+    }
+
+    renderWritings();
+    updateStorageInfo();
+  });
+</script>
+
 </body>
 </html>
-
