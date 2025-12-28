@@ -4,9 +4,18 @@ document.addEventListener("DOMContentLoaded", () => {
 	
 const toggle = document.getElementById("publicModeToggle");
 const label = document.getElementById("publicModeLabel");
+const PUBLIC_MODE_KEY = "publicModeEnabled";
 
 if (toggle && label) {
+  // load saved state
+  const saved = localStorage.getItem(PUBLIC_MODE_KEY);
+  if (saved === "true") {
+    toggle.checked = true;
+    label.textContent = "Public Mode: ON";
+  }
+
   toggle.addEventListener("change", () => {
+    localStorage.setItem(PUBLIC_MODE_KEY, toggle.checked);
     label.textContent = toggle.checked
       ? "Public Mode: ON"
       : "Public Mode: OFF";
