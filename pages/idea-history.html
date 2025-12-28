@@ -49,8 +49,20 @@
   
     <p>&copy; 2025 My Freeform. All rights reserved.</p>
   </footer>
+  
+ <script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBD-8hcoAuTFaAhgSy-WIyQX_iI37uokTw",
+    authDomain: "myfreeformarchive-8a786.firebaseapp.com",
+    projectId: "myfreeformarchive-8a786",
+    storageBucket: "myfreeformarchive-8a786.appspot.com",
+    messagingSenderId: "16237442482",
+    appId: "1:16237442482:web:424f8f2e344a58e7f6a0ab"
+  };
 
-  <script>
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
   document.addEventListener("DOMContentLoaded", () => {
     const container = document.getElementById("fullIdeaList");
     let allIdeas = JSON.parse(localStorage.getItem("ideas")) || [];
@@ -63,8 +75,9 @@
         return;
       }
 
-      allIdeas.slice().reverse().forEach((text, indexFromEnd) => {
+      allIdeas.slice().reverse().forEach((item, indexFromEnd) => {
         const index = allIdeas.length - 1 - indexFromEnd;
+        const text = typeof item === "string" ? item : item.content;
 
         const box = document.createElement("div");
         box.className = "entry-box";
@@ -76,13 +89,27 @@
         const delBtn = document.createElement("button");
         delBtn.className = "delete-entry-btn";
         delBtn.textContent = "Delete";
-        delBtn.onclick = () => {
-          if (confirm("Delete this idea?")) {
-            allIdeas.splice(index, 1);
-            localStorage.setItem("ideas", JSON.stringify(allIdeas));
-            renderIdeaHistory();
-            updateStorageInfo();
+
+        delBtn.onclick = async () => {
+          if (!confirm("Delete this idea?")) return;
+
+          const publicMode = localStorage.getItem("publicModeEnabled") === "true";
+
+          // 🔥 Delete from Firestore if public mode is on and ID exists
+          if (publicMode && item.firebaseId && typeof db !== "undefined") {
+            try {
+              await db.collection("publicIdeas").doc(item.firebaseId).delete();
+              console.log("🔥 Deleted from Firestore:", item.firebaseId);
+            } catch (err) {
+              console.error("❌ Firebase delete failed:", err);
+            }
           }
+
+          // 💾 Always delete locally
+          allIdeas.splice(index, 1);
+          localStorage.setItem("ideas", JSON.stringify(allIdeas));
+          renderIdeaHistory();
+          updateStorageInfo();
         };
 
         box.appendChild(p);
@@ -91,7 +118,6 @@
       });
     };
 
-    // STORAGE METER
     function getStorageSize(key) {
       const item = localStorage.getItem(key);
       return item ? new Blob([item]).size : 0;
@@ -112,9 +138,9 @@
       if (infoEl) {
         infoEl.innerHTML = `
           <strong>Storage Used:</strong> ${usedKB} KB 
-          &nbsp;|&nbsp;
+          &nbsp;|&nbsp; 
           <strong>Free:</strong> ${freeKB} KB 
-          &nbsp;|&nbsp;
+          &nbsp;|&nbsp; 
           <strong>${percentUsed}% of 5MB</strong>
         `;
       }
@@ -123,7 +149,8 @@
     renderIdeaHistory();
     updateStorageInfo();
   });
-  </script>
+</script>
+
+
 </body>
 </html>
-
