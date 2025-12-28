@@ -1,5 +1,4 @@
 console.log("Philosophy archive loaded.");
-console.log("Firestore DB:", db);
 
 document.addEventListener("DOMContentLoaded", () => {
 	
