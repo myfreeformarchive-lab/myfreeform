@@ -69,9 +69,12 @@
     <p>&copy; 2025 My Freeform. All rights reserved.</p>
   </footer>
 
+<!-- Firebase SDKs (load first) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
 <script>
+  // Initialize Firebase
   const firebaseConfig = {
     apiKey: "AIzaSyBD-8hcoAuTFaAhgSy-WIyQX_iI37uokTw",
     authDomain: "myfreeformarchive-8a786.firebaseapp.com",
@@ -80,79 +83,121 @@
     messagingSenderId: "16237442482",
     appId: "1:16237442482:web:424f8f2e344a58e7f6a0ab"
   };
-
+  
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 </script>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const container = document.getElementById("fullWritingList");
-  let allWritings = JSON.parse(localStorage.getItem("writings")) || [];
+  const toggle = document.getElementById("publicModeToggle");
+  const label = document.getElementById("publicModeLabel");
+  const PUBLIC_MODE_KEY = "publicModeEnabled";
 
-  const renderWritingHistory = () => {
-    container.innerHTML = "";
+  // 📌 Persist Toggle State
+  if (toggle && label) {
+    const saved = localStorage.getItem(PUBLIC_MODE_KEY) === "true";
+    toggle.checked = saved;
+    label.textContent = saved ? "Public Mode: ON" : "Public Mode: OFF";
 
-    if (allWritings.length === 0) {
-      container.innerHTML = "<p>No writings saved yet.</p>";
-      return;
-    }
+    toggle.addEventListener("change", () => {
+      const on = toggle.checked;
+      localStorage.setItem(PUBLIC_MODE_KEY, on);
+      label.textContent = on ? "Public Mode: ON" : "Public Mode: OFF";
+    });
+  }
 
-    allWritings.slice().reverse().forEach((item, indexFromEnd) => {
-      const index = allWritings.length - 1 - indexFromEnd;
-      const title = item.title;
-      const content = item.content;
-      const date = item.date;
+  const writingTitle = document.getElementById("writingTitle");
+  const writingContent = document.getElementById("writingContent");
+  const addWritingBtn = document.getElementById("addWritingBtn");
+  const writingList = document.getElementById("writingList");
+
+  let writings = JSON.parse(localStorage.getItem("writings")) || [];
+
+  const renderWritings = () => {
+    writingList.innerHTML = "";
+    const latestFive = writings.slice(-5).reverse();
+
+    latestFive.forEach(entry => {
+      const titleText = typeof entry === "string" ? entry : entry.title;
+      const contentText = entry.content ?? "";
 
       const box = document.createElement("div");
       box.className = "entry-box";
 
       const titleEl = document.createElement("p");
       titleEl.className = "entry-text writing-title";
-      titleEl.textContent = title;
+      titleEl.textContent = titleText;
 
       const dateEl = document.createElement("p");
       dateEl.className = "entry-text writing-date";
-      dateEl.textContent = `Date: ${date}`;
+      dateEl.textContent = `Date: ${entry.date ?? ""}`;
 
       const contentEl = document.createElement("p");
       contentEl.className = "entry-text writing-content";
-      contentEl.textContent = content;
-
-      const delBtn = document.createElement("button");
-      delBtn.className = "delete-entry-btn";
-      delBtn.textContent = "Delete";
-
-      delBtn.onclick = async () => {
-        if (!confirm("Delete this writing?")) return;
-
-        const publicMode = localStorage.getItem("publicModeEnabled") === "true";
-
-        // 🔥 Delete from Firestore if public mode is on and ID exists
-        if (publicMode && item.firebaseId && typeof db !== "undefined") {
-          try {
-            await db.collection("publicWritings").doc(item.firebaseId).delete();
-            console.log("🔥 Deleted from Firestore:", item.firebaseId);
-          } catch (err) {
-            console.error("❌ Firebase delete failed:", err);
-          }
-        }
-
-        // 💾 Always delete locally
-        allWritings.splice(index, 1);
-        localStorage.setItem("writings", JSON.stringify(allWritings));
-        renderWritingHistory();
-        updateStorageInfo();
-      };
+      contentEl.textContent = contentText.length > 200
+        ? contentText.substring(0, 200) + "..."
+        : contentText;
 
       box.appendChild(titleEl);
       box.appendChild(dateEl);
       box.appendChild(contentEl);
-      box.appendChild(delBtn);
-      container.appendChild(box);
+
+      writingList.appendChild(box);
     });
   };
 
+  addWritingBtn.addEventListener("click", async () => {
+    const title = writingTitle.value.trim();
+    const content = writingContent.value.trim();
+    if (!title || !content) return;
+
+    const entry = {
+      title,
+      content,
+      date: new Date().toLocaleDateString(),
+      firebaseId: null
+    };
+
+    const publicMode = localStorage.getItem(PUBLIC_MODE_KEY) === "true";
+
+    try {
+      // 🔥 Save to Firestore if public mode ON
+      if (publicMode && typeof db !== "undefined") {
+        try {
+          const docRef = await db.collection("publicWritings").add({
+            title,
+            content,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          entry.firebaseId = docRef.id;
+          console.log("✅ Writing saved to Firestore:", docRef.id);
+        } catch (firebaseErr) {
+          console.error("❌ Firebase error (writing):", firebaseErr);
+        }
+      }
+
+      // 💾 Always save locally
+      writings.push(entry);
+      localStorage.setItem("writings", JSON.stringify(writings));
+
+    } catch (e) {
+      alert("⚠️ Storage full! Cannot save new writing.");
+      console.error("Local Storage error:", e);
+      return;
+    }
+
+    writingTitle.value = "";
+    writingContent.value = "";
+    renderWritings();
+    updateStorageInfo();
+  });
+
+  renderWritings();
+
+  // ========================
+  // 💾 STORAGE USAGE METER
+  // ========================
   function getStorageSize(key) {
     const item = localStorage.getItem(key);
     return item ? new Blob([item]).size : 0;
@@ -182,7 +227,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  renderWritingHistory();
   updateStorageInfo();
 });
 </script>
