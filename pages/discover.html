@@ -78,34 +78,45 @@
 
     // Generic loader
     function showEntries(containerId, entries) {
-      const container = document.getElementById(containerId);
-      container.innerHTML = "";
-      if (!entries.length) {
-        container.innerHTML = "<p>No public entries yet.</p>";
-        return;
-      }
-      entries.forEach(doc => {
-        const data = doc.data();
-        const box = document.createElement("div");
-        box.className = "entry-box";
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
 
-        // Main text / content
-        const p = document.createElement("p");
-        p.className = "entry-text";
-        p.textContent = data.content ?? data.text ?? "";
+  if (!entries.length) {
+    container.innerHTML = "<p>No public entries yet.</p>";
+    return;
+  }
 
-        box.appendChild(p);
+  entries.forEach(doc => {
+    const data = doc.data();
+    const box = document.createElement("div");
+    box.className = "entry-box";
 
-        // Timestamp, optional
-        if (data.createdAt && data.createdAt.toDate) {
-          const dateEl = document.createElement("p");
-          dateEl.className = "writing-date";
-          dateEl.textContent = `Posted: ${data.createdAt.toDate().toLocaleString()}`;
-          box.appendChild(dateEl);
-        }
-        container.appendChild(box);
-      });
+    // 🔹 Title (ONLY for writings)
+    if (data.title) {
+      const titleEl = document.createElement("p");
+      titleEl.className = "writing-title";
+      titleEl.textContent = data.title;
+      box.appendChild(titleEl);
     }
+
+    // 🔹 Main content
+    const contentEl = document.createElement("p");
+    contentEl.className = "entry-text";
+    contentEl.textContent = data.content ?? data.text ?? "";
+    box.appendChild(contentEl);
+
+    // 🔹 Timestamp
+    if (data.createdAt && data.createdAt.toDate) {
+      const dateEl = document.createElement("p");
+      dateEl.className = "writing-date";
+      dateEl.textContent = `Posted: ${data.createdAt.toDate().toLocaleString()}`;
+      box.appendChild(dateEl);
+    }
+
+    container.appendChild(box);
+  });
+}
+
 
     // Fetch last 3 of a collection, ordered by createdAt desc
     async function fetchLatest(collectionName, containerId) {
@@ -133,8 +144,3 @@
 
 </body>
 </html>
-
-
-
-
-
