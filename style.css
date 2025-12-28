@@ -13,30 +13,37 @@ body {
   padding: 20px;
 }
 
-/* === MOBILE NAVBAR IMPROVEMENT === */
+/* === CLEANER MOBILE NAVBAR === */
 @media (max-width: 600px) {
   nav {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
     padding: 10px 0;
   }
 
   nav a {
-    display: block;
-    background-color: #333;
-    color: #fff;
-    padding: 10px 16px;
+    font-size: 0.95rem;
+    padding: 6px 10px;
     border-radius: 4px;
-    width: 90%;
-    text-align: center;
+    background-color: transparent;
+    color: #3f51b5;
+    border: 1px solid transparent;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   nav a:hover {
-    background-color: #444;
+    background-color: #e8eaf6;
+    color: #1a237e;
+  }
+
+  nav a.active {
+    font-weight: bold;
+    border-bottom: 2px solid #3f51b5;
   }
 }
+
 
 /* === HEADER + NAV === */
 header {
