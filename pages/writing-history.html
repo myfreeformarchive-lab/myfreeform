@@ -49,6 +49,21 @@
   
     <p>&copy; 2025 My Freeform. All rights reserved.</p>
   </footer>
+  
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBD-8hcoAuTFaAhgSy-WIyQX_iI37uokTw",
+    authDomain: "myfreeformarchive-8a786.firebaseapp.com",
+    projectId: "myfreeformarchive-8a786",
+    storageBucket: "myfreeformarchive-8a786.appspot.com",
+    messagingSenderId: "16237442482",
+    appId: "1:16237442482:web:424f8f2e344a58e7f6a0ab"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+</script>
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -82,14 +97,27 @@
           const delBtn = document.createElement("button");
           delBtn.className = "delete-entry-btn";
           delBtn.textContent = "Delete";
-          delBtn.onclick = () => {
-            if (confirm("Are you sure you want to delete this writing?")) {
-              allWritings.splice(index, 1);
-              localStorage.setItem("writings", JSON.stringify(allWritings));
-              renderWritingHistory();
-              updateStorageInfo();
-            }
-          };
+          delBtn.onclick = async () => {
+  if (!confirm("Are you sure you want to delete this writing?")) return;
+
+  const publicMode = localStorage.getItem("publicModeEnabled") === "true";
+
+  // 🔥 Delete from Firestore if public mode is on and firebaseId exists
+  if (publicMode && writing.firebaseId && typeof db !== "undefined") {
+    try {
+      await db.collection("publicWritings").doc(writing.firebaseId).delete();
+      console.log("🔥 Deleted from Firestore:", writing.firebaseId);
+    } catch (err) {
+      console.error("❌ Firebase delete failed:", err);
+    }
+  }
+
+  // 💾 Always delete locally
+  allWritings.splice(index, 1);
+  localStorage.setItem("writings", JSON.stringify(allWritings));
+  renderWritingHistory();
+  updateStorageInfo();
+};
 
           box.appendChild(title);
           box.appendChild(date);
@@ -138,4 +166,3 @@
   </script>
 </body>
 </html>
-
