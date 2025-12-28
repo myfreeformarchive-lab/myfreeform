@@ -47,29 +47,39 @@ if (addBeliefBtn && beliefInput) {
 
     const belief = { text };
 
-    try {
-      // 🔥 Save to Firebase if toggle is ON and db is defined
-      if (toggle && toggle.checked && typeof db !== "undefined") {
-        try {
-          const docRef = await db.collection("publicBeliefs").add({
-            content: text,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
+    console.log("💡 Saving belief:", text);
 
-          belief.firebaseId = docRef.id;
-          console.log("✅ Belief saved to Firestore:", docRef.id);
-        } catch (err) {
-          console.error("❌ Firebase error (belief):", err);
+    try {
+      // only attempt Firebase if public mode is on
+      if (toggle && toggle.checked) {
+        console.log("🔄 Public Mode is ON — attempting Firestore save...");
+
+        if (typeof db === "undefined") {
+          console.warn("⚠️ db is undefined — Firebase not initialized or script order issue.");
+        } else {
+          try {
+            const docRef = await db.collection("publicBeliefs").add({
+              content: text,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            belief.firebaseId = docRef.id;
+            console.log("✅ Firestore saved — ID:", belief.firebaseId);
+          } catch (firebaseErr) {
+            console.error("❌ Firebase saving error:", firebaseErr);
+          }
         }
+      } else {
+        console.log("ℹ️ Public Mode is OFF — skipping Firestore save.");
       }
 
-      // ✅ Only now push and save locally
+      // now save locally
       beliefs.push(belief);
       localStorage.setItem("beliefs", JSON.stringify(beliefs));
+      console.log("💾 Saved locally:", belief);
 
     } catch (e) {
       alert("⚠️ Storage full! Cannot save new belief.");
-      console.error(e);
+      console.error("LocalStorage error:", e);
       return;
     }
 
@@ -114,30 +124,40 @@ if (addProgressBtn && progressInput) {
     if (!text) return;
 
     const entry = { text };
+    console.log("💡 Saving in-progress thought:", text);
 
     try {
-      // 🔥 Save to Firebase FIRST (only if Public Mode is ON)
-      if (toggle && toggle.checked && typeof db !== "undefined") {
-        try {
-          const docRef = await db.collection("publicInProgress").add({
-            content: text,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
+      // 🔥 First, save to Firebase (if Public Mode is ON and db exists)
+      if (toggle && toggle.checked) {
+        console.log("🔄 Public Mode is ON — trying Firestore save...");
 
-          entry.firebaseId = docRef.id;
-          console.log("✅ In‑Progress saved to Firestore:", docRef.id);
-        } catch (err) {
-          console.error("❌ Firebase error (inProgress):", err);
+        if (typeof db === "undefined") {
+          console.warn("⚠️ Firebase 'db' not defined.");
+        } else {
+          try {
+            const docRef = await db.collection("publicInProgress").add({
+              content: text,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            entry.firebaseId = docRef.id;
+            console.log("✅ Firestore saved — ID:", entry.firebaseId);
+          } catch (firebaseErr) {
+            console.error("❌ Firebase error (inProgress):", firebaseErr);
+          }
         }
+      } else {
+        console.log("ℹ️ Public Mode is OFF — skipping Firebase.");
       }
 
-      // ✅ Only now save locally
+      // ✅ Then save to localStorage
       inProgress.push(entry);
       localStorage.setItem("inProgress", JSON.stringify(inProgress));
+      console.log("💾 Saved locally:", entry);
 
     } catch (e) {
       alert("⚠️ Storage full! Cannot save new entry.");
-      console.error("Storage limit reached:", e);
+      console.error("Storage error:", e);
       return;
     }
 
@@ -148,7 +168,6 @@ if (addProgressBtn && progressInput) {
 }
 
 renderProgress();
-
 
   // ========================
   // 💾 STORAGE USAGE METER
