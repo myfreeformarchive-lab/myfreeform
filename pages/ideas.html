@@ -64,37 +64,73 @@
     <p>&copy; 2025 My Freeform. All rights reserved.</p>
   </footer>
 
-  <script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBD-8hcoAuTFaAhgSy-WIyQX_iI37uokTw",
+    authDomain: "myfreeformarchive-8a786.firebaseapp.com",
+    projectId: "myfreeformarchive-8a786",
+    storageBucket: "myfreeformarchive-8a786.appspot.com",
+    messagingSenderId: "16237442482",
+    appId: "1:16237442482:web:424f8f2e344a58e7f6a0ab"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
   document.addEventListener("DOMContentLoaded", () => {
     const ideaInput = document.getElementById("ideaInput");
     const addIdeaBtn = document.getElementById("addIdeaBtn");
     const ideaList = document.getElementById("ideaList");
+    const toggle = document.getElementById("publicModeToggle");
 
     let ideas = JSON.parse(localStorage.getItem("ideas")) || [];
 
     const renderIdeas = () => {
       ideaList.innerHTML = "";
       const latestFive = ideas.slice(-5).reverse();
-      latestFive.forEach(text => {
+
+      latestFive.forEach(idea => {
+        const text = typeof idea === "string" ? idea : idea.content; // for both old and new formats
+
         const p = document.createElement("p");
         p.textContent = text;
-		p.className = "entry-box entry-text";
+        p.className = "entry-box entry-text";
         ideaList.appendChild(p);
       });
     };
 
-    addIdeaBtn.addEventListener("click", () => {
+    addIdeaBtn.addEventListener("click", async () => {
       const text = ideaInput.value.trim();
       if (!text) return;
 
-      ideas.push(text);
+      const ideaEntry = { content: text };
+
+      ideas.push(ideaEntry);
 
       try {
         localStorage.setItem("ideas", JSON.stringify(ideas));
+
+        if (toggle && toggle.checked) {
+          try {
+            const docRef = await addDoc(collection(db, "publicIdeas"), {
+              content: text,
+              createdAt: serverTimestamp()
+            });
+            ideaEntry.firebaseId = docRef.id;
+            localStorage.setItem("ideas", JSON.stringify(ideas));
+            console.log("✅ Idea saved to Firestore:", docRef.id);
+          } catch (err) {
+            console.error("❌ Firebase error (idea):", err);
+          }
+        }
+
       } catch (e) {
         alert("⚠️ Storage full! Cannot save new idea.");
         console.error("Storage limit reached for ideas:", e);
-        ideas.pop();
+        ideas.pop(); // rollback
         return;
       }
 
@@ -136,7 +172,7 @@
 
     updateStorageInfo();
   });
-  </script>
+</script>
+
 </body>
 </html>
-
