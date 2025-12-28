@@ -25,15 +25,15 @@ let beliefs = JSON.parse(localStorage.getItem("beliefs")) || [];
 const renderBeliefs = () => {
   if (!beliefList) return;
   beliefList.innerHTML = "";
-  const latestFive = beliefs.slice(-5).reverse();
 
+  const latestFive = beliefs.slice(-5).reverse();
   latestFive.forEach(item => {
     const box = document.createElement("div");
     box.className = "entry-box";
 
     const p = document.createElement("p");
     p.className = "entry-text";
-    p.textContent = item.text ?? item;
+    p.textContent = item.text;
 
     box.appendChild(p);
     beliefList.appendChild(box);
@@ -45,41 +45,33 @@ if (addBeliefBtn && beliefInput) {
     const text = beliefInput.value.trim();
     if (!text) return;
 
-    const belief = { text };
-
-    console.log("💡 Saving belief:", text);
+    // ✅ This object is what we store locally
+    const belief = {
+      text,
+      firebaseId: null // always exists, null by default
+    };
 
     try {
-      // only attempt Firebase if public mode is on
+      // 🔥 Save to Firebase ONLY if Public Mode is ON
       if (toggle && toggle.checked) {
-        console.log("🔄 Public Mode is ON — attempting Firestore save...");
+        if (typeof db !== "undefined") {
+          const docRef = await db.collection("publicBeliefs").add({
+            content: text,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
 
-        if (typeof db === "undefined") {
-          console.warn("⚠️ db is undefined — Firebase not initialized or script order issue.");
-        } else {
-          try {
-            const docRef = await db.collection("publicBeliefs").add({
-              content: text,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            belief.firebaseId = docRef.id;
-            console.log("✅ Firestore saved — ID:", belief.firebaseId);
-          } catch (firebaseErr) {
-            console.error("❌ Firebase saving error:", firebaseErr);
-          }
+          belief.firebaseId = docRef.id;
+          console.log("✅ Firestore saved, ID:", docRef.id);
         }
-      } else {
-        console.log("ℹ️ Public Mode is OFF — skipping Firestore save.");
       }
 
-      // now save locally
+      // 💾 Save locally (ALWAYS)
       beliefs.push(belief);
       localStorage.setItem("beliefs", JSON.stringify(beliefs));
-      console.log("💾 Saved locally:", belief);
 
     } catch (e) {
       alert("⚠️ Storage full! Cannot save new belief.");
-      console.error("LocalStorage error:", e);
+      console.error(e);
       return;
     }
 
@@ -103,15 +95,15 @@ let inProgress = JSON.parse(localStorage.getItem("inProgress")) || [];
 const renderProgress = () => {
   if (!progressList) return;
   progressList.innerHTML = "";
-  const latestFive = inProgress.slice(-5).reverse();
 
+  const latestFive = inProgress.slice(-5).reverse();
   latestFive.forEach(item => {
     const box = document.createElement("div");
     box.className = "entry-box";
 
     const p = document.createElement("p");
     p.className = "entry-text";
-    p.textContent = item.text ?? item;
+    p.textContent = item.text;
 
     box.appendChild(p);
     progressList.appendChild(box);
@@ -123,17 +115,18 @@ if (addProgressBtn && progressInput) {
     const text = progressInput.value.trim();
     if (!text) return;
 
-    const entry = { text };
+    // ✅ Always use this structure
+    const entry = {
+      text,
+      firebaseId: null
+    };
+
     console.log("💡 Saving in-progress thought:", text);
 
     try {
-      // 🔥 First, save to Firebase (if Public Mode is ON and db exists)
+      // 🔥 Save to Firebase only if toggle is ON
       if (toggle && toggle.checked) {
-        console.log("🔄 Public Mode is ON — trying Firestore save...");
-
-        if (typeof db === "undefined") {
-          console.warn("⚠️ Firebase 'db' not defined.");
-        } else {
+        if (typeof db !== "undefined") {
           try {
             const docRef = await db.collection("publicInProgress").add({
               content: text,
@@ -145,12 +138,14 @@ if (addProgressBtn && progressInput) {
           } catch (firebaseErr) {
             console.error("❌ Firebase error (inProgress):", firebaseErr);
           }
+        } else {
+          console.warn("⚠️ db is undefined. Firebase not ready.");
         }
       } else {
-        console.log("ℹ️ Public Mode is OFF — skipping Firebase.");
+        console.log("ℹ️ Public Mode OFF — skipping Firestore.");
       }
 
-      // ✅ Then save to localStorage
+      // 💾 Always save to localStorage
       inProgress.push(entry);
       localStorage.setItem("inProgress", JSON.stringify(inProgress));
       console.log("💾 Saved locally:", entry);
