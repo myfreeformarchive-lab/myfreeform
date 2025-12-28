@@ -63,8 +63,9 @@
         return;
       }
 
-      allBeliefs.slice().reverse().forEach((text, indexFromEnd) => {
+      allBeliefs.slice().reverse().forEach((item, indexFromEnd) => {
         const index = allBeliefs.length - 1 - indexFromEnd;
+        const text = typeof item === "string" ? item : item.text;
 
         const box = document.createElement("div");
         box.className = "entry-box";
@@ -126,6 +127,6 @@
   });
 </script>
 
+
 </body>
 </html>
-
