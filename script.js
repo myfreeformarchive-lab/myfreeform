@@ -1,8 +1,9 @@
 console.log("Philosophy archive loaded.");
+console.log("Firestore DB:", db);
 
 document.addEventListener("DOMContentLoaded", () => {
 	
-	const toggle = document.getElementById("publicModeToggle");
+const toggle = document.getElementById("publicModeToggle");
 const label = document.getElementById("publicModeLabel");
 
 if (toggle && label) {
@@ -13,131 +14,133 @@ if (toggle && label) {
   });
 }
 
-  // =======================
-  // 🔹 CORE BELIEFS LOGIC
-  // =======================
-  const beliefInput = document.getElementById("beliefInput");
-  const addBeliefBtn = document.getElementById("addBeliefBtn");
-  const beliefList = document.getElementById("beliefList");
+// =======================
+// 🔹 CORE BELIEFS LOGIC
+// =======================
+const beliefInput = document.getElementById("beliefInput");
+const addBeliefBtn = document.getElementById("addBeliefBtn");
+const beliefList = document.getElementById("beliefList");
 
-  let beliefs = JSON.parse(localStorage.getItem("beliefs")) || [];
+let beliefs = JSON.parse(localStorage.getItem("beliefs")) || [];
 
-  const renderBeliefs = () => {
-    if (!beliefList) return;
-    beliefList.innerHTML = "";
-    const latestFive = beliefs.slice(-5).reverse();
-    latestFive.forEach(text => {
-      const box = document.createElement("div");
-      box.className = "entry-box";
+const renderBeliefs = () => {
+  if (!beliefList) return;
+  beliefList.innerHTML = "";
+  const latestFive = beliefs.slice(-5).reverse();
 
-      const p = document.createElement("p");
-      p.className = "entry-text";
-      p.textContent = text;
+  latestFive.forEach(item => {
+    const box = document.createElement("div");
+    box.className = "entry-box";
 
-      box.appendChild(p);
-      beliefList.appendChild(box);
-    });
-  };
+    const p = document.createElement("p");
+    p.className = "entry-text";
+    p.textContent = item.text ?? item;
 
-  if (addBeliefBtn && beliefInput) {
-    addBeliefBtn.addEventListener("click", async () => {
-      const text = beliefInput.value.trim();
-      if (!text) return;
+    box.appendChild(p);
+    beliefList.appendChild(box);
+  });
+};
 
-      beliefs.push(text);
+if (addBeliefBtn && beliefInput) {
+  addBeliefBtn.addEventListener("click", async () => {
+    const text = beliefInput.value.trim();
+    if (!text) return;
 
-      try {
-  localStorage.setItem("beliefs", JSON.stringify(beliefs));
+    const belief = { text };
+    beliefs.push(belief);
 
-  if (toggle && toggle.checked) {
     try {
-      await db.collection("publicBeliefs").add({
-        content: text,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      console.log("✅ Belief also saved to Firestore");
-    } catch (err) {
-      console.error("❌ Firebase error (belief):", err);
+      localStorage.setItem("beliefs", JSON.stringify(beliefs));
+
+      if (toggle && toggle.checked) {
+        const docRef = await db.collection("publicBeliefs").add({
+          content: text,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        belief.firebaseId = docRef.id;
+        localStorage.setItem("beliefs", JSON.stringify(beliefs));
+        console.log("✅ Belief saved to Firestore:", docRef.id);
+      }
+
+    } catch (e) {
+      alert("⚠️ Storage full! Cannot save new belief.");
+      console.error(e);
+      beliefs.pop();
+      return;
     }
-  }
-} catch (e) {
-  alert("⚠️ Storage full! Cannot save new belief.");
-  console.error("Storage limit reached for beliefs:", e);
-  beliefs.pop(); // rollback
-  return;
+
+    beliefInput.value = "";
+    renderBeliefs();
+    updateStorageInfo();
+  });
 }
 
-      beliefInput.value = "";
-      renderBeliefs();
-      updateStorageInfo(); // ✅ update after saving
-    });
-  }
+renderBeliefs();
 
-  renderBeliefs();
+// ==========================
+// 🔸 IN PROGRESS LOGIC
+// ==========================
+const progressInput = document.getElementById("progressInput");
+const addProgressBtn = document.getElementById("addProgressBtn");
+const progressList = document.getElementById("progressList");
 
-  // ==========================
-  // 🔸 IN PROGRESS LOGIC
-  // ==========================
-  const progressInput = document.getElementById("progressInput");
-  const addProgressBtn = document.getElementById("addProgressBtn");
-  const progressList = document.getElementById("progressList");
+let inProgress = JSON.parse(localStorage.getItem("inProgress")) || [];
 
-  let inProgress = JSON.parse(localStorage.getItem("inProgress")) || [];
+const renderProgress = () => {
+  if (!progressList) return;
+  progressList.innerHTML = "";
+  const latestFive = inProgress.slice(-5).reverse();
 
-  const renderProgress = () => {
-    if (!progressList) return;
-    progressList.innerHTML = "";
-    const latestFive = inProgress.slice(-5).reverse();
-    latestFive.forEach(text => {
-      const box = document.createElement("div");
-      box.className = "entry-box";
+  latestFive.forEach(item => {
+    const box = document.createElement("div");
+    box.className = "entry-box";
 
-      const p = document.createElement("p");
-      p.className = "entry-text";
-      p.textContent = text;
+    const p = document.createElement("p");
+    p.className = "entry-text";
+    p.textContent = item.text ?? item;
 
-      box.appendChild(p);
-      progressList.appendChild(box);
-    });
-  };
+    box.appendChild(p);
+    progressList.appendChild(box);
+  });
+};
 
-  if (addProgressBtn && progressInput) {
-    addProgressBtn.addEventListener("click", async () => {
-      const text = progressInput.value.trim();
-      if (!text) return;
+if (addProgressBtn && progressInput) {
+  addProgressBtn.addEventListener("click", async () => {
+    const text = progressInput.value.trim();
+    if (!text) return;
 
-      inProgress.push(text);
+    const entry = { text };
+    inProgress.push(entry);
 
-      try {
-  localStorage.setItem("inProgress", JSON.stringify(inProgress));
-
-  // 🔥 Save to Firebase ONLY if Public Mode is ON
-  if (toggle && toggle.checked) {
     try {
-      await db.collection("publicInProgress").add({
-        content: text,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      console.log("✅ In‑Progress thought saved to Firestore");
-    } catch (err) {
-      console.error("❌ Firebase error (inProgress):", err);
-    }
-  }
+      localStorage.setItem("inProgress", JSON.stringify(inProgress));
 
-} catch (e) {
-  alert("⚠️ Storage full! Cannot save new idea.");
-  console.error("Storage limit reached for inProgress:", e);
-  inProgress.pop(); // rollback
-  return;
+      if (toggle && toggle.checked) {
+        const docRef = await db.collection("publicInProgress").add({
+          content: text,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        entry.firebaseId = docRef.id;
+        localStorage.setItem("inProgress", JSON.stringify(inProgress));
+        console.log("✅ In‑Progress saved to Firestore:", docRef.id);
+      }
+
+    } catch (e) {
+      alert("⚠️ Storage full! Cannot save new entry.");
+      console.error("Storage limit reached:", e);
+      inProgress.pop();
+      return;
+    }
+
+    progressInput.value = "";
+    renderProgress();
+    updateStorageInfo();
+  });
 }
 
-      progressInput.value = "";
-      renderProgress();
-      updateStorageInfo(); // ✅ update after saving
-    });
-  }
-
-  renderProgress();
+renderProgress();
 
   // ========================
   // 💾 STORAGE USAGE METER
