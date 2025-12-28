@@ -47,7 +47,6 @@ if (addBeliefBtn && beliefInput) {
     if (!text) return;
 
     const belief = { text };
-    beliefs.push(belief);
 
     try {
       localStorage.setItem("beliefs", JSON.stringify(beliefs));
@@ -59,9 +58,11 @@ if (addBeliefBtn && beliefInput) {
         });
 
         belief.firebaseId = docRef.id;
-        localStorage.setItem("beliefs", JSON.stringify(beliefs));
         console.log("✅ Belief saved to Firestore:", docRef.id);
       }
+	  
+	  beliefs.push(belief);
+	  localStorage.setItem("beliefs", JSON.stringify(beliefs));
 
     } catch (e) {
       alert("⚠️ Storage full! Cannot save new belief.");
@@ -111,7 +112,6 @@ if (addProgressBtn && progressInput) {
     if (!text) return;
 
     const entry = { text };
-    inProgress.push(entry);
 
     try {
       localStorage.setItem("inProgress", JSON.stringify(inProgress));
@@ -123,9 +123,11 @@ if (addProgressBtn && progressInput) {
         });
 
         entry.firebaseId = docRef.id;
-        localStorage.setItem("inProgress", JSON.stringify(inProgress));
         console.log("✅ In‑Progress saved to Firestore:", docRef.id);
       }
+	  
+	  inProgress.push(entry);
+	  localStorage.setItem("inProgress", JSON.stringify(inProgress));
 
     } catch (e) {
       alert("⚠️ Storage full! Cannot save new entry.");
