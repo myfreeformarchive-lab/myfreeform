@@ -1,6 +1,17 @@
 console.log("Philosophy archive loaded.");
 
 document.addEventListener("DOMContentLoaded", () => {
+	
+	const toggle = document.getElementById("publicModeToggle");
+const label = document.getElementById("publicModeLabel");
+
+if (toggle && label) {
+  toggle.addEventListener("change", () => {
+    label.textContent = toggle.checked
+      ? "Public Mode: ON"
+      : "Public Mode: OFF";
+  });
+}
 
   // =======================
   // 🔹 CORE BELIEFS LOGIC
@@ -29,20 +40,32 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   if (addBeliefBtn && beliefInput) {
-    addBeliefBtn.addEventListener("click", () => {
+    addBeliefBtn.addEventListener("click", async () => {
       const text = beliefInput.value.trim();
       if (!text) return;
 
       beliefs.push(text);
 
       try {
-        localStorage.setItem("beliefs", JSON.stringify(beliefs));
-      } catch (e) {
-        alert("⚠️ Storage full! Cannot save new belief.");
-        console.error("Storage limit reached for beliefs:", e);
-        beliefs.pop(); // rollback
-        return;
-      }
+  localStorage.setItem("beliefs", JSON.stringify(beliefs));
+
+  if (toggle && toggle.checked) {
+    try {
+      await db.collection("publicBeliefs").add({
+        content: text,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      console.log("✅ Belief also saved to Firestore");
+    } catch (err) {
+      console.error("❌ Firebase error (belief):", err);
+    }
+  }
+} catch (e) {
+  alert("⚠️ Storage full! Cannot save new belief.");
+  console.error("Storage limit reached for beliefs:", e);
+  beliefs.pop(); // rollback
+  return;
+}
 
       beliefInput.value = "";
       renderBeliefs();
@@ -79,20 +102,34 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   if (addProgressBtn && progressInput) {
-    addProgressBtn.addEventListener("click", () => {
+    addProgressBtn.addEventListener("click", async () => {
       const text = progressInput.value.trim();
       if (!text) return;
 
       inProgress.push(text);
 
       try {
-        localStorage.setItem("inProgress", JSON.stringify(inProgress));
-      } catch (e) {
-        alert("⚠️ Storage full! Cannot save new idea.");
-        console.error("Storage limit reached for inProgress:", e);
-        inProgress.pop(); // rollback
-        return;
-      }
+  localStorage.setItem("inProgress", JSON.stringify(inProgress));
+
+  // 🔥 Save to Firebase ONLY if Public Mode is ON
+  if (toggle && toggle.checked) {
+    try {
+      await db.collection("publicInProgress").add({
+        content: text,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      console.log("✅ In‑Progress thought saved to Firestore");
+    } catch (err) {
+      console.error("❌ Firebase error (inProgress):", err);
+    }
+  }
+
+} catch (e) {
+  alert("⚠️ Storage full! Cannot save new idea.");
+  console.error("Storage limit reached for inProgress:", e);
+  inProgress.pop(); // rollback
+  return;
+}
 
       progressInput.value = "";
       renderProgress();
