@@ -48,25 +48,28 @@ if (addBeliefBtn && beliefInput) {
     const belief = { text };
 
     try {
-      localStorage.setItem("beliefs", JSON.stringify(beliefs));
+      // 🔥 Save to Firebase if toggle is ON and db is defined
+      if (toggle && toggle.checked && typeof db !== "undefined") {
+        try {
+          const docRef = await db.collection("publicBeliefs").add({
+            content: text,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
 
-      if (toggle && toggle.checked) {
-        const docRef = await db.collection("publicBeliefs").add({
-          content: text,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        belief.firebaseId = docRef.id;
-        console.log("✅ Belief saved to Firestore:", docRef.id);
+          belief.firebaseId = docRef.id;
+          console.log("✅ Belief saved to Firestore:", docRef.id);
+        } catch (err) {
+          console.error("❌ Firebase error (belief):", err);
+        }
       }
-	  
-	  beliefs.push(belief);
-	  localStorage.setItem("beliefs", JSON.stringify(beliefs));
+
+      // ✅ Only now push and save locally
+      beliefs.push(belief);
+      localStorage.setItem("beliefs", JSON.stringify(beliefs));
 
     } catch (e) {
       alert("⚠️ Storage full! Cannot save new belief.");
       console.error(e);
-      beliefs.pop();
       return;
     }
 
@@ -113,25 +116,28 @@ if (addProgressBtn && progressInput) {
     const entry = { text };
 
     try {
-      localStorage.setItem("inProgress", JSON.stringify(inProgress));
+      // 🔥 Save to Firebase FIRST (only if Public Mode is ON)
+      if (toggle && toggle.checked && typeof db !== "undefined") {
+        try {
+          const docRef = await db.collection("publicInProgress").add({
+            content: text,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
 
-      if (toggle && toggle.checked) {
-        const docRef = await db.collection("publicInProgress").add({
-          content: text,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        entry.firebaseId = docRef.id;
-        console.log("✅ In‑Progress saved to Firestore:", docRef.id);
+          entry.firebaseId = docRef.id;
+          console.log("✅ In‑Progress saved to Firestore:", docRef.id);
+        } catch (err) {
+          console.error("❌ Firebase error (inProgress):", err);
+        }
       }
-	  
-	  inProgress.push(entry);
-	  localStorage.setItem("inProgress", JSON.stringify(inProgress));
+
+      // ✅ Only now save locally
+      inProgress.push(entry);
+      localStorage.setItem("inProgress", JSON.stringify(inProgress));
 
     } catch (e) {
       alert("⚠️ Storage full! Cannot save new entry.");
       console.error("Storage limit reached:", e);
-      inProgress.pop();
       return;
     }
 
@@ -142,6 +148,7 @@ if (addProgressBtn && progressInput) {
 }
 
 renderProgress();
+
 
   // ========================
   // 💾 STORAGE USAGE METER
