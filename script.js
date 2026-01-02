@@ -316,14 +316,15 @@ const historyPages = {
   }
 };
 
-Object.entries(historyPages).forEach(([filename, { key, containerId, firebaseCol, extractText }]) => {
-  const currentFile = path.split("/").pop();
-  if (currentFile !== filename) return;
+const currentFile = path.split("/").pop();
+
+if (Object.keys(historyPages).includes(currentFile)) {
+  const { key, containerId, firebaseCol, extractText } = historyPages[currentFile];
 
   const container = document.getElementById(containerId);
-  const entries = JSON.parse(localStorage.getItem(key)) || [];
+  let entries = JSON.parse(localStorage.getItem(key)) || [];
 
-  const render = () => {
+  const renderHistory = () => {
     container.innerHTML = "";
 
     if (!entries.length) {
@@ -331,8 +332,8 @@ Object.entries(historyPages).forEach(([filename, { key, containerId, firebaseCol
       return;
     }
 
-    entries.slice().reverse().forEach((item, iFromEnd) => {
-      const index = entries.length - 1 - iFromEnd;
+    entries.slice().reverse().forEach((item, indexFromEnd) => {
+      const index = entries.length - 1 - indexFromEnd;
 
       const box = document.createElement("div");
       box.className = "entry-box";
@@ -360,7 +361,7 @@ Object.entries(historyPages).forEach(([filename, { key, containerId, firebaseCol
 
         entries.splice(index, 1);
         localStorage.setItem(key, JSON.stringify(entries));
-        render();
+        renderHistory();
         updateStorageInfo();
       };
 
@@ -370,9 +371,7 @@ Object.entries(historyPages).forEach(([filename, { key, containerId, firebaseCol
     });
   };
 
-  render();
+  renderHistory();
   updateStorageInfo();
-});
-  
-  
+} 
 });
