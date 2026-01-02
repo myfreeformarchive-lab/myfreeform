@@ -41,7 +41,7 @@
     <p><strong>Local by Default:</strong> All entries are saved in your browser unless you choose to share them.</p>
     <ul>
       <li><strong>Private by Default</strong> – Your entries stay on your device unless Public Mode is enabled.</li>
-      <li><strong>Optional Sharing</strong> – Enable Public Mode to upload selected entries to a public archive.</li>
+      <li><strong>Optional Sharing</strong> – Enable Public Mode to upload entries to a public archive.</li>
       <li><strong>Offline-Friendly</strong> – Works without internet once loaded.</li>
       <li><strong>5MB Limit</strong> – Uses browser local storage (~5MB available).</li>
       <li><strong>No Automatic Backup</strong> – Clearing browser data will erase your entries unless shared.</li>
@@ -52,116 +52,23 @@
     <p>&copy; 2026 My Freeform. All rights reserved.</p>
   </footer>
   
-  <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyBD-8hcoAuTFaAhgSy-WIyQX_iI37uokTw",
     authDomain: "myfreeformarchive-8a786.firebaseapp.com",
     projectId: "myfreeformarchive-8a786",
-    storageBucket: "myfreeformarchive-8a786.firebasestorage.app",
+    storageBucket: "myfreeformarchive-8a786.appspot.com",
     messagingSenderId: "16237442482",
     appId: "1:16237442482:web:424f8f2e344a58e7f6a0ab"
   };
-
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 </script>
 
-
-  <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const container = document.getElementById("fullBeliefList");
-    let allBeliefs = JSON.parse(localStorage.getItem("beliefs")) || [];
-
-    const renderBeliefHistory = () => {
-      container.innerHTML = "";
-
-      if (allBeliefs.length === 0) {
-        container.innerHTML = "<p>No beliefs recorded yet.</p>";
-        return;
-      }
-
-      allBeliefs.slice().reverse().forEach((item, indexFromEnd) => {
-        const index = allBeliefs.length - 1 - indexFromEnd;
-        const text = typeof item === "string" ? item : item.text;
-
-        const box = document.createElement("div");
-        box.className = "entry-box";
-
-        const p = document.createElement("p");
-        p.className = "entry-text";
-        p.textContent = text;
-
-        const delBtn = document.createElement("button");
-        delBtn.className = "delete-entry-btn";
-        delBtn.textContent = "Delete";
-        delBtn.onclick = async () => {
-  if (!confirm("Are you sure you want to delete this belief?")) return;
-
-  const item = allBeliefs[index];
-  const publicMode = localStorage.getItem("publicModeEnabled") === "true";
-
-  // 🔥 Delete from Firestore if public mode is on and ID is present
-  if (publicMode && item.firebaseId && typeof db !== "undefined") {
-    try {
-      await db.collection("publicBeliefs").doc(item.firebaseId).delete();
-      console.log("🔥 Deleted from Firestore:", item.firebaseId);
-    } catch (err) {
-      console.error("❌ Firebase delete failed:", err);
-    }
-  }
-
-  // 💾 Always delete locally
-  allBeliefs.splice(index, 1);
-  localStorage.setItem("beliefs", JSON.stringify(allBeliefs));
-  renderBeliefHistory();
-  updateStorageInfo();
-};
-
-
-        box.appendChild(p);
-        box.appendChild(delBtn);
-        container.appendChild(box);
-      });
-    };
-
-    // ========================
-    // 💾 STORAGE USAGE DISPLAY
-    // ========================
-    function getStorageSize(key) {
-      const item = localStorage.getItem(key);
-      return item ? new Blob([item]).size : 0;
-    }
-
-    function updateStorageInfo() {
-      const beliefsSize = getStorageSize("beliefs");
-      const progressSize = getStorageSize("inProgress");
-      const totalUsed = beliefsSize + progressSize;
-
-      const maxStorage = 5 * 1024 * 1024;
-      const usedKB = (totalUsed / 1024).toFixed(1);
-      const freeKB = ((maxStorage - totalUsed) / 1024).toFixed(1);
-      const percentUsed = ((totalUsed / maxStorage) * 100).toFixed(2);
-
-      const infoEl = document.getElementById("storageInfo");
-      if (infoEl) {
-        infoEl.innerHTML = `
-          <strong>Storage Used:</strong> ${usedKB} KB 
-          &nbsp;|&nbsp; 
-          <strong>Free:</strong> ${freeKB} KB 
-          &nbsp;|&nbsp; 
-          <strong>${percentUsed}% of 5MB</strong>
-        `;
-      }
-    }
-
-    renderBeliefHistory();
-    updateStorageInfo();
-  });
-</script>
+<!-- 2) YOUR APP LOGIC -->
+<script src="script.js"></script>
 
 
 </body>
