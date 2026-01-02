@@ -317,7 +317,8 @@ const historyPages = {
 };
 
 Object.entries(historyPages).forEach(([filename, { key, containerId, firebaseCol, extractText }]) => {
-  if (!path.includes(filename)) return;
+  const currentFile = path.split("/").pop();
+  if (currentFile !== filename) return;
 
   const container = document.getElementById(containerId);
   const entries = JSON.parse(localStorage.getItem(key)) || [];
