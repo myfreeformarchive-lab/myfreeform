@@ -65,7 +65,7 @@
     <p><strong>Local by Default:</strong> All entries are saved in your browser unless you choose to share them.</p>
     <ul>
       <li><strong>Private by Default</strong> – Your entries stay on your device unless Public Mode is enabled.</li>
-      <li><strong>Optional Sharing</strong> – Enable Public Mode to upload selected entries to a public archive.</li>
+      <li><strong>Optional Sharing</strong> – Enable Public Mode to upload entries to a public archive.</li>
       <li><strong>Offline-Friendly</strong> – Works without internet once loaded.</li>
       <li><strong>5MB Limit</strong> – Uses browser local storage (~5MB available).</li>
       <li><strong>No Automatic Backup</strong> – Clearing browser data will erase your entries unless shared.</li>
@@ -74,129 +74,28 @@
 </div>
   
     <p>&copy; 2026 My Freeform. All rights reserved.</p>
-  </footer>
+  </footer> 
+  
+<!-- 1) FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBD-8hcoAuTFaAhgSy-WIyQX_iI37uokTw",
-  authDomain: "myfreeformarchive-8a786.firebaseapp.com",
-  projectId: "myfreeformarchive-8a786",
-  storageBucket: "myfreeformarchive-8a786.appspot.com",
-  messagingSenderId: "16237442482",
-  appId: "1:16237442482:web:424f8f2e344a58e7f6a0ab"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-document.addEventListener("DOMContentLoaded", () => {
-  const ideaInput = document.getElementById("ideaInput");
-  const addIdeaBtn = document.getElementById("addIdeaBtn");
-  const ideaList = document.getElementById("ideaList");
-  const toggle = document.getElementById("publicModeToggle");
-  const toggleLabel = document.getElementById("publicModeLabel");
-
-  let ideas = JSON.parse(localStorage.getItem("ideas")) || [];
-
-  // ✅ Restore toggle from session
-  if (toggle) {
-    const savedState = localStorage.getItem("publicModeEnabled") === "true";
-    toggle.checked = savedState;
-    toggleLabel.textContent = savedState ? "Public Mode: ON" : "Public Mode: OFF";
-
-    toggle.addEventListener("change", () => {
-      const on = toggle.checked;
-      localStorage.setItem("publicModeEnabled", on);
-      toggleLabel.textContent = on ? "Public Mode: ON" : "Public Mode: OFF";
-    });
-  }
-
-  const renderIdeas = () => {
-    ideaList.innerHTML = "";
-    const latestFive = ideas.slice(-5).reverse();
-
-    latestFive.forEach(idea => {
-      const text = typeof idea === "string" ? idea : idea.content;
-
-      const p = document.createElement("p");
-      p.textContent = text;
-      p.className = "entry-box entry-text";
-      ideaList.appendChild(p);
-    });
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBD-8hcoAuTFaAhgSy-WIyQX_iI37uokTw",
+    authDomain: "myfreeformarchive-8a786.firebaseapp.com",
+    projectId: "myfreeformarchive-8a786",
+    storageBucket: "myfreeformarchive-8a786.firebasestorage.app",
+    messagingSenderId: "16237442482",
+    appId: "1:16237442482:web:424f8f2e344a58e7f6a0ab"
   };
 
-  addIdeaBtn.addEventListener("click", async () => {
-    const text = ideaInput.value.trim();
-    if (!text) return;
-
-    const ideaEntry = { content: text, firebaseId: null };
-
-    const publicMode = localStorage.getItem("publicModeEnabled") === "true";
-
-    try {
-      if (publicMode) {
-        try {
-          const docRef = await addDoc(collection(db, "publicIdeas"), {
-            content: text,
-            createdAt: serverTimestamp()
-          });
-          ideaEntry.firebaseId = docRef.id;
-          console.log("✅ Saved to Firestore:", docRef.id);
-        } catch (err) {
-          console.error("❌ Firebase error:", err);
-        }
-      }
-
-      ideas.push(ideaEntry);
-      localStorage.setItem("ideas", JSON.stringify(ideas));
-    } catch (e) {
-      alert("⚠️ Storage full! Cannot save new idea.");
-      console.error("Storage error:", e);
-      return;
-    }
-
-    ideaInput.value = "";
-    renderIdeas();
-    updateStorageInfo();
-  });
-
-  renderIdeas();
-
-  function getStorageSize(key) {
-    const item = localStorage.getItem(key);
-    return item ? new Blob([item]).size : 0;
-  }
-
-  function updateStorageInfo() {
-    const beliefsSize = getStorageSize("beliefs");
-    const progressSize = getStorageSize("inProgress");
-    const ideasSize = getStorageSize("ideas");
-    const totalUsed = beliefsSize + progressSize + ideasSize;
-
-    const maxStorage = 5 * 1024 * 1024;
-    const usedKB = (totalUsed / 1024).toFixed(1);
-    const freeKB = ((maxStorage - totalUsed) / 1024).toFixed(1);
-    const percentUsed = ((totalUsed / maxStorage) * 100).toFixed(2);
-
-    const infoEl = document.getElementById("storageInfo");
-    if (infoEl) {
-      infoEl.innerHTML = `
-        <strong>Storage Used:</strong> ${usedKB} KB
-        &nbsp;|&nbsp;
-        <strong>Free:</strong> ${freeKB} KB
-        &nbsp;|&nbsp;
-        <strong>${percentUsed}% of 5MB</strong>
-      `;
-    }
-  }
-
-  updateStorageInfo();
-});
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 </script>
 
+<!-- 2) YOUR APP LOGIC -->
+<script src="script.js"></script>
 
 </body>
 </html>
