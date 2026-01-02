@@ -60,7 +60,7 @@
     <p><strong>Local by Default:</strong> All entries are saved in your browser unless you choose to share them.</p>
     <ul>
       <li><strong>Private by Default</strong> – Your entries stay on your device unless Public Mode is enabled.</li>
-      <li><strong>Optional Sharing</strong> – Enable Public Mode to upload selected entries to a public archive.</li>
+      <li><strong>Optional Sharing</strong> – Enable Public Mode to upload entries to a public archive.</li>
       <li><strong>Offline-Friendly</strong> – Works without internet once loaded.</li>
       <li><strong>5MB Limit</strong> – Uses browser local storage (~5MB available).</li>
       <li><strong>No Automatic Backup</strong> – Clearing browser data will erase your entries unless shared.</li>
@@ -70,169 +70,27 @@
   
     <p>&copy; 2026 My Freeform. All rights reserved.</p>
   </footer>
-
-<!-- Firebase SDKs (load first) -->
+  
+<!-- 1) FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
 <script>
-  // Initialize Firebase
   const firebaseConfig = {
     apiKey: "AIzaSyBD-8hcoAuTFaAhgSy-WIyQX_iI37uokTw",
     authDomain: "myfreeformarchive-8a786.firebaseapp.com",
     projectId: "myfreeformarchive-8a786",
-    storageBucket: "myfreeformarchive-8a786.appspot.com",
+    storageBucket: "myfreeformarchive-8a786.firebasestorage.app",
     messagingSenderId: "16237442482",
     appId: "1:16237442482:web:424f8f2e344a58e7f6a0ab"
   };
-  
+
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 </script>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const toggle = document.getElementById("publicModeToggle");
-  const label = document.getElementById("publicModeLabel");
-  const PUBLIC_MODE_KEY = "publicModeEnabled";
-
-  // 📌 Persist Toggle State
-  if (toggle && label) {
-    const saved = localStorage.getItem(PUBLIC_MODE_KEY) === "true";
-    toggle.checked = saved;
-    label.textContent = saved ? "Public Mode: ON" : "Public Mode: OFF";
-
-    toggle.addEventListener("change", () => {
-      const on = toggle.checked;
-      localStorage.setItem(PUBLIC_MODE_KEY, on);
-      label.textContent = on ? "Public Mode: ON" : "Public Mode: OFF";
-    });
-  }
-
-  const writingTitle = document.getElementById("writingTitle");
-  const writingContent = document.getElementById("writingContent");
-  const addWritingBtn = document.getElementById("addWritingBtn");
-  const writingList = document.getElementById("writingList");
-
-  let writings = JSON.parse(localStorage.getItem("writings")) || [];
-
-  const renderWritings = () => {
-    writingList.innerHTML = "";
-    const latestFive = writings.slice(-5).reverse();
-
-    latestFive.forEach(entry => {
-      const titleText = typeof entry === "string" ? entry : entry.title;
-      const contentText = entry.content ?? "";
-
-      const box = document.createElement("div");
-      box.className = "entry-box";
-
-      const titleEl = document.createElement("p");
-      titleEl.className = "entry-text writing-title";
-      titleEl.textContent = titleText;
-
-      const dateEl = document.createElement("p");
-      dateEl.className = "entry-text writing-date";
-      dateEl.textContent = `Date: ${entry.date ?? ""}`;
-
-      const contentEl = document.createElement("p");
-      contentEl.className = "entry-text writing-content";
-      contentEl.textContent = contentText.length > 200
-        ? contentText.substring(0, 200) + "..."
-        : contentText;
-
-      box.appendChild(titleEl);
-      box.appendChild(dateEl);
-      box.appendChild(contentEl);
-
-      writingList.appendChild(box);
-    });
-  };
-
-  addWritingBtn.addEventListener("click", async () => {
-    const title = writingTitle.value.trim();
-    const content = writingContent.value.trim();
-    if (!title || !content) return;
-
-    const entry = {
-      title,
-      content,
-      date: new Date().toLocaleDateString(),
-      firebaseId: null
-    };
-
-    const publicMode = localStorage.getItem(PUBLIC_MODE_KEY) === "true";
-
-    try {
-      // 🔥 Save to Firestore if public mode ON
-      if (publicMode && typeof db !== "undefined") {
-        try {
-          const docRef = await db.collection("publicWritings").add({
-            title,
-            content,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          entry.firebaseId = docRef.id;
-          console.log("✅ Writing saved to Firestore:", docRef.id);
-        } catch (firebaseErr) {
-          console.error("❌ Firebase error (writing):", firebaseErr);
-        }
-      }
-
-      // 💾 Always save locally
-      writings.push(entry);
-      localStorage.setItem("writings", JSON.stringify(writings));
-
-    } catch (e) {
-      alert("⚠️ Storage full! Cannot save new writing.");
-      console.error("Local Storage error:", e);
-      return;
-    }
-
-    writingTitle.value = "";
-    writingContent.value = "";
-    renderWritings();
-    updateStorageInfo();
-  });
-
-  renderWritings();
-
-  // ========================
-  // 💾 STORAGE USAGE METER
-  // ========================
-  function getStorageSize(key) {
-    const item = localStorage.getItem(key);
-    return item ? new Blob([item]).size : 0;
-  }
-
-  function updateStorageInfo() {
-    const beliefsSize = getStorageSize("beliefs");
-    const progressSize = getStorageSize("inProgress");
-    const ideasSize = getStorageSize("ideas");
-    const writingsSize = getStorageSize("writings");
-    const totalUsed = beliefsSize + progressSize + ideasSize + writingsSize;
-
-    const maxStorage = 5 * 1024 * 1024;
-    const usedKB = (totalUsed / 1024).toFixed(1);
-    const freeKB = ((maxStorage - totalUsed) / 1024).toFixed(1);
-    const percentUsed = ((totalUsed / maxStorage) * 100).toFixed(2);
-
-    const infoEl = document.getElementById("storageInfo");
-    if (infoEl) {
-      infoEl.innerHTML = `
-        <strong>Storage Used:</strong> ${usedKB} KB 
-        &nbsp;|&nbsp; 
-        <strong>Free:</strong> ${freeKB} KB 
-        &nbsp;|&nbsp; 
-        <strong>${percentUsed}% of 5MB</strong>
-      `;
-    }
-  }
-
-  updateStorageInfo();
-});
-</script>
-
+<!-- 2) YOUR APP LOGIC -->
+<script src="script.js"></script>
 
 </body>
 </html>
