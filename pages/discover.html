@@ -51,23 +51,28 @@
     </section>
   </main>
 
-  <footer>
-  
-<div class="disclaimer-popover">
-  <span class="disclaimer-label">Disclaimer</span>
-  <div class="disclaimer-box">
-    <p><strong>Local by Default:</strong> All entries are saved in your browser unless you choose to share them.</p>
-    <ul>
-      <li><strong>Private by Default</strong> – Your entries stay on your device unless Public Mode is enabled.</li>
-      <li><strong>Optional Sharing</strong> – Enable Public Mode to upload entries to a public archive.</li>
-      <li><strong>5MB Limit</strong> – Uses browser local storage (~5MB available).</li>
-      <li><strong>No Automatic Backup</strong> – Clearing browser data will erase your entries unless shared.</li>
-    </ul>
+<footer>
+
+  <div class="disclaimer-popover">
+    <span class="disclaimer-label">Disclaimer</span>
+    <div class="disclaimer-box">
+      <p><strong>Local by Default:</strong> All entries are saved in your browser unless you choose to share them.</p>
+      <ul>
+        <li><strong>Private by Default</strong> – Your entries stay on your device unless Public Mode is enabled.</li>
+        <li><strong>Optional Sharing</strong> – Enable Public Mode to upload entries to a public archive.</li>
+        <li><strong>5MB Limit</strong> – Uses browser local storage (~5MB available).</li>
+        <li><strong>No Automatic Backup</strong> – Clearing browser data will erase your entries unless shared.</li>
+      </ul>
+    </div>
   </div>
-</div>
-  
-    <p>&copy; 2026 My Freeform. All rights reserved.</p>
-  </footer>
+
+  <p>&copy; 2025–<span id="year"></span> My Freeform. All rights reserved.</p>
+
+</footer>
+
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+</script>
 
   <!-- FIREBASE -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -159,3 +164,4 @@
 
 </body>
 </html>
+
