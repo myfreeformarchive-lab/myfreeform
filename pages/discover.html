@@ -10,6 +10,27 @@
   <link rel="stylesheet" href="../style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
+.pagination {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+.pagination button {
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  background-color: white;
+  cursor: pointer;
+  color: black;
+}
+
+.pagination button.active {
+  background-color: #333;
+  color: white;
+  border-color: #333;
+}  
+  
 .block {
   min-height: 500px; /* Adjust to your content's average size */
   display: flex;
