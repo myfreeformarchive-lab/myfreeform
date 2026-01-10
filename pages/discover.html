@@ -82,9 +82,9 @@
 
 /* Improved Close Button */
 .modal-close {
-  position: absolute;
-  top: 15px;
-  right: 15px;
+  position: fixed;
+  top: 20px;
+  right: 20px;
   border: none;
   background-color: #3F51B5;
   color: #fff;
@@ -94,7 +94,7 @@
   border-radius: 4px;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
   cursor: pointer;
-  z-index: 10000;
+  z-index: 10001; /* Above modal content */
   transition: background-color 0.2s, color 0.2s;
 }
 
@@ -424,8 +424,8 @@ submitComment.addEventListener("click", async () => {
   
   <!-- ENTRY DETAIL MODAL -->
 <div id="entryModal" class="modal hidden">
+  <button id="closeModal" class="modal-close">✕</button> <!-- Moved here -->
   <div class="modal-content">
-    <button id="closeModal" class="modal-close">✕</button>
     <div id="modalEntry"></div>
     <div id="commentsSection" class="comments-section">
       <h4>Comments</h4>
