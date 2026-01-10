@@ -335,27 +335,6 @@ input:checked + .slider:before {
   transform: translateX(20px);
 }
 
-.pagination {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-      flex-wrap: wrap;
-    }
-
-.pagination button {
-  padding: 4px 8px;
-  border: 1px solid #ccc;
-  background-color: white;
-  cursor: pointer;
-  color: black;
-}
-
-.pagination button.active {
-  background-color: #333;
-  color: white;
-  border-color: #333;
-}
-
 /* —— ENTRY MODAL —— */
 .modal {
   position: fixed;
