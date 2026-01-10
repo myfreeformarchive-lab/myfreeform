@@ -47,6 +47,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
     console.log(`[PRUNE] ${collectionName}: deleted ${docsToDelete.length}`);
   }
+  
+  // 🔧 Prune comments in subcollections
+async function pruneCommentsIn(collectionName) {
+  const parentCollection = db.collectionGroup(`${collectionName}`);
+
+  const parentDocsSnapshot = await db.collection(collectionName.replace("_comments", "")).get();
+
+  for (const parentDoc of parentDocsSnapshot.docs) {
+    const commentsRef = db
+      .collection(collectionName)
+      .doc(parentDoc.id)
+      .collection("comments")
+      .orderBy("createdAt", "desc");
+
+    const commentsSnapshot = await commentsRef.get();
+    if (commentsSnapshot.size <= 30) continue;
+
+    const commentsToDelete = commentsSnapshot.docs.slice(30);
+    for (const commentDoc of commentsToDelete) {
+      await commentDoc.ref.delete();
+    }
+
+    console.log(`[PRUNE] ${collectionName}/${parentDoc.id}/comments: deleted ${commentsToDelete.length}`);
+  }
+}
 
   // ========== SHARED HELPERS ==========
   const getStorageSize = (key) => {
@@ -370,4 +395,3 @@ document.addEventListener("DOMContentLoaded", () => {
   // Final shared storage meter update
   updateStorageInfo();
 });
-
