@@ -41,8 +41,8 @@ document.addEventListener("DOMContentLoaded", () => {
       .orderBy("createdAt", "desc")
       .get();
 
-    if (snapshot.size <= 6) return;
-    const docsToDelete = snapshot.docs.slice(6);
+    if (snapshot.size <= 30) return;
+    const docsToDelete = snapshot.docs.slice(30);
     for (const doc of docsToDelete) await doc.ref.delete();
 
     console.log(`[PRUNE] ${collectionName}: deleted ${docsToDelete.length}`);
@@ -370,3 +370,4 @@ document.addEventListener("DOMContentLoaded", () => {
   // Final shared storage meter update
   updateStorageInfo();
 });
+
