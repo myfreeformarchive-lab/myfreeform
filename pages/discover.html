@@ -10,26 +10,6 @@
   <link rel="stylesheet" href="../style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    .pagination {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-      flex-wrap: wrap;
-    }
-
-    .pagination button {
-  padding: 4px 8px;
-  border: 1px solid #ccc;
-  background-color: white;
-  cursor: pointer;
-  color: black;
-}
-
-.pagination button.active {
-  background-color: #333;
-  color: white;
-  border-color: #333;
-}
 .block {
   min-height: 500px; /* Adjust to your content's average size */
   display: flex;
@@ -147,41 +127,52 @@
       }
 
       function showEntries(containerId, entries) {
-        const container = document.getElementById(containerId);
-        container.innerHTML = "";
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
 
-        if (!entries.length) {
-          container.innerHTML = "<p>No public entries yet.</p>";
-          return;
-        }
+  if (!entries.length) {
+    container.innerHTML = "<p>No public entries yet.</p>";
+    return;
+  }
 
-        entries.forEach(doc => {
-          const data = doc.data();
-          const box = document.createElement("div");
-          box.className = "entry-box";
+  entries.forEach(doc => {
+    const data = doc.data();
+    const box = document.createElement("div");
+    box.className = "entry-box";
 
-          if (data.title) {
-            const titleEl = document.createElement("p");
-            titleEl.className = "writing-title";
-            titleEl.textContent = data.title;
-            box.appendChild(titleEl);
-          }
+    // STORE doc ID to open detail view
+    box.dataset.docId = doc.id;
+    box.dataset.collection = containerId.replace("discover", "public");
 
-          const contentEl = document.createElement("p");
-          contentEl.className = "entry-text";
-          contentEl.textContent = data.content ?? data.text ?? "";
-          box.appendChild(contentEl);
+    // Display Title
+    if (data.title) {
+      const titleEl = document.createElement("p");
+      titleEl.className = "writing-title";
+      titleEl.textContent = data.title;
+      box.appendChild(titleEl);
+    }
 
-          if (data.createdAt && data.createdAt.toDate) {
-            const dateEl = document.createElement("p");
-            dateEl.className = "writing-date";
-            dateEl.textContent = `Posted: ${data.createdAt.toDate().toLocaleString()}`;
-            box.appendChild(dateEl);
-          }
+    // Display content snippet
+    const contentEl = document.createElement("p");
+    contentEl.className = "entry-text";
+    contentEl.textContent = data.content ?? data.text ?? "";
+    box.appendChild(contentEl);
 
-          container.appendChild(box);
-        });
-      }
+    // Timestamp
+    if (data.createdAt && data.createdAt.toDate) {
+      const dateEl = document.createElement("p");
+      dateEl.className = "writing-date";
+      dateEl.textContent = `Posted: ${data.createdAt.toDate().toLocaleString()}`;
+      box.appendChild(dateEl);
+    }
+
+    // OPEN DETAIL VIEW ON CLICK
+    box.addEventListener("click", () => openEntryDetail(data, doc.id, containerId));
+
+    container.appendChild(box);
+  });
+}
+
 
       function showPaginationButtons(containerId, collectionName, totalPages, currentPage) {
         const paginationId = "pagination" + containerId.replace("discover", "");
@@ -198,6 +189,79 @@
           paginationContainer.appendChild(btn);
         }
       }
+	  
+	  // === MODAL & COMMENTS ===
+const modal = document.getElementById("entryModal");
+const modalEntry = document.getElementById("modalEntry");
+const closeModal = document.getElementById("closeModal");
+const commentsList = document.getElementById("commentsList");
+const newComment = document.getElementById("newComment");
+const submitComment = document.getElementById("submitComment");
+
+closeModal.addEventListener("click", () => modal.classList.add("hidden"));
+
+let currentEntryData = null;
+let currentEntryDocId = null;
+let currentEntryContainer = null;
+
+async function openEntryDetail(data, docId, containerId) {
+  currentEntryData = data;
+  currentEntryDocId = docId;
+  currentEntryContainer = containerId;
+
+  modal.classList.remove("hidden");
+  modalEntry.innerHTML = "";
+
+  const title = data.title ? `<h2>${data.title}</h2>` : "";
+  modalEntry.innerHTML = `
+    ${title}
+    <p>${data.content ?? data.text ?? ""}</p>
+  `;
+
+  commentsList.innerHTML = "";
+
+  const commentCollection = `${containerId}_comments`;
+  const commentSnapshot = await db
+    .collection(commentCollection)
+    .doc(docId)
+    .collection("comments")
+    .orderBy("createdAt", "desc")
+    .get();
+
+  commentSnapshot.forEach(doc => {
+    const c = doc.data();
+    const div = document.createElement("div");
+    div.className = "comment";
+    div.textContent = c.text;
+    commentsList.appendChild(div);
+  });
+
+  submitComment.dataset.docId = docId;
+  submitComment.dataset.collection = commentCollection;
+}
+
+submitComment.addEventListener("click", async () => {
+  const text = newComment.value.trim();
+  if (!text) return;
+
+  const docId = submitComment.dataset.docId;
+  const collection = submitComment.dataset.collection;
+
+  await db
+    .collection(collection)
+    .doc(docId)
+    .collection("comments")
+    .add({
+      text: text,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+  newComment.value = "";
+
+  // 💡 Reopen using stored entry data (no flash/blank)
+  openEntryDetail(currentEntryData, currentEntryDocId, currentEntryContainer);
+});
+
 
       fetchPaginatedEntries("publicBeliefs", "discoverBeliefs");
       fetchPaginatedEntries("publicInProgress", "discoverInProgress");
@@ -205,5 +269,20 @@
       fetchPaginatedEntries("publicWritings", "discoverWritings");
     });
   </script>
+  
+  <!-- ENTRY DETAIL MODAL -->
+<div id="entryModal" class="modal hidden">
+  <div class="modal-content">
+    <button id="closeModal" class="modal-close">✕</button>
+    <div id="modalEntry"></div>
+    <div id="commentsSection" class="comments-section">
+      <h4>Comments</h4>
+      <div id="commentsList"></div>
+      <textarea id="newComment" placeholder="Add a comment..."></textarea>
+      <button id="submitComment">Post Comment</button>
+    </div>
+  </div>
+</div>
+  
 </body>
 </html>
