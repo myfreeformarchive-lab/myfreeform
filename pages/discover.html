@@ -9,6 +9,37 @@
   <meta name="theme-color" content="#ffffff" />
   <link rel="stylesheet" href="../style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    .pagination {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pagination button {
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  background-color: white;
+  cursor: pointer;
+  color: black;
+}
+
+.pagination button.active {
+  background-color: #333;
+  color: white;
+  border-color: #333;
+}
+.block {
+  min-height: 500px; /* Adjust to your content's average size */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+#writingsBlock {
+  min-height: 1100px;
+}
+  </style>
 </head>
 <body>
   <header>
@@ -23,63 +54,63 @@
 
   <main>
     <section class="content-blocks">
-      
+
       <!-- CORE BELIEFS -->
       <div class="block">
         <h3>Latest Public Core Beliefs</h3>
         <div id="discoverBeliefs">Loading...</div>
+        <div class="pagination" id="paginationBeliefs"></div>
       </div>
 
       <!-- IN‑PROGRESS THOUGHTS -->
       <div class="block">
         <h3>Latest Public In‑Progress Thoughts</h3>
         <div id="discoverInProgress">Loading...</div>
+        <div class="pagination" id="paginationInProgress"></div>
       </div>
 
       <!-- IDEAS -->
       <div class="block">
         <h3>Latest Public Ideas</h3>
         <div id="discoverIdeas">Loading...</div>
+        <div class="pagination" id="paginationIdeas"></div>
       </div>
 
       <!-- WRITINGS -->
-      <div class="block">
+      <div class="block" id="writingsBlock">
         <h3>Latest Public Writings</h3>
         <div id="discoverWritings">Loading...</div>
+        <div class="pagination" id="paginationWritings"></div>
       </div>
 
     </section>
   </main>
 
-<footer>
-
-  <div class="disclaimer-popover">
-    <span class="disclaimer-label">Disclaimer</span>
-    <div class="disclaimer-box">
-      <p><strong>Local by Default:</strong> All entries are saved in your browser unless you choose to share them.</p>
-      <ul>
-        <li><strong>Private by Default</strong> – Your entries stay on your device unless Public Mode is enabled.</li>
-        <li><strong>Optional Sharing</strong> – Enable Public Mode to upload entries to a public archive.</li>
-        <li><strong>5MB Limit</strong> – Uses browser local storage (~5MB available).</li>
-        <li><strong>No Automatic Backup</strong> – Clearing browser data will erase your entries unless shared.</li>
-      </ul>
+  <footer>
+    <div class="disclaimer-popover">
+      <span class="disclaimer-label">Disclaimer</span>
+      <div class="disclaimer-box">
+        <p><strong>Local by Default:</strong> All entries are saved in your browser unless you choose to share them.</p>
+        <ul>
+          <li><strong>Private by Default</strong> – Your entries stay on your device unless Public Mode is enabled.</li>
+          <li><strong>Optional Sharing</strong> – Enable Public Mode to upload entries to a public archive.</li>
+          <li><strong>5MB Limit</strong> – Uses browser local storage (~5MB available).</li>
+          <li><strong>No Automatic Backup</strong> – Clearing browser data will erase your entries unless shared.</li>
+        </ul>
+      </div>
     </div>
-  </div>
+    <p>&copy; 2025–<span id="year"></span> My Freeform. All rights reserved.</p>
+  </footer>
 
-  <p>&copy; 2025–<span id="year"></span> My Freeform. All rights reserved.</p>
-
-</footer>
-
-<script>
-  document.getElementById("year").textContent = new Date().getFullYear();
-</script>
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
 
   <!-- FIREBASE -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
   <script>
-    // 📌 Initialize Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyBD-8hcoAuTFaAhgSy-WIyQX_iI37uokTw",
       authDomain: "myfreeformarchive-8a786.firebaseapp.com",
@@ -94,74 +125,85 @@
   </script>
 
   <script>
-  document.addEventListener("DOMContentLoaded", async () => {
+    document.addEventListener("DOMContentLoaded", () => {
+      const PAGE_SIZE = 3;
 
-    // Generic loader
-    function showEntries(containerId, entries) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = "";
+      async function fetchPaginatedEntries(collectionName, containerId, pageNum = 1) {
+        try {
+          const collectionRef = db.collection(collectionName).orderBy("createdAt", "desc");
 
-  if (!entries.length) {
-    container.innerHTML = "<p>No public entries yet.</p>";
-    return;
-  }
+          const totalSnapshot = await collectionRef.get();
+          const total = totalSnapshot.docs.length;
+          const totalPages = Math.ceil(total / PAGE_SIZE);
+          const start = (pageNum - 1) * PAGE_SIZE;
+          const pageDocs = totalSnapshot.docs.slice(start, start + PAGE_SIZE);
 
-  entries.forEach(doc => {
-    const data = doc.data();
-    const box = document.createElement("div");
-    box.className = "entry-box";
-
-    // 🔹 Title (ONLY for writings)
-    if (data.title) {
-      const titleEl = document.createElement("p");
-      titleEl.className = "writing-title";
-      titleEl.textContent = data.title;
-      box.appendChild(titleEl);
-    }
-
-    // 🔹 Main content
-    const contentEl = document.createElement("p");
-    contentEl.className = "entry-text";
-    contentEl.textContent = data.content ?? data.text ?? "";
-    box.appendChild(contentEl);
-
-    // 🔹 Timestamp
-    if (data.createdAt && data.createdAt.toDate) {
-      const dateEl = document.createElement("p");
-      dateEl.className = "writing-date";
-      dateEl.textContent = `Posted: ${data.createdAt.toDate().toLocaleString()}`;
-      box.appendChild(dateEl);
-    }
-
-    container.appendChild(box);
-  });
-}
-
-
-    // Fetch last 3 of a collection, ordered by createdAt desc
-    async function fetchLatest(collectionName, containerId) {
-      try {
-        const snapshot = await db
-          .collection(collectionName)
-          .orderBy("createdAt", "desc")
-          .limit(3)
-          .get();
-
-        showEntries(containerId, snapshot.docs);
-      } catch (err) {
-        console.error("Error fetching", collectionName, err);
-        document.getElementById(containerId).innerHTML = "<p>Error loading entries.</p>";
+          showEntries(containerId, pageDocs);
+          showPaginationButtons(containerId, collectionName, totalPages, pageNum);
+        } catch (err) {
+          console.error("Error fetching", collectionName, err);
+          document.getElementById(containerId).innerHTML = "<p>Error loading entries.</p>";
+        }
       }
-    }
 
-    // Run for all 4 categories
-    fetchLatest("publicBeliefs", "discoverBeliefs");
-    fetchLatest("publicInProgress", "discoverInProgress");
-    fetchLatest("publicIdeas", "discoverIdeas");
-    fetchLatest("publicWritings", "discoverWritings");
-  });
+      function showEntries(containerId, entries) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+
+        if (!entries.length) {
+          container.innerHTML = "<p>No public entries yet.</p>";
+          return;
+        }
+
+        entries.forEach(doc => {
+          const data = doc.data();
+          const box = document.createElement("div");
+          box.className = "entry-box";
+
+          if (data.title) {
+            const titleEl = document.createElement("p");
+            titleEl.className = "writing-title";
+            titleEl.textContent = data.title;
+            box.appendChild(titleEl);
+          }
+
+          const contentEl = document.createElement("p");
+          contentEl.className = "entry-text";
+          contentEl.textContent = data.content ?? data.text ?? "";
+          box.appendChild(contentEl);
+
+          if (data.createdAt && data.createdAt.toDate) {
+            const dateEl = document.createElement("p");
+            dateEl.className = "writing-date";
+            dateEl.textContent = `Posted: ${data.createdAt.toDate().toLocaleString()}`;
+            box.appendChild(dateEl);
+          }
+
+          container.appendChild(box);
+        });
+      }
+
+      function showPaginationButtons(containerId, collectionName, totalPages, currentPage) {
+        const paginationId = "pagination" + containerId.replace("discover", "");
+        const paginationContainer = document.getElementById(paginationId);
+        paginationContainer.innerHTML = "";
+
+        for (let i = 1; i <= totalPages; i++) {
+          const btn = document.createElement("button");
+          btn.textContent = i;
+          if (i === currentPage) btn.classList.add("active");
+          btn.addEventListener("click", () => {
+            fetchPaginatedEntries(collectionName, containerId, i);
+          });
+          paginationContainer.appendChild(btn);
+        }
+      }
+
+      fetchPaginatedEntries("publicBeliefs", "discoverBeliefs");
+      fetchPaginatedEntries("publicInProgress", "discoverInProgress");
+      fetchPaginatedEntries("publicIdeas", "discoverIdeas");
+      fetchPaginatedEntries("publicWritings", "discoverWritings");
+    });
   </script>
-
 </body>
 </html>
-
