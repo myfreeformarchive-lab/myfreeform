@@ -36,7 +36,7 @@ const DOM = {
   commentList: document.getElementById('commentsList'),
   commentInput: document.getElementById('commentInput'),
   sendComment: document.getElementById('sendCommentBtn'),
-  emojiButtons: document.querySelectorAll('.emoji-btn') // Select all emoji buttons
+  emojiButtons: document.querySelectorAll('.emoji-btn')
 };
 
 let currentTab = 'private';
@@ -65,16 +65,14 @@ document.addEventListener('DOMContentLoaded', () => {
   DOM.closeBtn.addEventListener('click', closeModal);
   DOM.sendComment.addEventListener('click', postComment);
   
-  // Enter key to comment
   DOM.commentInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') postComment();
   });
 
-  // 🖱️ EMOJI CLICK HANDLER
   DOM.emojiButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const char = btn.getAttribute('data-char');
-      DOM.commentInput.value += char; // Append emoji
+      DOM.commentInput.value += char;
       DOM.commentInput.focus();
     });
   });
@@ -245,7 +243,7 @@ function deleteLocal(id) {
 }
 
 // ==========================================
-// 💬 MODAL & COMMENTS (CLEAN VIBE)
+// 💬 MODAL (COMMENTS - NEWEST FIRST)
 // ==========================================
 function openModal(post) {
   activePostId = post.id;
@@ -255,11 +253,14 @@ function openModal(post) {
   DOM.modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 
-  const q = query(collection(db, `globalPosts/${post.id}/comments`), orderBy("createdAt", "asc"));
+  // CHANGED: 'asc' -> 'desc' (Newest at Top)
+  const q = query(collection(db, `globalPosts/${post.id}/comments`), orderBy("createdAt", "desc"));
+  
   DOM.commentList.innerHTML = '<div class="text-center py-10 text-slate-300 text-sm">Loading...</div>';
   
   commentsUnsubscribe = onSnapshot(q, (snapshot) => {
     DOM.commentList.innerHTML = '';
+    
     if (snapshot.empty) {
       DOM.commentList.innerHTML = `
         <div class="flex flex-col items-center justify-center py-10 text-center">
@@ -274,7 +275,6 @@ function openModal(post) {
       const div = document.createElement('div');
       const time = getRelativeTime(c.createdAt);
 
-      // Clean Bubble Layout (No Avatar)
       div.className = "comment-bubble flex flex-col items-start";
       div.innerHTML = `
         <div class="bg-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-none max-w-[90%]">
@@ -285,10 +285,8 @@ function openModal(post) {
       DOM.commentList.appendChild(div);
     });
     
-    setTimeout(() => {
-        const scrollArea = document.getElementById('modalScrollArea');
-        scrollArea.scrollTop = scrollArea.scrollHeight;
-    }, 50);
+    // REMOVED: Auto-scroll to bottom. 
+    // Since newest are at the top, the default scroll position (top) is correct.
   });
 }
 
@@ -312,6 +310,11 @@ async function postComment() {
       createdAt: serverTimestamp()
     });
     DOM.commentInput.value = '';
+    
+    // Slight scroll to top to ensure user sees their new comment
+    const scrollArea = document.getElementById('modalScrollArea');
+    scrollArea.scrollTop = 0; 
+
   } catch (e) { console.error(e); } 
   finally { 
     DOM.sendComment.disabled = false; 
