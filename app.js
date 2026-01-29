@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
 import { 
-  getFirestore, collection, addDoc, 
+  getFirestore, collection, addDoc, deleteDoc, doc,
   query, orderBy, limit, serverTimestamp, onSnapshot 
 } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
 
@@ -50,6 +50,7 @@ let currentLimit = BATCH_SIZE;
 let isLoadingMore = false;
 let allPrivatePosts = []; 
 let selectedFont = 'font-sans'; 
+const MY_USER_ID = getOrCreateUserId(); // Identity for Deletion
 
 // === INIT ===
 document.addEventListener('DOMContentLoaded', () => {
@@ -58,11 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Apply Saved Toggle State
   const savedToggleState = localStorage.getItem('freeform_toggle_pref');
-  if (savedToggleState === 'true') {
-    DOM.toggle.checked = true;
-  } else {
-    DOM.toggle.checked = false;
-  }
+  DOM.toggle.checked = (savedToggleState === 'true');
   updateToggleUI(); 
   updateTabClasses(); 
   loadFeed(); 
@@ -106,6 +103,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
+function getOrCreateUserId() {
+  let id = localStorage.getItem('freeform_user_id');
+  if (!id) {
+    // Generate simple random ID (e.g. "a7b2-9x1z")
+    id = Math.random().toString(36).substring(2, 6) + '-' + Math.random().toString(36).substring(2, 6);
+    localStorage.setItem('freeform_user_id', id);
+  }
+  return id;
+}
 
 function setRandomPlaceholder() {
   const phrases = [
@@ -188,10 +195,13 @@ function renderListItems(items) {
 
   items.forEach(item => {
     const el = document.createElement('div');
-    el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer";
+    el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative"; // Added 'relative' for positioning delete btn
     const time = getRelativeTime(item.createdAt);
     const fontClass = item.font || 'font-sans'; 
     const contentLength = item.content ? item.content.length : 0;
+    
+    // Check ownership for Global Posts
+    const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
 
     // Platform Limits
     const LIMIT_X = 280;
@@ -202,18 +212,13 @@ function renderListItems(items) {
     // Only show footer (comments/share) for Global (Firebase) posts
     if (item.isFirebase) {
       
-      // Determine which buttons to show
       let shareButtons = '';
-
-      // X Button (Only if <= 280 chars)
       if (contentLength <= LIMIT_X) {
         shareButtons += `
           <button class="share-btn-x w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-400 hover:bg-black hover:border-black hover:text-white transition-all duration-200" title="Share on X">
             <span class="text-[13px] font-bold leading-none">𝕏</span>
           </button>`;
       }
-
-      // Threads Button (Only if <= 500 chars)
       if (contentLength <= LIMIT_THREADS) {
         shareButtons += `
           <button class="share-btn-threads w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-400 hover:bg-black hover:border-black hover:text-white transition-all duration-200" title="Share on Threads">
@@ -223,17 +228,12 @@ function renderListItems(items) {
 
       footerHtml = `
         <div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
-          
-          <!-- View Comments Button -->
           <div class="flex items-center text-xs text-brand-500 font-medium gap-1 hover:text-brand-700 transition-colors group">
             <span class="text-base group-hover:scale-110 transition-transform">💬</span> View Comments
           </div>
-
-          <!-- Share Actions -->
           <div class="flex items-center gap-2">
             ${shareButtons}
           </div>
-
         </div>
       `;
     }
@@ -251,11 +251,31 @@ function renderListItems(items) {
       ${footerHtml}
     `;
 
+    // LOGIC: Delete Button
+    // Show if it is a Local post OR if it is a Global post belonging to this user
+    if (!item.isFirebase || isMyGlobalPost) {
+      const delBtn = document.createElement('button');
+      delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
+      delBtn.innerHTML = "✕";
+      delBtn.title = "Delete Post";
+      
+      delBtn.onclick = (e) => { 
+        e.stopPropagation(); 
+        if (item.isFirebase) {
+          deleteGlobal(item.id);
+        } else {
+          deleteLocal(item.id); 
+        }
+      };
+      
+      el.appendChild(delBtn);
+    }
+
     if (item.isFirebase) {
-      // 1. Open Modal on Card Click
+      // Open Modal on Card Click
       el.onclick = () => openModal(item);
 
-      // 2. Attach Listeners only if buttons exist
+      // Attach Share Listeners
       const xBtn = el.querySelector('.share-btn-x');
       const tBtn = el.querySelector('.share-btn-threads');
 
@@ -271,16 +291,8 @@ function renderListItems(items) {
           sharePost(item.content, 'threads');
         };
       }
-
-    } else {
-      // Delete button for local posts
-      const delBtn = document.createElement('button');
-      delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
-      delBtn.innerHTML = "✕";
-      delBtn.onclick = (e) => { e.stopPropagation(); deleteLocal(item.id); };
-      el.style.position = 'relative';
-      el.appendChild(delBtn);
     }
+    
     DOM.list.appendChild(el);
   });
 }
@@ -288,13 +300,11 @@ function renderListItems(items) {
 function sharePost(text, platform) {
   const urlText = encodeURIComponent(text);
   let url = '';
-  
   if (platform === 'x') {
     url = `https://twitter.com/intent/tweet?text=${urlText}`;
   } else if (platform === 'threads') {
     url = `https://www.threads.net/intent/post?text=${urlText}`;
   }
-  
   window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer');
 }
 
@@ -338,14 +348,17 @@ async function handlePost() {
       isFirebase: false 
     };
 
+    // Always save to local backup
     posts.push(newPost);
     localStorage.setItem('freeform_v2', JSON.stringify(posts));
     updateMeter();
 
     if (isPublic) {
+      // Save to Firebase with Author ID
       await addDoc(collection(db, "globalPosts"), { 
         content: text, 
         font: selectedFont, 
+        authorId: MY_USER_ID, // <-- SAVING IDENTITY
         createdAt: serverTimestamp() 
       });
       if (currentTab === 'private') switchTab('public');
@@ -360,13 +373,25 @@ async function handlePost() {
 }
 
 function deleteLocal(id) {
-  if (!confirm("Delete?")) return;
+  if (!confirm("Delete from Archive?")) return;
   let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
   posts = posts.filter(p => p.id !== id);
   localStorage.setItem('freeform_v2', JSON.stringify(posts));
   allPrivatePosts = posts.reverse();
   renderPrivateBatch();
   updateMeter();
+}
+
+// NEW: Delete from Firebase
+async function deleteGlobal(id) {
+  if (!confirm("Delete permanently from Global Feed?")) return;
+  try {
+    await deleteDoc(doc(db, "globalPosts", id));
+    // The snapshot listener will automatically update the UI
+  } catch (e) {
+    console.error("Error deleting global post:", e);
+    alert("Could not delete post.");
+  }
 }
 
 // ==========================================
