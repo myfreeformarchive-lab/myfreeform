@@ -4,6 +4,16 @@ body {
 }
 textarea::-webkit-scrollbar { display: none; }
 
+/* Hide scrollbar for Chrome/Safari/Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
 /* 2. Feed Item Animation */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(10px); }
