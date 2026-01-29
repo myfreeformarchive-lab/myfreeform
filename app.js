@@ -326,7 +326,6 @@ async function handlePost() {
   try {
     let firebaseId = null;
 
-    // 1. If Public, upload to Firebase FIRST to get the ID
     if (isPublic) {
       const docRef = await addDoc(collection(db, "globalPosts"), { 
         content: text, 
@@ -334,26 +333,23 @@ async function handlePost() {
         authorId: MY_USER_ID,
         createdAt: serverTimestamp() 
       });
-      firebaseId = docRef.id; // Capture ID
+      firebaseId = docRef.id; 
     }
 
-    // 2. Prepare Local Post Object (include firebaseId if public)
     const newPost = { 
       id: Date.now().toString(), 
       content: text, 
       font: selectedFont, 
       createdAt: new Date().toISOString(), 
       isFirebase: false,
-      firebaseId: firebaseId // <--- LINKAGE
+      firebaseId: firebaseId 
     };
 
-    // 3. Save to Local Storage
     const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
     posts.push(newPost);
     localStorage.setItem('freeform_v2', JSON.stringify(posts));
     updateMeter();
 
-    // 4. Update UI
     if (isPublic) {
       if (currentTab === 'private') switchTab('public');
     } else {
@@ -374,14 +370,10 @@ async function handlePost() {
 async function deleteLocal(id) {
   if (!confirm("Delete from Archive?")) return;
   
-  // 1. Get current posts
   let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
-  
-  // 2. Find the post to see if it has a linked Firebase ID
   const targetPost = posts.find(p => p.id === id);
 
   if (targetPost && targetPost.firebaseId) {
-    // 3. If linked, delete from Cloud too (Silent attempt)
     try {
       await deleteDoc(doc(db, "globalPosts", targetPost.firebaseId));
       console.log("Linked global post deleted.");
@@ -390,7 +382,6 @@ async function deleteLocal(id) {
     }
   }
 
-  // 4. Delete locally
   posts = posts.filter(p => p.id !== id);
   localStorage.setItem('freeform_v2', JSON.stringify(posts));
   allPrivatePosts = posts.reverse();
@@ -398,14 +389,22 @@ async function deleteLocal(id) {
   updateMeter();
 }
 
-// Delete from Firebase ONLY (Does not touch Local)
 async function deleteGlobal(id) {
-  if (!confirm("Delete from Global Feed?")) return;
+  if (!confirm("Delete from Global Feed? (Copy in Archive stays)")) return;
   try {
     await deleteDoc(doc(db, "globalPosts", id));
   } catch (e) {
     console.error("Error deleting global post:", e);
     alert("Could not delete post.");
+  }
+}
+
+async function deleteComment(postId, commentId) {
+  if (!confirm("Delete comment?")) return;
+  try {
+    await deleteDoc(doc(db, `globalPosts/${postId}/comments`, commentId));
+  } catch (e) {
+    console.error("Error deleting comment:", e);
   }
 }
 
@@ -445,14 +444,33 @@ function openModal(post) {
       const c = doc.data();
       const div = document.createElement('div');
       const time = getRelativeTime(c.createdAt);
+      const isMyComment = c.authorId === MY_USER_ID;
 
-      div.className = "comment-bubble flex flex-col items-start";
+      div.className = "comment-bubble flex flex-col items-start w-full relative group";
+      
+      let deleteBtn = '';
+      if (isMyComment) {
+        deleteBtn = `<button class="delete-comment-btn ml-2 text-xs font-semibold text-red-300 hover:text-red-500 transition-colors cursor-pointer" data-id="${doc.id}">Delete</button>`;
+      }
+
       div.innerHTML = `
         <div class="bg-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-none max-w-[90%]">
            <p class="text-sm text-gray-800 leading-snug break-words font-sans">${cleanText(c.text)}</p>
         </div>
-        <span class="text-[10px] text-gray-400 mt-1 ml-1">${time}</span>
+        <div class="flex items-center mt-1 ml-1">
+          <span class="text-[10px] text-gray-400">${time}</span>
+          ${deleteBtn}
+        </div>
       `;
+
+      // Attach delete handler
+      if (isMyComment) {
+        const btn = div.querySelector('.delete-comment-btn');
+        if (btn) {
+          btn.onclick = () => deleteComment(activePostId, doc.id);
+        }
+      }
+
       DOM.commentList.appendChild(div);
     });
   });
@@ -473,8 +491,10 @@ async function postComment() {
   DOM.sendComment.style.opacity = "0.5";
 
   try {
+    // SAVING IDENTITY HERE
     await addDoc(collection(db, `globalPosts/${activePostId}/comments`), {
       text: text,
+      authorId: MY_USER_ID, // <-- SAVES ID
       createdAt: serverTimestamp()
     });
     DOM.commentInput.value = '';
