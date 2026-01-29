@@ -49,7 +49,7 @@ const BATCH_SIZE = 15;
 let currentLimit = BATCH_SIZE;
 let isLoadingMore = false;
 let allPrivatePosts = []; 
-let selectedFont = 'font-sans'; // Default Font
+let selectedFont = 'font-sans'; 
 
 // === INIT ===
 document.addEventListener('DOMContentLoaded', () => {
@@ -82,13 +82,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Font Selection Logic
   DOM.fontBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      // 1. Remove active state from all
       DOM.fontBtns.forEach(b => b.classList.remove('ring-2', 'ring-brand-500', 'ring-offset-1'));
-      // 2. Add active state to clicked
       btn.classList.add('ring-2', 'ring-brand-500', 'ring-offset-1');
-      // 3. Update State
       selectedFont = btn.getAttribute('data-font');
-      // 4. Update Input Appearance immediately
       DOM.input.className = DOM.input.className.replace(/font-\w+/, selectedFont);
       DOM.input.focus();
     });
@@ -194,9 +190,53 @@ function renderListItems(items) {
     const el = document.createElement('div');
     el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer";
     const time = getRelativeTime(item.createdAt);
-    
-    // Fallback to font-sans if no font saved
     const fontClass = item.font || 'font-sans'; 
+    const contentLength = item.content ? item.content.length : 0;
+
+    // Platform Limits
+    const LIMIT_X = 280;
+    const LIMIT_THREADS = 500;
+
+    let footerHtml = '';
+    
+    // Only show footer (comments/share) for Global (Firebase) posts
+    if (item.isFirebase) {
+      
+      // Determine which buttons to show
+      let shareButtons = '';
+
+      // X Button (Only if <= 280 chars)
+      if (contentLength <= LIMIT_X) {
+        shareButtons += `
+          <button class="share-btn-x w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-400 hover:bg-black hover:border-black hover:text-white transition-all duration-200" title="Share on X">
+            <span class="text-[13px] font-bold leading-none">𝕏</span>
+          </button>`;
+      }
+
+      // Threads Button (Only if <= 500 chars)
+      if (contentLength <= LIMIT_THREADS) {
+        shareButtons += `
+          <button class="share-btn-threads w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-400 hover:bg-black hover:border-black hover:text-white transition-all duration-200" title="Share on Threads">
+            <span class="text-[15px] font-sans font-bold leading-none mt-[1px]">@</span>
+          </button>`;
+      }
+
+      footerHtml = `
+        <div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
+          
+          <!-- View Comments Button -->
+          <div class="flex items-center text-xs text-brand-500 font-medium gap-1 hover:text-brand-700 transition-colors group">
+            <span class="text-base group-hover:scale-110 transition-transform">💬</span> View Comments
+          </div>
+
+          <!-- Share Actions -->
+          <div class="flex items-center gap-2">
+            ${shareButtons}
+          </div>
+
+        </div>
+      `;
+    }
 
     el.innerHTML = `
       <div class="flex justify-between items-start mb-2">
@@ -207,14 +247,33 @@ function renderListItems(items) {
           <span class="text-xs text-slate-400 font-medium">${time}</span>
         </div>
       </div>
-      <!-- Apply Dynamic Font Class Here -->
       <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[17px] pointer-events-none ${fontClass}">${cleanText(item.content)}</p>
-      ${item.isFirebase ? `<div class="mt-3 pt-3 border-t border-slate-50 flex items-center text-xs text-brand-500 font-medium gap-1"><span class="text-base">💬</span> View Comments</div>` : ''}
+      ${footerHtml}
     `;
 
     if (item.isFirebase) {
+      // 1. Open Modal on Card Click
       el.onclick = () => openModal(item);
+
+      // 2. Attach Listeners only if buttons exist
+      const xBtn = el.querySelector('.share-btn-x');
+      const tBtn = el.querySelector('.share-btn-threads');
+
+      if (xBtn) {
+        xBtn.onclick = (e) => {
+          e.stopPropagation();
+          sharePost(item.content, 'x');
+        };
+      }
+      if (tBtn) {
+        tBtn.onclick = (e) => {
+          e.stopPropagation();
+          sharePost(item.content, 'threads');
+        };
+      }
+
     } else {
+      // Delete button for local posts
       const delBtn = document.createElement('button');
       delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
       delBtn.innerHTML = "✕";
@@ -224,6 +283,19 @@ function renderListItems(items) {
     }
     DOM.list.appendChild(el);
   });
+}
+
+function sharePost(text, platform) {
+  const urlText = encodeURIComponent(text);
+  let url = '';
+  
+  if (platform === 'x') {
+    url = `https://twitter.com/intent/tweet?text=${urlText}`;
+  } else if (platform === 'threads') {
+    url = `https://www.threads.net/intent/post?text=${urlText}`;
+  }
+  
+  window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer');
 }
 
 function setupInfiniteScroll() {
@@ -261,7 +333,7 @@ async function handlePost() {
     const newPost = { 
       id: Date.now().toString(), 
       content: text, 
-      font: selectedFont, // Saving Font choice
+      font: selectedFont, 
       createdAt: new Date().toISOString(), 
       isFirebase: false 
     };
@@ -273,7 +345,7 @@ async function handlePost() {
     if (isPublic) {
       await addDoc(collection(db, "globalPosts"), { 
         content: text, 
-        font: selectedFont, // Saving Font choice to Firebase
+        font: selectedFont, 
         createdAt: serverTimestamp() 
       });
       if (currentTab === 'private') switchTab('public');
@@ -304,9 +376,8 @@ function openModal(post) {
   activePostId = post.id;
   DOM.modalContent.textContent = post.content;
   
-  // Apply the specific font to the modal content as well
+  // Apply Font
   const fontClass = post.font || 'font-sans';
-  // Remove any previous font classes first
   DOM.modalContent.classList.remove('font-sans', 'font-serif', 'font-mono', 'font-hand');
   DOM.modalContent.classList.add(fontClass);
 
