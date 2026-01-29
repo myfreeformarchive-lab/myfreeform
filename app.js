@@ -363,12 +363,10 @@ async function handlePost() {
   }
 }
 
-// NEW FUNCTION: Publish a local draft to Global
 async function publishDraft(post) {
   if (!confirm("Are you sure you want to make this post public? It will appear in the Global Feed.")) return;
   
   try {
-    // 1. Upload to Firebase
     const docRef = await addDoc(collection(db, "globalPosts"), { 
       content: post.content, 
       font: post.font || 'font-sans', 
@@ -376,7 +374,6 @@ async function publishDraft(post) {
       createdAt: serverTimestamp() 
     });
 
-    // 2. Update Local Post with the new ID
     const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
     const targetIndex = posts.findIndex(p => p.id === post.id);
     
@@ -384,16 +381,10 @@ async function publishDraft(post) {
       posts[targetIndex].firebaseId = docRef.id;
       localStorage.setItem('freeform_v2', JSON.stringify(posts));
       
-      // Update Runtime Memory
       allPrivatePosts = posts.reverse();
-      
-      // 3. Refresh UI
-      // Reload list to show "View Comments" icon
       loadFeed();
       
-      // Re-open the modal with the updated post object (so it loads comments)
-      openModal(posts[targetIndex]); // Note: targetIndex in 'posts' (which was not reversed) might need logic adjustment depending on array order, but simple object pass is safest.
-      // Better:
+      // Refresh modal
       const updatedPost = posts.find(p => p.id === post.id);
       openModal(updatedPost);
     }
@@ -429,7 +420,31 @@ async function deleteLocal(id) {
 async function deleteGlobal(id) {
   if (!confirm("Delete from Global Feed?")) return;
   try {
+    // 1. Delete from Cloud
     await deleteDoc(doc(db, "globalPosts", id));
+    
+    // 2. Remove 'firebaseId' from Local Storage (Reverting to Private Draft)
+    let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
+    let updated = false;
+
+    posts = posts.map(p => {
+      if (p.firebaseId === id) {
+        delete p.firebaseId;
+        updated = true;
+      }
+      return p;
+    });
+
+    if (updated) {
+      localStorage.setItem('freeform_v2', JSON.stringify(posts));
+      allPrivatePosts = posts.reverse();
+      
+      // If we are looking at the Archive tab, refresh it to show "Open" instead of "Comments"
+      if (currentTab === 'private') {
+        renderPrivateBatch();
+      }
+    }
+
   } catch (e) {
     console.error("Error deleting global post:", e);
     alert("Could not delete post.");
@@ -507,7 +522,6 @@ function openModal(post) {
     });
 
   } else {
-    // === PRIVATE DRAFT VIEW (Actionable) ===
     DOM.commentList.innerHTML = `
       <div class="flex flex-col items-center justify-center py-12 text-center opacity-50">
         <div class="text-3xl mb-2">🔒</div>
@@ -518,7 +532,6 @@ function openModal(post) {
         </p>
       </div>`;
     
-    // Bind click event for publishing
     const trigger = document.getElementById('triggerPublish');
     if(trigger) {
       trigger.onclick = () => publishDraft(post);
