@@ -384,7 +384,6 @@ async function publishDraft(post) {
       allPrivatePosts = posts.reverse();
       loadFeed();
       
-      // Refresh modal
       const updatedPost = posts.find(p => p.id === post.id);
       openModal(updatedPost);
     }
@@ -420,10 +419,8 @@ async function deleteLocal(id) {
 async function deleteGlobal(id) {
   if (!confirm("Delete from Global Feed?")) return;
   try {
-    // 1. Delete from Cloud
     await deleteDoc(doc(db, "globalPosts", id));
     
-    // 2. Remove 'firebaseId' from Local Storage (Reverting to Private Draft)
     let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
     let updated = false;
 
@@ -438,8 +435,6 @@ async function deleteGlobal(id) {
     if (updated) {
       localStorage.setItem('freeform_v2', JSON.stringify(posts));
       allPrivatePosts = posts.reverse();
-      
-      // If we are looking at the Archive tab, refresh it to show "Open" instead of "Comments"
       if (currentTab === 'private') {
         renderPrivateBatch();
       }
@@ -464,6 +459,11 @@ async function deleteComment(postId, commentId) {
 // 💬 MODAL
 // ==========================================
 function openModal(post) {
+  // DISABLE MAIN INPUT TO PREVENT NAV ARROWS
+  if (DOM.input) {
+    DOM.input.disabled = true;
+  }
+
   const realFirestoreId = post.isFirebase ? post.id : post.firebaseId;
   activePostId = realFirestoreId; 
   
@@ -546,6 +546,11 @@ function closeModal() {
   document.body.style.overflow = ''; 
   activePostId = null;
   if (commentsUnsubscribe) { commentsUnsubscribe(); commentsUnsubscribe = null; }
+  
+  // RE-ENABLE MAIN INPUT
+  if (DOM.input) {
+    DOM.input.disabled = false;
+  }
 }
 
 async function postComment() {
