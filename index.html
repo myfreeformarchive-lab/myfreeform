@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>My Freeform</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,600&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" href="icon.png" type="image/png">
   <link rel="apple-touch-icon" href="icon.png">
@@ -14,7 +15,12 @@
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          fontFamily: { 
+            sans: ['Inter', 'sans-serif'],
+            serif: ['Playfair Display', 'serif'],
+            mono: ['Roboto Mono', 'monospace'],
+            hand: ['Dancing Script', 'cursive']
+          },
           colors: { brand: { 500: '#3f51b5', 600: '#303f9f' } }
         }
       }
@@ -34,32 +40,48 @@
   <main class="max-w-xl mx-auto pt-20 px-4">
     
     <!-- Input Area -->
-<section class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6 focus-within:ring-2 focus-within:ring-brand-500/20 transition-all">
-  <div class="flex flex-col gap-2">
-    
-    <!-- ADDED "outline-none" below -->
-    <textarea id="postInput" rows="3" 
-      class="w-full bg-transparent border-none focus:ring-0 outline-none text-lg placeholder-slate-400 resize-none p-0 leading-relaxed" 
-      placeholder="What's on your mind?"></textarea>
-    
-    <div class="flex items-center justify-between mt-2 pt-3 border-t border-slate-50">
-      <!-- Toggle -->
-      <label class="flex items-center cursor-pointer gap-2 group select-none">
-        <div class="relative">
-          <input type="checkbox" id="publicToggle" class="sr-only peer">
-          <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:bg-brand-500 transition-all"></div>
-          <div class="absolute top-[2px] left-[2px] bg-white shadow-sm rounded-full h-4 w-4 transition-all peer-checked:translate-x-full"></div>
+    <section class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6 focus-within:ring-2 focus-within:ring-brand-500/20 transition-all">
+      <div class="flex flex-col gap-2">
+        
+        <!-- Textarea -->
+        <textarea id="postInput" rows="3" 
+          class="w-full bg-transparent border-none focus:ring-0 outline-none text-lg placeholder-slate-400 resize-none p-0 leading-relaxed font-sans transition-all duration-200" 
+          placeholder="What's on your mind?"></textarea>
+        
+        <!-- Font Selection Toolbar (UPDATED: Added 'p-2' to fix cut-off) -->
+        <div class="flex items-center gap-2 p-2 overflow-x-auto no-scrollbar" id="fontToolbar">
+          <button class="font-btn w-8 h-8 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-all ring-2 ring-brand-500 ring-offset-1 shrink-0" data-font="font-sans">
+            <span class="font-sans text-xs font-bold">Aa</span>
+          </button>
+          <button class="font-btn w-8 h-8 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-all shrink-0" data-font="font-serif">
+            <span class="font-serif text-xs font-bold">Aa</span>
+          </button>
+          <button class="font-btn w-8 h-8 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-all shrink-0" data-font="font-mono">
+            <span class="font-mono text-[10px] font-bold">Aa</span>
+          </button>
+          <button class="font-btn w-8 h-8 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-all shrink-0" data-font="font-hand">
+            <span class="font-hand text-sm font-bold">Aa</span>
+          </button>
         </div>
-        <span id="publicLabel" class="text-xs font-semibold text-slate-500 transition-colors">Private</span>
-      </label>
 
-      <button id="postBtn" 
-        class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-medium py-1.5 px-6 rounded-full text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-        Post
-      </button>
-    </div>
-  </div>
-</section>
+        <div class="flex items-center justify-between mt-1 pt-3 border-t border-slate-50">
+          <!-- Toggle -->
+          <label class="flex items-center cursor-pointer gap-2 group select-none">
+            <div class="relative">
+              <input type="checkbox" id="publicToggle" class="sr-only peer">
+              <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:bg-brand-500 transition-all"></div>
+              <div class="absolute top-[2px] left-[2px] bg-white shadow-sm rounded-full h-4 w-4 transition-all peer-checked:translate-x-full"></div>
+            </div>
+            <span id="publicLabel" class="text-xs font-semibold text-slate-500 transition-colors">Private</span>
+          </label>
+
+          <button id="postBtn" 
+            class="bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-medium py-1.5 px-6 rounded-full text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+            Post
+          </button>
+        </div>
+      </div>
+    </section>
 
     <!-- Tabs -->
     <div class="flex border-b border-slate-200 mb-4 sticky top-14 bg-slate-50/95 backdrop-blur z-40">
@@ -68,9 +90,7 @@
     </div>
 
     <!-- Feed -->
-    <div id="feedList" class="space-y-4 min-h-[300px]">
-      <!-- Posts go here -->
-    </div>
+    <div id="feedList" class="space-y-4 min-h-[300px]"></div>
 
     <!-- 🔄 INFINITE SCROLL TRIGGER -->
     <div id="loadTrigger" class="h-20 flex items-center justify-center text-slate-400 text-sm opacity-0 transition-opacity duration-300">
@@ -97,59 +117,55 @@
   </footer>
 
   <!-- CLEAN MODAL -->
-<div id="commentModal" class="fixed inset-0 z-[100] hidden flex items-end md:items-center justify-center">
-  
-  <!-- 1. Backdrop (Click to close) -->
-  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="closeModalOverlay"></div>
-  
-  <!-- 2. Modal Card -->
-  <div id="modalCard" class="relative w-full md:w-[500px] h-[85vh] md:h-[700px] bg-white md:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col overflow-hidden">
+  <div id="commentModal" class="fixed inset-0 z-[100] hidden flex items-end md:items-center justify-center">
     
-    <!-- Header -->
-    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-white z-10 shrink-0">
-      <h3 class="font-bold text-gray-800 text-sm tracking-wide">COMMENTS</h3>
-      <button id="closeModalBtn" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">✕</button>
-    </div>
-
-    <!-- Scrollable Content -->
-    <div class="flex-1 overflow-y-auto bg-white scroll-smooth" id="modalScrollArea">
+    <!-- 1. Backdrop -->
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="closeModalOverlay"></div>
+    
+    <!-- 2. Modal Card -->
+    <div id="modalCard" class="relative w-full md:w-[500px] h-[85vh] md:h-[700px] bg-white md:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col overflow-hidden">
       
-      <!-- HERO POST (Clean, No Avatar) -->
-      <div class="p-6 border-b border-gray-100 bg-gray-50/50">
-        <div class="text-xs text-brand-500 font-bold mb-2 uppercase tracking-wider">Original Post</div>
-        <p id="modalPostContent" class="text-gray-900 text-[17px] leading-relaxed whitespace-pre-wrap font-medium"></p>
-        <div class="text-xs text-gray-400 mt-3" id="modalPostDate">...</div>
+      <!-- Header -->
+      <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-white z-10 shrink-0">
+        <h3 class="font-bold text-gray-800 text-sm tracking-wide">COMMENTS</h3>
+        <button id="closeModalBtn" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">✕</button>
       </div>
 
-      <!-- Comments List -->
-      <div id="commentsList" class="p-4 space-y-4 pb-4">
-        <!-- Comments injected here via JS -->
+      <!-- Scrollable Content -->
+      <div class="flex-1 overflow-y-auto bg-white scroll-smooth" id="modalScrollArea">
+        
+        <!-- HERO POST -->
+        <div class="p-6 border-b border-gray-100 bg-gray-50/50">
+          <div class="text-xs text-brand-500 font-bold mb-2 uppercase tracking-wider">Original Post</div>
+          <p id="modalPostContent" class="text-gray-900 text-[19px] leading-relaxed whitespace-pre-wrap"></p>
+          <div class="text-xs text-gray-400 mt-3" id="modalPostDate">...</div>
+        </div>
+
+        <!-- Comments List -->
+        <div id="commentsList" class="p-4 space-y-4 pb-4"></div>
       </div>
+
+      <!-- Footer: Input & Emojis -->
+      <div class="p-3 border-t border-gray-100 bg-white shrink-0">
+        
+        <div class="flex gap-2 mb-3 overflow-x-auto pb-1" id="emojiBar">
+          <button class="emoji-btn text-xl hover:scale-125 transition-transform" data-char="❤️">❤️</button>
+          <button class="emoji-btn text-xl hover:scale-125 transition-transform" data-char="😂">😂</button>
+          <button class="emoji-btn text-xl hover:scale-125 transition-transform" data-char="🔥">🔥</button>
+          <button class="emoji-btn text-xl hover:scale-125 transition-transform" data-char="👏">👏</button>
+          <button class="emoji-btn text-xl hover:scale-125 transition-transform" data-char="😮">😮</button>
+          <button class="emoji-btn text-xl hover:scale-125 transition-transform" data-char="🙏">🙏</button>
+        </div>
+
+        <div class="flex items-center gap-2 bg-gray-100 rounded-2xl px-4 py-2 border border-transparent focus-within:border-brand-200 focus-within:bg-white transition-all focus-within:ring-2 focus-within:ring-brand-500/10">
+          <input type="text" id="commentInput" placeholder="Add a comment..." 
+            class="flex-1 bg-transparent border-none focus:ring-0 text-sm text-gray-800 placeholder-gray-400 h-9 outline-none" autocomplete="off">
+          <button id="sendCommentBtn" class="text-brand-600 font-bold text-sm hover:text-brand-700 disabled:opacity-50 transition-colors uppercase tracking-wide">Post</button>
+        </div>
+      </div>
+
     </div>
-
-    <!-- Footer: Input & Emojis -->
-    <div class="p-3 border-t border-gray-100 bg-white shrink-0">
-      
-      <!-- Quick Emoji Bar -->
-      <div class="flex gap-2 mb-3 overflow-x-auto pb-1" id="emojiBar">
-        <button class="emoji-btn text-xl hover:scale-125 transition-transform" data-char="❤️">❤️</button>
-        <button class="emoji-btn text-xl hover:scale-125 transition-transform" data-char="😂">😂</button>
-        <button class="emoji-btn text-xl hover:scale-125 transition-transform" data-char="🔥">🔥</button>
-        <button class="emoji-btn text-xl hover:scale-125 transition-transform" data-char="👏">👏</button>
-        <button class="emoji-btn text-xl hover:scale-125 transition-transform" data-char="😮">😮</button>
-        <button class="emoji-btn text-xl hover:scale-125 transition-transform" data-char="🙏">🙏</button>
-      </div>
-
-      <!-- Input Field -->
-      <div class="flex items-center gap-2 bg-gray-100 rounded-2xl px-4 py-2 border border-transparent focus-within:border-brand-200 focus-within:bg-white transition-all focus-within:ring-2 focus-within:ring-brand-500/10">
-        <input type="text" id="commentInput" placeholder="Add a comment..." 
-          class="flex-1 bg-transparent border-none focus:ring-0 text-sm text-gray-800 placeholder-gray-400 h-9 outline-none" autocomplete="off">
-        <button id="sendCommentBtn" class="text-brand-600 font-bold text-sm hover:text-brand-700 disabled:opacity-50 transition-colors uppercase tracking-wide">Post</button>
-      </div>
-    </div>
-
   </div>
-</div>
 
   <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
   <script type="module" src="app.js"></script>
