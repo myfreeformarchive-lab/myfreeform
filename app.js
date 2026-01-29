@@ -39,7 +39,8 @@ const DOM = {
   emojiButtons: document.querySelectorAll('.emoji-btn')
 };
 
-let currentTab = 'private';
+// 1. Load preferences or default to private/false
+let currentTab = localStorage.getItem('freeform_tab_pref') || 'private';
 let publicUnsubscribe = null;
 let activePostId = null;
 let commentsUnsubscribe = null;
@@ -52,12 +53,31 @@ let allPrivatePosts = [];
 document.addEventListener('DOMContentLoaded', () => {
   runMigration();
   setRandomPlaceholder();
+  
+  // 2. Apply Saved Toggle State
+  const savedToggleState = localStorage.getItem('freeform_toggle_pref');
+  if (savedToggleState === 'true') {
+    DOM.toggle.checked = true;
+  } else {
+    DOM.toggle.checked = false;
+  }
+  updateToggleUI(); // Updates the label text based on check state
+
+  // 3. Apply Saved Tab UI
+  updateTabClasses(); // Visually sets the correct bold/active tab
+  
   loadFeed(); 
   updateMeter();
   setupInfiniteScroll();
 
   DOM.btn.addEventListener('click', handlePost);
-  DOM.toggle.addEventListener('change', updateToggleUI);
+  
+  // Save toggle preference on change
+  DOM.toggle.addEventListener('change', () => {
+    localStorage.setItem('freeform_toggle_pref', DOM.toggle.checked);
+    updateToggleUI();
+  });
+
   DOM.tabPrivate.addEventListener('click', () => switchTab('private'));
   DOM.tabPublic.addEventListener('click', () => switchTab('public'));
 
@@ -90,19 +110,28 @@ function setRandomPlaceholder() {
 // === TABS & FEED ===
 function switchTab(tab) {
   if (currentTab === tab) return;
+  
   currentTab = tab;
+  // Save preference
+  localStorage.setItem('freeform_tab_pref', tab);
+  
   currentLimit = BATCH_SIZE;
+  
+  updateTabClasses();
+  loadFeed();
+}
+
+function updateTabClasses() {
   const activeClass = "flex-1 pb-3 text-sm font-bold text-brand-600 border-b-2 border-brand-500 transition-all";
   const inactiveClass = "flex-1 pb-3 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-all";
 
-  if (tab === 'private') {
+  if (currentTab === 'private') {
     DOM.tabPrivate.className = activeClass;
     DOM.tabPublic.className = inactiveClass;
   } else {
     DOM.tabPublic.className = activeClass;
     DOM.tabPrivate.className = inactiveClass;
   }
-  loadFeed();
 }
 
 function updateToggleUI() {
@@ -215,6 +244,7 @@ async function handlePost() {
 
   try {
     const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
+    // Local backup always
     posts.push({ id: Date.now().toString(), content: text, createdAt: new Date().toISOString(), isFirebase: false });
     localStorage.setItem('freeform_v2', JSON.stringify(posts));
     updateMeter();
@@ -253,7 +283,6 @@ function openModal(post) {
   DOM.modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 
-  // CHANGED: 'asc' -> 'desc' (Newest at Top)
   const q = query(collection(db, `globalPosts/${post.id}/comments`), orderBy("createdAt", "desc"));
   
   DOM.commentList.innerHTML = '<div class="text-center py-10 text-slate-300 text-sm">Loading...</div>';
@@ -284,9 +313,6 @@ function openModal(post) {
       `;
       DOM.commentList.appendChild(div);
     });
-    
-    // REMOVED: Auto-scroll to bottom. 
-    // Since newest are at the top, the default scroll position (top) is correct.
   });
 }
 
@@ -311,7 +337,6 @@ async function postComment() {
     });
     DOM.commentInput.value = '';
     
-    // Slight scroll to top to ensure user sees their new comment
     const scrollArea = document.getElementById('modalScrollArea');
     scrollArea.scrollTop = 0; 
 
