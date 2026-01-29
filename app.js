@@ -400,7 +400,7 @@ async function deleteLocal(id) {
 
 // Delete from Firebase ONLY (Does not touch Local)
 async function deleteGlobal(id) {
-  if (!confirm("Delete from Global Feed? (Copy in Archive stays)")) return;
+  if (!confirm("Delete from Global Feed?")) return;
   try {
     await deleteDoc(doc(db, "globalPosts", id));
   } catch (e) {
