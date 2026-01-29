@@ -427,7 +427,7 @@ async function deleteLocal(id) {
 }
 
 async function deleteGlobal(id) {
-  if (!confirm("Delete from Global Feed? (Copy in Archive stays)")) return;
+  if (!confirm("Delete from Global Feed?")) return;
   try {
     await deleteDoc(doc(db, "globalPosts", id));
   } catch (e) {
