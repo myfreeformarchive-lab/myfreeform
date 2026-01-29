@@ -36,6 +36,7 @@ const DOM = {
   modalDate: document.getElementById('modalPostDate'),
   commentList: document.getElementById('commentsList'),
   commentInput: document.getElementById('commentInput'),
+  commentInputBar: document.querySelector('#commentModal .border-t'), 
   sendComment: document.getElementById('sendCommentBtn'),
   emojiButtons: document.querySelectorAll('.emoji-btn')
 };
@@ -43,7 +44,7 @@ const DOM = {
 // 1. Load preferences
 let currentTab = localStorage.getItem('freeform_tab_pref') || 'private';
 let publicUnsubscribe = null;
-let activePostId = null;
+let activePostId = null; // This will now always store the Firestore ID if available
 let commentsUnsubscribe = null;
 const BATCH_SIZE = 15;
 let currentLimit = BATCH_SIZE;
@@ -201,37 +202,41 @@ function renderListItems(items) {
     
     const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
 
+    // Platform Limits
     const LIMIT_X = 280;
     const LIMIT_THREADS = 500;
 
-    let footerHtml = '';
+    // --- Footer Logic ---
+    let shareButtons = '';
     
-    if (item.isFirebase) {
-      let shareButtons = '';
-      if (contentLength <= LIMIT_X) {
-        shareButtons += `
-          <button class="share-btn-x w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-400 hover:bg-black hover:border-black hover:text-white transition-all duration-200" title="Share on X">
-            <span class="text-[13px] font-bold leading-none">𝕏</span>
-          </button>`;
-      }
-      if (contentLength <= LIMIT_THREADS) {
-        shareButtons += `
-          <button class="share-btn-threads w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-400 hover:bg-black hover:border-black hover:text-white transition-all duration-200" title="Share on Threads">
-            <span class="text-[15px] font-sans font-bold leading-none mt-[1px]">@</span>
-          </button>`;
-      }
-
-      footerHtml = `
-        <div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
-          <div class="flex items-center text-xs text-brand-500 font-medium gap-1 hover:text-brand-700 transition-colors group">
-            <span class="text-base group-hover:scale-110 transition-transform">💬</span> View Comments
-          </div>
-          <div class="flex items-center gap-2">
-            ${shareButtons}
-          </div>
-        </div>
-      `;
+    // Only show share buttons if length is within limits
+    if (contentLength <= LIMIT_X) {
+      shareButtons += `
+        <button class="share-btn-x w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-400 hover:bg-black hover:border-black hover:text-white transition-all duration-200" title="Share on X">
+          <span class="text-[13px] font-bold leading-none">𝕏</span>
+        </button>`;
     }
+    if (contentLength <= LIMIT_THREADS) {
+      shareButtons += `
+        <button class="share-btn-threads w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-400 hover:bg-black hover:border-black hover:text-white transition-all duration-200" title="Share on Threads">
+          <span class="text-[15px] font-sans font-bold leading-none mt-[1px]">@</span>
+        </button>`;
+    }
+
+    // Determine Label: If it has a Firebase ID (even if local), it has comments.
+    const hasCommentsAccess = item.isFirebase || item.firebaseId;
+    const viewLabel = hasCommentsAccess ? "View Comments" : "Open";
+
+    const footerHtml = `
+      <div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
+        <div class="flex items-center text-xs text-brand-500 font-medium gap-1 hover:text-brand-700 transition-colors group">
+          <span class="text-base group-hover:scale-110 transition-transform">${hasCommentsAccess ? '💬' : '📄'}</span> ${viewLabel}
+        </div>
+        <div class="flex items-center gap-2">
+          ${shareButtons}
+        </div>
+      </div>
+    `;
 
     el.innerHTML = `
       <div class="flex justify-between items-start mb-2">
@@ -265,18 +270,18 @@ function renderListItems(items) {
       el.appendChild(delBtn);
     }
 
-    if (item.isFirebase) {
-      el.onclick = () => openModal(item);
+    // Unified Click Handler -> Open Modal
+    el.onclick = () => openModal(item);
 
-      const xBtn = el.querySelector('.share-btn-x');
-      const tBtn = el.querySelector('.share-btn-threads');
+    // Share Button Handlers
+    const xBtn = el.querySelector('.share-btn-x');
+    const tBtn = el.querySelector('.share-btn-threads');
 
-      if (xBtn) {
-        xBtn.onclick = (e) => { e.stopPropagation(); sharePost(item.content, 'x'); };
-      }
-      if (tBtn) {
-        tBtn.onclick = (e) => { e.stopPropagation(); sharePost(item.content, 'threads'); };
-      }
+    if (xBtn) {
+      xBtn.onclick = (e) => { e.stopPropagation(); sharePost(item.content, 'x'); };
+    }
+    if (tBtn) {
+      tBtn.onclick = (e) => { e.stopPropagation(); sharePost(item.content, 'threads'); };
     }
     
     DOM.list.appendChild(el);
@@ -409,71 +414,94 @@ async function deleteComment(postId, commentId) {
 }
 
 // ==========================================
-// 💬 MODAL
+// 💬 MODAL (Unified & Smart Linked)
 // ==========================================
 function openModal(post) {
-  activePostId = post.id;
-  DOM.modalContent.textContent = post.content;
+  // 1. Determine the REAL Firestore ID (for comments)
+  // If clicked from Global, use post.id.
+  // If clicked from Local, check if it has a linked firebaseId.
+  const realFirestoreId = post.isFirebase ? post.id : post.firebaseId;
   
+  activePostId = realFirestoreId; // Set the active ID for commenting
+  
+  // UI Setup
+  DOM.modalContent.textContent = post.content;
   const fontClass = post.font || 'font-sans';
   DOM.modalContent.classList.remove('font-sans', 'font-serif', 'font-mono', 'font-hand');
   DOM.modalContent.classList.add(fontClass);
-
   DOM.modalDate.textContent = getRelativeTime(post.createdAt);
   
   DOM.modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 
-  const q = query(collection(db, `globalPosts/${post.id}/comments`), orderBy("createdAt", "desc"));
-  
-  DOM.commentList.innerHTML = '<div class="text-center py-10 text-slate-300 text-sm">Loading...</div>';
-  
-  commentsUnsubscribe = onSnapshot(q, (snapshot) => {
-    DOM.commentList.innerHTML = '';
+  // 2. Logic: Can we load comments?
+  if (realFirestoreId) {
+    // YES: It's either Global or Linked Local
+    // Enable Input
+    if(DOM.commentInputBar) DOM.commentInputBar.style.display = 'block';
+
+    const q = query(collection(db, `globalPosts/${realFirestoreId}/comments`), orderBy("createdAt", "desc"));
+    DOM.commentList.innerHTML = '<div class="text-center py-10 text-slate-300 text-sm">Loading...</div>';
     
-    if (snapshot.empty) {
-      DOM.commentList.innerHTML = `
-        <div class="flex flex-col items-center justify-center py-10 text-center">
-          <div class="text-3xl mb-2 opacity-30">💭</div>
-          <div class="text-slate-400 text-sm">No comments yet.<br>Be the first.</div>
-        </div>`;
-      return;
-    }
-
-    snapshot.forEach(doc => {
-      const c = doc.data();
-      const div = document.createElement('div');
-      const time = getRelativeTime(c.createdAt);
-      const isMyComment = c.authorId === MY_USER_ID;
-
-      div.className = "comment-bubble flex flex-col items-start w-full relative group";
+    commentsUnsubscribe = onSnapshot(q, (snapshot) => {
+      DOM.commentList.innerHTML = '';
       
-      let deleteBtn = '';
-      if (isMyComment) {
-        deleteBtn = `<button class="delete-comment-btn ml-2 text-xs font-semibold text-red-300 hover:text-red-500 transition-colors cursor-pointer" data-id="${doc.id}">Delete</button>`;
+      if (snapshot.empty) {
+        DOM.commentList.innerHTML = `
+          <div class="flex flex-col items-center justify-center py-10 text-center">
+            <div class="text-3xl mb-2 opacity-30">💭</div>
+            <div class="text-slate-400 text-sm">No comments yet.<br>Be the first.</div>
+          </div>`;
+        return;
       }
 
-      div.innerHTML = `
-        <div class="bg-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-none max-w-[90%]">
-           <p class="text-sm text-gray-800 leading-snug break-words font-sans">${cleanText(c.text)}</p>
-        </div>
-        <div class="flex items-center mt-1 ml-1">
-          <span class="text-[10px] text-gray-400">${time}</span>
-          ${deleteBtn}
-        </div>
-      `;
+      snapshot.forEach(doc => {
+        const c = doc.data();
+        const div = document.createElement('div');
+        const time = getRelativeTime(c.createdAt);
+        const isMyComment = c.authorId === MY_USER_ID;
 
-      // Attach delete handler
-      if (isMyComment) {
-        const btn = div.querySelector('.delete-comment-btn');
-        if (btn) {
-          btn.onclick = () => deleteComment(activePostId, doc.id);
+        div.className = "comment-bubble flex flex-col items-start w-full relative group";
+        
+        let deleteBtn = '';
+        if (isMyComment) {
+          deleteBtn = `<button class="delete-comment-btn ml-2 text-xs font-semibold text-red-300 hover:text-red-500 transition-colors cursor-pointer" data-id="${doc.id}">Delete</button>`;
         }
-      }
 
-      DOM.commentList.appendChild(div);
+        div.innerHTML = `
+          <div class="bg-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-none max-w-[90%]">
+             <p class="text-sm text-gray-800 leading-snug break-words font-sans">${cleanText(c.text)}</p>
+          </div>
+          <div class="flex items-center mt-1 ml-1">
+            <span class="text-[10px] text-gray-400">${time}</span>
+            ${deleteBtn}
+          </div>
+        `;
+
+        if (isMyComment) {
+          const btn = div.querySelector('.delete-comment-btn');
+          if (btn) {
+            btn.onclick = () => deleteComment(realFirestoreId, doc.id);
+          }
+        }
+
+        DOM.commentList.appendChild(div);
+      });
     });
-  });
+
+  } else {
+    // NO: It is a purely Private Local post (Unlinked)
+    // We cannot show comments because they don't exist in the cloud.
+    DOM.commentList.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-12 text-center opacity-50">
+        <div class="text-3xl mb-2">🔒</div>
+        <p class="text-sm font-medium">Private Draft</p>
+        <p class="text-xs mt-1">Share this post to enable comments.</p>
+      </div>`;
+    
+    // Hide input because posting would fail (no ID)
+    if(DOM.commentInputBar) DOM.commentInputBar.style.display = 'none';
+  }
 }
 
 function closeModal() {
@@ -491,10 +519,9 @@ async function postComment() {
   DOM.sendComment.style.opacity = "0.5";
 
   try {
-    // SAVING IDENTITY HERE
     await addDoc(collection(db, `globalPosts/${activePostId}/comments`), {
       text: text,
-      authorId: MY_USER_ID, // <-- SAVES ID
+      authorId: MY_USER_ID, 
       createdAt: serverTimestamp()
     });
     DOM.commentInput.value = '';
