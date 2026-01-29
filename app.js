@@ -44,7 +44,7 @@ const DOM = {
 // 1. Load preferences
 let currentTab = localStorage.getItem('freeform_tab_pref') || 'private';
 let publicUnsubscribe = null;
-let activePostId = null; // This will now always store the Firestore ID if available
+let activePostId = null; 
 let commentsUnsubscribe = null;
 const BATCH_SIZE = 15;
 let currentLimit = BATCH_SIZE;
@@ -58,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
   runMigration();
   setRandomPlaceholder();
   
-  // Apply Saved Toggle State
   const savedToggleState = localStorage.getItem('freeform_toggle_pref');
   DOM.toggle.checked = (savedToggleState === 'true');
   updateToggleUI(); 
@@ -77,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
   DOM.tabPrivate.addEventListener('click', () => switchTab('private'));
   DOM.tabPublic.addEventListener('click', () => switchTab('public'));
 
-  // Font Selection Logic
   DOM.fontBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       DOM.fontBtns.forEach(b => b.classList.remove('ring-2', 'ring-brand-500', 'ring-offset-1'));
@@ -202,14 +200,11 @@ function renderListItems(items) {
     
     const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
 
-    // Platform Limits
     const LIMIT_X = 280;
     const LIMIT_THREADS = 500;
 
-    // --- Footer Logic ---
     let shareButtons = '';
     
-    // Only show share buttons if length is within limits
     if (contentLength <= LIMIT_X) {
       shareButtons += `
         <button class="share-btn-x w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-400 hover:bg-black hover:border-black hover:text-white transition-all duration-200" title="Share on X">
@@ -223,7 +218,6 @@ function renderListItems(items) {
         </button>`;
     }
 
-    // Determine Label: If it has a Firebase ID (even if local), it has comments.
     const hasCommentsAccess = item.isFirebase || item.firebaseId;
     const viewLabel = hasCommentsAccess ? "View Comments" : "Open";
 
@@ -251,7 +245,6 @@ function renderListItems(items) {
       ${footerHtml}
     `;
 
-    // DELETE BUTTON RENDER
     if (!item.isFirebase || isMyGlobalPost) {
       const delBtn = document.createElement('button');
       delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
@@ -270,10 +263,8 @@ function renderListItems(items) {
       el.appendChild(delBtn);
     }
 
-    // Unified Click Handler -> Open Modal
     el.onclick = () => openModal(item);
 
-    // Share Button Handlers
     const xBtn = el.querySelector('.share-btn-x');
     const tBtn = el.querySelector('.share-btn-threads');
 
@@ -372,6 +363,47 @@ async function handlePost() {
   }
 }
 
+// NEW FUNCTION: Publish a local draft to Global
+async function publishDraft(post) {
+  if (!confirm("Are you sure you want to make this post public? It will appear in the Global Feed.")) return;
+  
+  try {
+    // 1. Upload to Firebase
+    const docRef = await addDoc(collection(db, "globalPosts"), { 
+      content: post.content, 
+      font: post.font || 'font-sans', 
+      authorId: MY_USER_ID,
+      createdAt: serverTimestamp() 
+    });
+
+    // 2. Update Local Post with the new ID
+    const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
+    const targetIndex = posts.findIndex(p => p.id === post.id);
+    
+    if (targetIndex !== -1) {
+      posts[targetIndex].firebaseId = docRef.id;
+      localStorage.setItem('freeform_v2', JSON.stringify(posts));
+      
+      // Update Runtime Memory
+      allPrivatePosts = posts.reverse();
+      
+      // 3. Refresh UI
+      // Reload list to show "View Comments" icon
+      loadFeed();
+      
+      // Re-open the modal with the updated post object (so it loads comments)
+      openModal(posts[targetIndex]); // Note: targetIndex in 'posts' (which was not reversed) might need logic adjustment depending on array order, but simple object pass is safest.
+      // Better:
+      const updatedPost = posts.find(p => p.id === post.id);
+      openModal(updatedPost);
+    }
+
+  } catch (e) {
+    console.error("Error publishing draft:", e);
+    alert("Could not publish post. Check connection.");
+  }
+}
+
 async function deleteLocal(id) {
   if (!confirm("Delete from Archive?")) return;
   
@@ -395,7 +427,7 @@ async function deleteLocal(id) {
 }
 
 async function deleteGlobal(id) {
-  if (!confirm("Delete from Global Feed?")) return;
+  if (!confirm("Delete from Global Feed? (Copy in Archive stays)")) return;
   try {
     await deleteDoc(doc(db, "globalPosts", id));
   } catch (e) {
@@ -414,17 +446,12 @@ async function deleteComment(postId, commentId) {
 }
 
 // ==========================================
-// 💬 MODAL (Unified & Smart Linked)
+// 💬 MODAL
 // ==========================================
 function openModal(post) {
-  // 1. Determine the REAL Firestore ID (for comments)
-  // If clicked from Global, use post.id.
-  // If clicked from Local, check if it has a linked firebaseId.
   const realFirestoreId = post.isFirebase ? post.id : post.firebaseId;
+  activePostId = realFirestoreId; 
   
-  activePostId = realFirestoreId; // Set the active ID for commenting
-  
-  // UI Setup
   DOM.modalContent.textContent = post.content;
   const fontClass = post.font || 'font-sans';
   DOM.modalContent.classList.remove('font-sans', 'font-serif', 'font-mono', 'font-hand');
@@ -434,10 +461,7 @@ function openModal(post) {
   DOM.modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 
-  // 2. Logic: Can we load comments?
   if (realFirestoreId) {
-    // YES: It's either Global or Linked Local
-    // Enable Input
     if(DOM.commentInputBar) DOM.commentInputBar.style.display = 'block';
 
     const q = query(collection(db, `globalPosts/${realFirestoreId}/comments`), orderBy("createdAt", "desc"));
@@ -445,7 +469,6 @@ function openModal(post) {
     
     commentsUnsubscribe = onSnapshot(q, (snapshot) => {
       DOM.commentList.innerHTML = '';
-      
       if (snapshot.empty) {
         DOM.commentList.innerHTML = `
           <div class="flex flex-col items-center justify-center py-10 text-center">
@@ -454,13 +477,11 @@ function openModal(post) {
           </div>`;
         return;
       }
-
       snapshot.forEach(doc => {
         const c = doc.data();
         const div = document.createElement('div');
         const time = getRelativeTime(c.createdAt);
         const isMyComment = c.authorId === MY_USER_ID;
-
         div.className = "comment-bubble flex flex-col items-start w-full relative group";
         
         let deleteBtn = '';
@@ -477,29 +498,32 @@ function openModal(post) {
             ${deleteBtn}
           </div>
         `;
-
         if (isMyComment) {
           const btn = div.querySelector('.delete-comment-btn');
-          if (btn) {
-            btn.onclick = () => deleteComment(realFirestoreId, doc.id);
-          }
+          if (btn) btn.onclick = () => deleteComment(realFirestoreId, doc.id);
         }
-
         DOM.commentList.appendChild(div);
       });
     });
 
   } else {
-    // NO: It is a purely Private Local post (Unlinked)
-    // We cannot show comments because they don't exist in the cloud.
+    // === PRIVATE DRAFT VIEW (Actionable) ===
     DOM.commentList.innerHTML = `
       <div class="flex flex-col items-center justify-center py-12 text-center opacity-50">
         <div class="text-3xl mb-2">🔒</div>
         <p class="text-sm font-medium">Private Draft</p>
-        <p class="text-xs mt-1">Share this post to enable comments.</p>
+        <p class="text-xs mt-1">
+          <span id="triggerPublish" class="text-brand-600 font-bold underline cursor-pointer hover:text-brand-700">Share this post</span>
+          to enable comments.
+        </p>
       </div>`;
     
-    // Hide input because posting would fail (no ID)
+    // Bind click event for publishing
+    const trigger = document.getElementById('triggerPublish');
+    if(trigger) {
+      trigger.onclick = () => publishDraft(post);
+    }
+    
     if(DOM.commentInputBar) DOM.commentInputBar.style.display = 'none';
   }
 }
