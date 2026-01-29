@@ -27,6 +27,7 @@ const DOM = {
   tabPublic: document.getElementById('tabPublic'),
   storage: document.getElementById('storageInfo'),
   loadTrigger: document.getElementById('loadTrigger'),
+  fontBtns: document.querySelectorAll('.font-btn'),
   // Modal
   modal: document.getElementById('commentModal'),
   modalOverlay: document.getElementById('closeModalOverlay'),
@@ -39,7 +40,7 @@ const DOM = {
   emojiButtons: document.querySelectorAll('.emoji-btn')
 };
 
-// 1. Load preferences or default to private/false
+// 1. Load preferences
 let currentTab = localStorage.getItem('freeform_tab_pref') || 'private';
 let publicUnsubscribe = null;
 let activePostId = null;
@@ -48,31 +49,28 @@ const BATCH_SIZE = 15;
 let currentLimit = BATCH_SIZE;
 let isLoadingMore = false;
 let allPrivatePosts = []; 
+let selectedFont = 'font-sans'; // Default Font
 
 // === INIT ===
 document.addEventListener('DOMContentLoaded', () => {
   runMigration();
   setRandomPlaceholder();
   
-  // 2. Apply Saved Toggle State
+  // Apply Saved Toggle State
   const savedToggleState = localStorage.getItem('freeform_toggle_pref');
   if (savedToggleState === 'true') {
     DOM.toggle.checked = true;
   } else {
     DOM.toggle.checked = false;
   }
-  updateToggleUI(); // Updates the label text based on check state
-
-  // 3. Apply Saved Tab UI
-  updateTabClasses(); // Visually sets the correct bold/active tab
-  
+  updateToggleUI(); 
+  updateTabClasses(); 
   loadFeed(); 
   updateMeter();
   setupInfiniteScroll();
 
   DOM.btn.addEventListener('click', handlePost);
   
-  // Save toggle preference on change
   DOM.toggle.addEventListener('change', () => {
     localStorage.setItem('freeform_toggle_pref', DOM.toggle.checked);
     updateToggleUI();
@@ -80,6 +78,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   DOM.tabPrivate.addEventListener('click', () => switchTab('private'));
   DOM.tabPublic.addEventListener('click', () => switchTab('public'));
+
+  // Font Selection Logic
+  DOM.fontBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // 1. Remove active state from all
+      DOM.fontBtns.forEach(b => b.classList.remove('ring-2', 'ring-brand-500', 'ring-offset-1'));
+      // 2. Add active state to clicked
+      btn.classList.add('ring-2', 'ring-brand-500', 'ring-offset-1');
+      // 3. Update State
+      selectedFont = btn.getAttribute('data-font');
+      // 4. Update Input Appearance immediately
+      DOM.input.className = DOM.input.className.replace(/font-\w+/, selectedFont);
+      DOM.input.focus();
+    });
+  });
 
   DOM.modalOverlay.addEventListener('click', closeModal);
   DOM.closeBtn.addEventListener('click', closeModal);
@@ -110,13 +123,9 @@ function setRandomPlaceholder() {
 // === TABS & FEED ===
 function switchTab(tab) {
   if (currentTab === tab) return;
-  
   currentTab = tab;
-  // Save preference
   localStorage.setItem('freeform_tab_pref', tab);
-  
   currentLimit = BATCH_SIZE;
-  
   updateTabClasses();
   loadFeed();
 }
@@ -185,6 +194,9 @@ function renderListItems(items) {
     const el = document.createElement('div');
     el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer";
     const time = getRelativeTime(item.createdAt);
+    
+    // Fallback to font-sans if no font saved
+    const fontClass = item.font || 'font-sans'; 
 
     el.innerHTML = `
       <div class="flex justify-between items-start mb-2">
@@ -195,7 +207,8 @@ function renderListItems(items) {
           <span class="text-xs text-slate-400 font-medium">${time}</span>
         </div>
       </div>
-      <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] pointer-events-none">${cleanText(item.content)}</p>
+      <!-- Apply Dynamic Font Class Here -->
+      <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[17px] pointer-events-none ${fontClass}">${cleanText(item.content)}</p>
       ${item.isFirebase ? `<div class="mt-3 pt-3 border-t border-slate-50 flex items-center text-xs text-brand-500 font-medium gap-1"><span class="text-base">💬</span> View Comments</div>` : ''}
     `;
 
@@ -244,13 +257,25 @@ async function handlePost() {
 
   try {
     const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
-    // Local backup always
-    posts.push({ id: Date.now().toString(), content: text, createdAt: new Date().toISOString(), isFirebase: false });
+    
+    const newPost = { 
+      id: Date.now().toString(), 
+      content: text, 
+      font: selectedFont, // Saving Font choice
+      createdAt: new Date().toISOString(), 
+      isFirebase: false 
+    };
+
+    posts.push(newPost);
     localStorage.setItem('freeform_v2', JSON.stringify(posts));
     updateMeter();
 
     if (isPublic) {
-      await addDoc(collection(db, "globalPosts"), { content: text, createdAt: serverTimestamp() });
+      await addDoc(collection(db, "globalPosts"), { 
+        content: text, 
+        font: selectedFont, // Saving Font choice to Firebase
+        createdAt: serverTimestamp() 
+      });
       if (currentTab === 'private') switchTab('public');
     } else {
       if (currentTab === 'public') switchTab('private');
@@ -273,11 +298,18 @@ function deleteLocal(id) {
 }
 
 // ==========================================
-// 💬 MODAL (COMMENTS - NEWEST FIRST)
+// 💬 MODAL
 // ==========================================
 function openModal(post) {
   activePostId = post.id;
   DOM.modalContent.textContent = post.content;
+  
+  // Apply the specific font to the modal content as well
+  const fontClass = post.font || 'font-sans';
+  // Remove any previous font classes first
+  DOM.modalContent.classList.remove('font-sans', 'font-serif', 'font-mono', 'font-hand');
+  DOM.modalContent.classList.add(fontClass);
+
   DOM.modalDate.textContent = getRelativeTime(post.createdAt);
   
   DOM.modal.classList.remove('hidden');
@@ -307,7 +339,7 @@ function openModal(post) {
       div.className = "comment-bubble flex flex-col items-start";
       div.innerHTML = `
         <div class="bg-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-none max-w-[90%]">
-           <p class="text-sm text-gray-800 leading-snug break-words">${cleanText(c.text)}</p>
+           <p class="text-sm text-gray-800 leading-snug break-words font-sans">${cleanText(c.text)}</p>
         </div>
         <span class="text-[10px] text-gray-400 mt-1 ml-1">${time}</span>
       `;
