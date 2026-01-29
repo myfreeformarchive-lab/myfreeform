@@ -50,7 +50,7 @@ let currentLimit = BATCH_SIZE;
 let isLoadingMore = false;
 let allPrivatePosts = []; 
 let selectedFont = 'font-sans'; 
-const MY_USER_ID = getOrCreateUserId(); // Identity for Deletion
+const MY_USER_ID = getOrCreateUserId(); 
 
 // === INIT ===
 document.addEventListener('DOMContentLoaded', () => {
@@ -107,7 +107,6 @@ document.addEventListener('DOMContentLoaded', () => {
 function getOrCreateUserId() {
   let id = localStorage.getItem('freeform_user_id');
   if (!id) {
-    // Generate simple random ID (e.g. "a7b2-9x1z")
     id = Math.random().toString(36).substring(2, 6) + '-' + Math.random().toString(36).substring(2, 6);
     localStorage.setItem('freeform_user_id', id);
   }
@@ -195,23 +194,19 @@ function renderListItems(items) {
 
   items.forEach(item => {
     const el = document.createElement('div');
-    el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative"; // Added 'relative' for positioning delete btn
+    el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative";
     const time = getRelativeTime(item.createdAt);
     const fontClass = item.font || 'font-sans'; 
     const contentLength = item.content ? item.content.length : 0;
     
-    // Check ownership for Global Posts
     const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
 
-    // Platform Limits
     const LIMIT_X = 280;
     const LIMIT_THREADS = 500;
 
     let footerHtml = '';
     
-    // Only show footer (comments/share) for Global (Firebase) posts
     if (item.isFirebase) {
-      
       let shareButtons = '';
       if (contentLength <= LIMIT_X) {
         shareButtons += `
@@ -251,13 +246,12 @@ function renderListItems(items) {
       ${footerHtml}
     `;
 
-    // LOGIC: Delete Button
-    // Show if it is a Local post OR if it is a Global post belonging to this user
+    // DELETE BUTTON RENDER
     if (!item.isFirebase || isMyGlobalPost) {
       const delBtn = document.createElement('button');
       delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
       delBtn.innerHTML = "✕";
-      delBtn.title = "Delete Post";
+      delBtn.title = item.isFirebase ? "Delete from Global" : "Delete from Archive";
       
       delBtn.onclick = (e) => { 
         e.stopPropagation(); 
@@ -272,24 +266,16 @@ function renderListItems(items) {
     }
 
     if (item.isFirebase) {
-      // Open Modal on Card Click
       el.onclick = () => openModal(item);
 
-      // Attach Share Listeners
       const xBtn = el.querySelector('.share-btn-x');
       const tBtn = el.querySelector('.share-btn-threads');
 
       if (xBtn) {
-        xBtn.onclick = (e) => {
-          e.stopPropagation();
-          sharePost(item.content, 'x');
-        };
+        xBtn.onclick = (e) => { e.stopPropagation(); sharePost(item.content, 'x'); };
       }
       if (tBtn) {
-        tBtn.onclick = (e) => {
-          e.stopPropagation();
-          sharePost(item.content, 'threads');
-        };
+        tBtn.onclick = (e) => { e.stopPropagation(); sharePost(item.content, 'threads'); };
       }
     }
     
@@ -338,29 +324,37 @@ async function handlePost() {
   DOM.btn.disabled = true;
 
   try {
-    const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
-    
+    let firebaseId = null;
+
+    // 1. If Public, upload to Firebase FIRST to get the ID
+    if (isPublic) {
+      const docRef = await addDoc(collection(db, "globalPosts"), { 
+        content: text, 
+        font: selectedFont, 
+        authorId: MY_USER_ID,
+        createdAt: serverTimestamp() 
+      });
+      firebaseId = docRef.id; // Capture ID
+    }
+
+    // 2. Prepare Local Post Object (include firebaseId if public)
     const newPost = { 
       id: Date.now().toString(), 
       content: text, 
       font: selectedFont, 
       createdAt: new Date().toISOString(), 
-      isFirebase: false 
+      isFirebase: false,
+      firebaseId: firebaseId // <--- LINKAGE
     };
 
-    // Always save to local backup
+    // 3. Save to Local Storage
+    const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
     posts.push(newPost);
     localStorage.setItem('freeform_v2', JSON.stringify(posts));
     updateMeter();
 
+    // 4. Update UI
     if (isPublic) {
-      // Save to Firebase with Author ID
-      await addDoc(collection(db, "globalPosts"), { 
-        content: text, 
-        font: selectedFont, 
-        authorId: MY_USER_ID, // <-- SAVING IDENTITY
-        createdAt: serverTimestamp() 
-      });
       if (currentTab === 'private') switchTab('public');
     } else {
       if (currentTab === 'public') switchTab('private');
@@ -368,13 +362,35 @@ async function handlePost() {
     }
     DOM.input.value = "";
     setRandomPlaceholder(); 
-  } catch (error) { alert("Error: " + error.message); } 
-  finally { DOM.btn.textContent = "Post"; DOM.btn.disabled = false; }
+
+  } catch (error) { 
+    alert("Error: " + error.message); 
+  } finally { 
+    DOM.btn.textContent = "Post"; 
+    DOM.btn.disabled = false; 
+  }
 }
 
-function deleteLocal(id) {
+async function deleteLocal(id) {
   if (!confirm("Delete from Archive?")) return;
+  
+  // 1. Get current posts
   let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
+  
+  // 2. Find the post to see if it has a linked Firebase ID
+  const targetPost = posts.find(p => p.id === id);
+
+  if (targetPost && targetPost.firebaseId) {
+    // 3. If linked, delete from Cloud too (Silent attempt)
+    try {
+      await deleteDoc(doc(db, "globalPosts", targetPost.firebaseId));
+      console.log("Linked global post deleted.");
+    } catch(e) {
+      console.log("Global post not found or already deleted.", e);
+    }
+  }
+
+  // 4. Delete locally
   posts = posts.filter(p => p.id !== id);
   localStorage.setItem('freeform_v2', JSON.stringify(posts));
   allPrivatePosts = posts.reverse();
@@ -382,12 +398,11 @@ function deleteLocal(id) {
   updateMeter();
 }
 
-// NEW: Delete from Firebase
+// Delete from Firebase ONLY (Does not touch Local)
 async function deleteGlobal(id) {
-  if (!confirm("Delete permanently from Global Feed?")) return;
+  if (!confirm("Delete from Global Feed? (Copy in Archive stays)")) return;
   try {
     await deleteDoc(doc(db, "globalPosts", id));
-    // The snapshot listener will automatically update the UI
   } catch (e) {
     console.error("Error deleting global post:", e);
     alert("Could not delete post.");
@@ -401,7 +416,6 @@ function openModal(post) {
   activePostId = post.id;
   DOM.modalContent.textContent = post.content;
   
-  // Apply Font
   const fontClass = post.font || 'font-sans';
   DOM.modalContent.classList.remove('font-sans', 'font-serif', 'font-mono', 'font-hand');
   DOM.modalContent.classList.add(fontClass);
