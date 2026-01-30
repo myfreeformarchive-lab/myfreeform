@@ -123,8 +123,6 @@ textarea::-webkit-scrollbar { display: none; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f8fafc;
-  color: #64748b;
   border: 1px solid #e2e8f0;
   transition: transform 0.2s, background-color 0.2s, color 0.2s;
   cursor: pointer;
