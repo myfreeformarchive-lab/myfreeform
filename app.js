@@ -189,7 +189,16 @@ function subscribePublicFeed() {
   DOM.loadTrigger.style.display = 'flex'; 
 
   publicUnsubscribe = onSnapshot(q, (snapshot) => {
-    const posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isFirebase: true }));
+    const posts = snapshot.docs.map(doc => {
+      const data = doc.data();
+      const id = doc.id;
+
+      // ✅ SYNC: If this post is in our local archive, update its count to match the server
+      updateLocalPostWithServerData(id, data.commentCount || 0);
+
+      return { id, ...data, isFirebase: true };
+    });
+
     DOM.list.innerHTML = '';
     renderListItems(posts);
     isLoadingMore = false;
@@ -672,6 +681,16 @@ function openModal(post) {
 
   if (realFirestoreId) {
     if(DOM.commentInputBar) DOM.commentInputBar.style.display = 'block';
+	
+	// ✅ SYNC: Get latest count from server whenever modal opens
+    // This ensures even if a 2nd device commented, your local storage updates now
+    const postRef = doc(db, "globalPosts", realFirestoreId);
+    onSnapshot(postRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const serverData = docSnap.data();
+        updateLocalPostWithServerData(realFirestoreId, serverData.commentCount || 0);
+      }
+    });
 
     const q = query(collection(db, `globalPosts/${realFirestoreId}/comments`), orderBy("createdAt", "desc"));
     DOM.commentList.innerHTML = '<div class="text-center py-10 text-slate-300 text-sm">Loading...</div>';
@@ -802,6 +821,31 @@ function syncLocalCommentCount(postIdOrFirebaseId, delta) {
   if (updated) {
     localStorage.setItem('freeform_v2', JSON.stringify(posts));
     // If you are currently viewing the private tab, refresh the view
+    if (currentTab === 'private') {
+      allPrivatePosts = posts.slice().reverse();
+      renderPrivateBatch();
+    }
+  }
+}
+
+// Updates the local archive record with the latest data from the server
+function updateLocalPostWithServerData(firebaseId, serverCount) {
+  let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
+  let updated = false;
+
+  posts = posts.map(p => {
+    if (p.firebaseId === firebaseId) {
+      if (p.commentCount !== serverCount) {
+        p.commentCount = serverCount;
+        updated = true;
+      }
+    }
+    return p;
+  });
+
+  if (updated) {
+    localStorage.setItem('freeform_v2', JSON.stringify(posts));
+    // Only refresh the UI if we are currently looking at the Archive tab
     if (currentTab === 'private') {
       allPrivatePosts = posts.slice().reverse();
       renderPrivateBatch();
