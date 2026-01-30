@@ -1,19 +1,32 @@
-/* ✅ TAILWIND PRODUCTION DIRECTIVES */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* 🚀 TAILWIND v4 MODERN DIRECTIVES */
+@import "tailwindcss";
+
+@theme {
+  /* This defines your custom brand colors for v4 */
+  --color-brand-500: #3f51b5;
+  --color-brand-600: #303f9f;
+
+  /* This defines your custom fonts for v4 */
+  --font-sans: "Inter", ui-sans-serif, system-ui;
+  --font-serif: "Playfair Display", ui-serif, Georgia;
+  --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular;
+  --font-hand: "Dancing Script", cursive;
+}
 
 /* 1. Base Settings */
-body {
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+@layer base {
+  body {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
 }
-textarea::-webkit-scrollbar { display: none; }
 
+/* Custom Scrollbar helpers */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+textarea::-webkit-scrollbar { display: none; }
 
-/* 2. Feed Item Animation */
+/* 2. Animations */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -22,7 +35,6 @@ textarea::-webkit-scrollbar { display: none; }
   animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* 3. Modal Animations */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 #commentModal:not(.hidden) #closeModalOverlay { animation: fadeIn 0.3s ease-out forwards; }
 
@@ -34,11 +46,10 @@ textarea::-webkit-scrollbar { display: none; }
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* 4. Comment Bubbles */
 @keyframes popIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 .comment-bubble { animation: popIn 0.2s ease-out forwards; }
 
-/* 5. SHARE SYSTEM COMPONENTS */
+/* 3. SHARE SYSTEM COMPONENTS */
 .share-trigger-btn {
   width: 32px; height: 32px; border-radius: 9999px;
   display: flex; align-items: center; justify-content: center;
