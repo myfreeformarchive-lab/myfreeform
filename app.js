@@ -358,30 +358,21 @@ function renderListItems(items) {
 }
 
 function sharePost(text, platform) {
-  const urlText = encodeURIComponent(text);
+  // 1. Determine safe raw text limit based on platform to prevent URL bloat
+  const limits = { x: 250, threads: 480, whatsapp: 1500, telegram: 2800, messenger: 1000, facebook: 50000 };
+  const safeText = text.substring(0, limits[platform] || 1000);
+  
+  const urlText = encodeURIComponent(safeText);
   const currentUrl = encodeURIComponent(window.location.href); 
   
   let url = '';
-
   switch(platform) {
-    case 'x':
-      url = `https://twitter.com/intent/tweet?text=${urlText}`;
-      break;
-    case 'threads':
-      url = `https://www.threads.net/intent/post?text=${urlText}`;
-      break;
-    case 'whatsapp':
-      url = `https://wa.me/?text=${urlText}`;
-      break;
-    case 'telegram':
-      url = `https://t.me/share/url?url=${currentUrl}&text=${urlText}`;
-      break;
-    case 'messenger':
-      url = `http://www.facebook.com/dialog/send?link=${currentUrl}&app_id=${firebaseConfig.appId}&redirect_uri=${currentUrl}`;
-      break;
-    case 'facebook':
-      url = `https://www.facebook.com/sharer/sharer.php?u=${currentUrl}&quote=${urlText}`;
-      break;
+    case 'x': url = `https://twitter.com/intent/tweet?text=${urlText}`; break;
+    case 'threads': url = `https://www.threads.net/intent/post?text=${urlText}`; break;
+    case 'whatsapp': url = `https://wa.me/?text=${urlText}`; break;
+    case 'telegram': url = `https://t.me/share/url?url=${currentUrl}&text=${urlText}`; break;
+    case 'messenger': url = `fb-messenger://share/?link=${currentUrl}`; break; // Cleaner mobile deep link
+    case 'facebook': url = `https://www.facebook.com/sharer/sharer.php?u=${currentUrl}`; break; // FB ignores 'quote' mostly now
   }
 
   if (url) {
