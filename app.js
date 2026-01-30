@@ -640,6 +640,9 @@ async function deleteComment(postId, commentId) {
         commentCount: increment(-1)
     });
 
+    // ✅ NEW: Sync Local Storage Archive Count
+    syncLocalCommentCount(postId, -1);
+
     console.log("Comment deleted successfully");
   } catch (e) {
     console.error("Error deleting comment:", e);
@@ -763,6 +766,9 @@ async function postComment() {
         commentCount: increment(1)
     });
 
+    // ✅ NEW: Sync Local Storage Archive Count
+    syncLocalCommentCount(activePostId, 1);
+
     DOM.commentInput.value = '';
     
     const scrollArea = document.getElementById('modalScrollArea');
@@ -779,6 +785,30 @@ async function postComment() {
 // ==========================================
 // 7. UTILITIES
 // ==========================================
+// Syncs Firebase count changes back to your local Archive (localStorage)
+function syncLocalCommentCount(postIdOrFirebaseId, delta) {
+  let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
+  let updated = false;
+
+  posts = posts.map(p => {
+    // Matches either the unique local ID or the linked Firebase ID
+    if (p.id === postIdOrFirebaseId || p.firebaseId === postIdOrFirebaseId) {
+      p.commentCount = (p.commentCount || 0) + delta;
+      updated = true;
+    }
+    return p;
+  });
+
+  if (updated) {
+    localStorage.setItem('freeform_v2', JSON.stringify(posts));
+    // If you are currently viewing the private tab, refresh the view
+    if (currentTab === 'private') {
+      allPrivatePosts = posts.slice().reverse();
+      renderPrivateBatch();
+    }
+  }
+}
+
 function getOrCreateUserId() {
   let id = localStorage.getItem('freeform_user_id');
   if (!id) {
