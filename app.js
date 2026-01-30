@@ -17,7 +17,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// === STATE ===
+// ==========================================
+// 1. STATE & DOM
+// ==========================================
 const DOM = {
   input: document.getElementById('postInput'),
   btn: document.getElementById('postBtn'),
@@ -29,7 +31,7 @@ const DOM = {
   storage: document.getElementById('storageInfo'),
   loadTrigger: document.getElementById('loadTrigger'),
   fontBtns: document.querySelectorAll('.font-btn'),
-  // Modal
+  // Modal Elements
   modal: document.getElementById('commentModal'),
   modalOverlay: document.getElementById('closeModalOverlay'),
   closeBtn: document.getElementById('closeModalBtn'),
@@ -42,35 +44,26 @@ const DOM = {
   emojiButtons: document.querySelectorAll('.emoji-btn')
 };
 
-// 1. Load preferences
+// Application State
 let currentTab = localStorage.getItem('freeform_tab_pref') || 'private';
-let publicUnsubscribe = null;
-let activePostId = null; 
-let commentsUnsubscribe = null;
+const MY_USER_ID = getOrCreateUserId(); 
 const BATCH_SIZE = 15;
 let currentLimit = BATCH_SIZE;
 let isLoadingMore = false;
 let allPrivatePosts = []; 
 let selectedFont = 'font-sans'; 
-const MY_USER_ID = getOrCreateUserId(); 
+let publicUnsubscribe = null;
+let commentsUnsubscribe = null;
+let activePostId = null; 
 
-// === GLOBAL LISTENER TO CLOSE MENUS ===
-// This makes sure if you click anywhere else, the menu closes
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.share-container')) {
-    document.querySelectorAll('.share-menu.active').forEach(menu => {
-      menu.classList.remove('active');
-      const trigger = menu.nextElementSibling; 
-      if(trigger) trigger.classList.remove('active');
-    });
-  }
-});
-
-// === INIT ===
+// ==========================================
+// 2. INITIALIZATION
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
   runMigration();
   setRandomPlaceholder();
   
+  // Restore Toggle State
   const savedToggleState = localStorage.getItem('freeform_toggle_pref');
   DOM.toggle.checked = (savedToggleState === 'true');
   updateToggleUI(); 
@@ -79,6 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateMeter();
   setupInfiniteScroll();
 
+  // Event Listeners
   DOM.btn.addEventListener('click', handlePost);
   
   DOM.toggle.addEventListener('change', () => {
@@ -99,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Modal Listeners
   DOM.modalOverlay.addEventListener('click', closeModal);
   DOM.closeBtn.addEventListener('click', closeModal);
   DOM.sendComment.addEventListener('click', postComment);
@@ -109,81 +104,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   DOM.emojiButtons.forEach(btn => {
     btn.addEventListener('click', () => {
-      const char = btn.getAttribute('data-char');
-      DOM.commentInput.value += char;
+      DOM.commentInput.value += btn.getAttribute('data-char');
       DOM.commentInput.focus();
     });
   });
+
+  // Global Click Listener (Closes Share Menus)
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.share-container')) {
+      document.querySelectorAll('.share-menu.active').forEach(menu => {
+        menu.classList.remove('active');
+        if(menu.nextElementSibling) menu.nextElementSibling.classList.remove('active');
+      });
+    }
+  });
 });
 
-function getOrCreateUserId() {
-  let id = localStorage.getItem('freeform_user_id');
-  if (!id) {
-    id = Math.random().toString(36).substring(2, 6) + '-' + Math.random().toString(36).substring(2, 6);
-    localStorage.setItem('freeform_user_id', id);
-  }
-  return id;
-}
-
-// === AFTER getOrCreateUserId() function, ADD THESE: ===
-
-/**
- * Calculate safe character count accounting for emojis
- */
-function calculateSafeLength(text, emojiMultiplier = 2) {
-  if (!text) return 0;
-  
-  let count = 0;
-  
-  for (const char of text) {
-    const codePoint = char.codePointAt(0);
-    
-    const isEmoji = (
-      (codePoint >= 0x1F300 && codePoint <= 0x1F9FF) ||
-      (codePoint >= 0x2600 && codePoint <= 0x27BF) ||
-      (codePoint >= 0x1F600 && codePoint <= 0x1F64F) ||
-      (codePoint >= 0x1F680 && codePoint <= 0x1F6FF) ||
-      (codePoint >= 0xFE00 && codePoint <= 0xFE0F)
-    );
-    
-    if (isEmoji) {
-      count += emojiMultiplier;
-    } else {
-      count += 1;
-    }
-  }
-  
-  return count;
-}
-
-/**
- * Detect if text contains URLs
- */
-function containsURL(text) {
-  const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/gi;
-  return urlRegex.test(text);
-}
-
-function calculateEncodedLength(text) {
-  if (!text) return 0;
-  
-  try {
-    return encodeURIComponent(text).length;
-  } catch (e) {
-    return text.length;
-  }
-}
-
-function setRandomPlaceholder() {
-  const phrases = [
-    "What's on your mind?", "Share your ideas...", "What's the vibe today?",
-    "Capture a thought...", "Everything starts with a note...", 
-    "Unfinished thoughts welcome...", "Notes for your future self..."
-  ];
-  DOM.input.placeholder = phrases[Math.floor(Math.random() * phrases.length)];
-}
-
-// === TABS & FEED ===
+// ==========================================
+// 3. CORE FUNCTIONS (Feed & Tabs)
+// ==========================================
 function switchTab(tab) {
   if (currentTab === tab) return;
   currentTab = tab;
@@ -247,64 +186,119 @@ function subscribePublicFeed() {
   });
 }
 
-// === SMART SHARE LOGIC ===
+// ==========================================
+// 4. SMART SHARE SYSTEM
+// ==========================================
 
+// Logic: Text Length + URL Length determines which platforms appear
 function getSmartShareButtons(text) {
-  const hasUrl = containsURL(text);
+  const urlToShare = window.location.href;
+  const totalLength = (text ? text.length : 0) + urlToShare.length;
   
   const platforms = [
+    // 1. Copy Button (Always useful, no limit)
+    {
+      id: 'copy',
+      limit: 999999, 
+      name: 'Copy Text',
+      icon: '<span class="text-[14px] font-bold leading-none">📋</span>',
+      classes: 'hover:bg-slate-800 hover:border-slate-800 hover:text-white'
+    },
+    // 2. Social Platforms
     { 
       id: 'x', 
-      limit: 200,
-      urlPenalty: 23,
+      limit: 280, // Text + Link must fit
+      name: 'X',
       icon: '<span class="text-[13px] font-bold leading-none">𝕏</span>', 
-      classes: 'hover:bg-black hover:border-black hover:text-white',
-      name: 'X'
+      classes: 'hover:bg-black hover:border-black hover:text-white'
     },
     { 
       id: 'threads', 
-      limit: 400,
+      limit: 500, 
+      name: 'Threads',
       icon: '<span class="text-[15px] font-sans font-bold leading-none mt-[1px]">@</span>', 
-      classes: 'hover:bg-black hover:border-black hover:text-white',
-      name: 'Threads'
+      classes: 'hover:bg-black hover:border-black hover:text-white'
     },
     { 
       id: 'whatsapp', 
-      limit: 1500,
+      limit: 2000, 
+      name: 'WhatsApp',
       icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592z"/></svg>', 
-      classes: 'hover:bg-green-500 hover:border-green-500 hover:text-white',
-      name: 'WhatsApp'
+      classes: 'hover:bg-green-500 hover:border-green-500 hover:text-white'
     },
     { 
       id: 'messenger', 
-      limit: 800,
+      limit: 1000, 
+      name: 'Messenger',
       icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M0 7.76C0 3.301 3.493 0 8 0s8 3.301 8 7.76-3.493 7.76-8 7.76c-1.087 0-2.119-.199-3.072-.559L1.4 16l.84-3.525C1.173 11.53 0 9.735 0 7.76zm5.546-1.459-2.35 3.728c-.225.358.214.761.551.506l2.525-1.916a.48.48 0 0 1 .577-.002l2.152 1.628c.456.345 1.086.136 1.258-.419l1.614-3.695c.224-.356-.214-.76-.549-.506l-2.53 1.918a.48.48 0 0 1-.58.002L6.046 5.86c-.456-.345-1.087-.137-1.256.419z"/></svg>', 
-      classes: 'hover:bg-blue-500 hover:border-blue-500 hover:text-white',
-      name: 'Messenger'
+      classes: 'hover:bg-blue-500 hover:border-blue-500 hover:text-white'
     },
     { 
       id: 'telegram', 
-      limit: 3000,
+      limit: 4000, 
+      name: 'Telegram',
       icon: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.287 5.906c-.778.324-2.334.994-4.666 2.01-.378.15-.577.298-.595.442-.03.243.275.339.69.47l.175.055c.408.133.958.288 1.243.287.427-.001.826-.115 1.118-.348 1.325-1.054 2.189-1.728 2.593-2.022.287-.21.57-.18.463.15-.173.53-1.026 1.341-1.581 1.913-.393.407-.735.632-1.066.868-.344.246-.688.492-1.428 1.234.338.567.925.753 1.956 1.433.844.555 1.517.994 2.146 1.063.535.059.972-.218 1.109-.854.275-1.272.846-4.653 1.056-6.176.064-.46-.038-.853-.292-1.127-.376-.402-1.023-.427-1.397-.333z"/></svg>', 
-      classes: 'hover:bg-sky-500 hover:border-sky-500 hover:text-white',
-      name: 'Telegram'
+      classes: 'hover:bg-sky-500 hover:border-sky-500 hover:text-white'
     },
     { 
       id: 'facebook', 
-      limit: 8000,
+      limit: 60000, 
+      name: 'Facebook',
       icon: '<span class="text-[14px] font-bold leading-none font-serif">f</span>', 
-      classes: 'hover:bg-blue-700 hover:border-blue-700 hover:text-white',
-      name: 'Facebook'
+      classes: 'hover:bg-blue-700 hover:border-blue-700 hover:text-white'
     }
   ];
 
-  return platforms.filter(p => {
-    const effectiveLimit = hasUrl ? p.limit - p.urlPenalty : p.limit;
-    const encodedLength = calculateEncodedLength(text);
-    return encodedLength <= effectiveLimit;
-  });
+  return platforms.filter(p => totalLength <= p.limit);
 }
 
+// Logic: Handles the actual sharing action (including Copy)
+async function sharePost(text, platform) {
+  const currentUrl = window.location.href;
+  const urlText = encodeURIComponent(text);
+  const urlLink = encodeURIComponent(currentUrl);
+
+  // 1. Handle Copy
+  if (platform === 'copy') {
+    try {
+      await navigator.clipboard.writeText(`${text}\n\n${currentUrl}`);
+      alert("Copied to clipboard!");
+    } catch (err) {
+      console.error('Failed to copy', err);
+      alert("Manual copy required.");
+    }
+    return;
+  }
+
+  // 2. Handle Socials
+  let url = '';
+  switch(platform) {
+    case 'x':
+      url = `https://twitter.com/intent/tweet?text=${urlText}&url=${urlLink}`;
+      break;
+    case 'threads':
+      url = `https://www.threads.net/intent/post?text=${urlText}%20${urlLink}`;
+      break;
+    case 'whatsapp':
+      url = `https://wa.me/?text=${urlText}%20${urlLink}`;
+      break;
+    case 'telegram':
+      url = `https://t.me/share/url?url=${urlLink}&text=${urlText}`;
+      break;
+    case 'messenger':
+      url = `http://www.facebook.com/dialog/send?link=${urlLink}&app_id=${firebaseConfig.appId}&redirect_uri=${urlLink}`;
+      break;
+    case 'facebook':
+      url = `https://www.facebook.com/sharer/sharer.php?u=${urlLink}&quote=${urlText}`;
+      break;
+  }
+
+  if (url) {
+    window.open(url, '_blank', 'width=600,height=500,noopener,noreferrer');
+  }
+}
+
+// Logic: Renders the Feed Items and the Share Menu Structure
 function renderListItems(items) {
   if (items.length === 0) {
     DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl"><p class="text-slate-400">No thoughts here yet.</p></div>`;
@@ -387,11 +381,12 @@ function renderListItems(items) {
 
     // 2. Open Modal (Card Click)
     el.onclick = (e) => {
+      // Prevent modal opening if clicking a button or share menu
       if (e.target.closest('button') || e.target.closest('.share-container')) return;
       openModal(item);
     };
 
-    // 3. Platform Share Clicks
+    // 3. Platform Share Clicks (Inside the generated menu)
     const platformBtns = el.querySelectorAll('.share-icon-btn');
     platformBtns.forEach(btn => {
       btn.onclick = (e) => {
@@ -402,8 +397,8 @@ function renderListItems(items) {
         // Close menu after selection
         const menu = el.querySelector('.share-menu');
         const trigger = el.querySelector('.share-trigger-btn');
-        menu.classList.remove('active');
-        trigger.classList.remove('active');
+        if (menu) menu.classList.remove('active');
+        if (trigger) trigger.classList.remove('active');
       };
     });
     
@@ -411,44 +406,14 @@ function renderListItems(items) {
   });
 }
 
-function sharePost(text, platform) {
-  const urlText = encodeURIComponent(text);
-  const currentUrl = encodeURIComponent(window.location.href); 
-  
-  let url = '';
-
-  switch(platform) {
-    case 'x':
-      url = `https://twitter.com/intent/tweet?text=${urlText}`;
-      break;
-    case 'threads':
-      url = `https://www.threads.net/intent/post?text=${urlText}`;
-      break;
-    case 'whatsapp':
-      url = `https://wa.me/?text=${urlText}`;
-      break;
-    case 'telegram':
-      url = `https://t.me/share/url?url=${currentUrl}&text=${urlText}`;
-      break;
-    case 'messenger':
-      url = `http://www.facebook.com/dialog/send?link=${currentUrl}&app_id=${firebaseConfig.appId}&redirect_uri=${currentUrl}`;
-      break;
-    case 'facebook':
-      url = `https://www.facebook.com/sharer/sharer.php?u=${currentUrl}&quote=${urlText}`;
-      break;
-  }
-
-  if (url) {
-    window.open(url, '_blank', 'width=600,height=500,noopener,noreferrer');
-  }
-}
-
-// Helper to toggle specific menu (Attached to Window for HTML onclick)
+// Logic: Attached to window so the HTML onclick="" works
 window.toggleShare = function(event, menuId) {
   event.stopPropagation();
   const menu = document.getElementById(menuId);
   const trigger = event.currentTarget;
   
+  if (!menu) return;
+
   const isActive = menu.classList.contains('active');
 
   // Close ALL other menus first
@@ -464,6 +429,9 @@ window.toggleShare = function(event, menuId) {
   }
 };
 
+// ==========================================
+// 5. POST ACTIONS & SCROLL
+// ==========================================
 function setupInfiniteScroll() {
   const observer = new IntersectionObserver((entries) => {
     if (entries[0].isIntersecting && !isLoadingMore) loadMoreData();
@@ -615,12 +583,12 @@ async function deleteGlobal(postId) {
     
     console.log(`Successfully deleted post ${postId} and ${commentsSnapshot.size} comments.`);
 
+    // Also update local storage if it exists there
     let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
     let updated = false;
 
     posts = posts.map(p => {
       if (p.firebaseId === postId) {
-       
         delete p.firebaseId; 
         updated = true;
       }
@@ -630,7 +598,6 @@ async function deleteGlobal(postId) {
     if (updated) {
       localStorage.setItem('freeform_v2', JSON.stringify(posts));
       allPrivatePosts = posts.reverse();
-     
       if (currentTab === 'private') {
         renderPrivateBatch();
       }
@@ -656,7 +623,7 @@ async function deleteComment(postId, commentId) {
 }
 
 // ==========================================
-// 💬 MODAL
+// 6. MODAL LOGIC
 // ==========================================
 function openModal(post) {
   if (DOM.input) {
@@ -777,15 +744,37 @@ async function postComment() {
   }
 }
 
-// === UTILS ===
+// ==========================================
+// 7. UTILITIES
+// ==========================================
+function getOrCreateUserId() {
+  let id = localStorage.getItem('freeform_user_id');
+  if (!id) {
+    id = Math.random().toString(36).substring(2, 6) + '-' + Math.random().toString(36).substring(2, 6);
+    localStorage.setItem('freeform_user_id', id);
+  }
+  return id;
+}
+
+function setRandomPlaceholder() {
+  const phrases = [
+    "What's on your mind?", "Share your ideas...", "What's the vibe today?",
+    "Capture a thought...", "Everything starts with a note...", 
+    "Unfinished thoughts welcome...", "Notes for your future self..."
+  ];
+  DOM.input.placeholder = phrases[Math.floor(Math.random() * phrases.length)];
+}
+
 function updateMeter() {
   const kb = (new Blob([localStorage.getItem('freeform_v2') || '']).size / 1024).toFixed(1);
   DOM.storage.textContent = `${kb} KB used`;
 }
+
 function cleanText(str) {
   if (!str) return "";
   return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
+
 function getRelativeTime(timestamp) {
   if (!timestamp) return "Just now";
   const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -797,6 +786,7 @@ function getRelativeTime(timestamp) {
   if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
   return date.toLocaleDateString();
 }
+
 function runMigration() {
   if (localStorage.getItem('freeform_migrated_v3')) return;
   let newStore = JSON.parse(localStorage.getItem('freeform_v2')) || [];
