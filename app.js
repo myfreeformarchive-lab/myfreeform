@@ -637,16 +637,17 @@ async function deleteComment(postId, commentId) {
     const commentRef = doc(db, "globalPosts", postId, "comments", commentId);
     await deleteDoc(commentRef);
     
-    // 🆕 Update count on parent doc (Decrement)
+    // 1. Update count in Firebase
     const postRef = doc(db, "globalPosts", postId);
-    await updateDoc(postRef, {
-        commentCount: increment(-1)
-    });
+    await updateDoc(postRef, { commentCount: increment(-1) });
+
+    // 2. ✅ NEW: Sync the Archive (LocalStorage)
+    syncLocalPostCount(postId, -1);
 
     console.log("Comment deleted successfully");
   } catch (e) {
     console.error("Error deleting comment:", e);
-    alert("Could not delete comment. You might not have permission.");
+    alert("Could not delete comment.");
   }
 }
 
@@ -760,19 +761,19 @@ async function postComment() {
       createdAt: serverTimestamp()
     });
 
-    // 🆕 Update count on parent doc (Increment)
+    // 1. Update count in Firebase
     const postRef = doc(db, "globalPosts", activePostId);
-    await updateDoc(postRef, {
-        commentCount: increment(1)
-    });
+    await updateDoc(postRef, { commentCount: increment(1) });
+
+    // 2. ✅ NEW: Sync the Archive (LocalStorage)
+    syncLocalPostCount(activePostId, 1);
 
     DOM.commentInput.value = '';
-    
     const scrollArea = document.getElementById('modalScrollArea');
     scrollArea.scrollTop = 0; 
-
-  } catch (e) { console.error(e); } 
-  finally { 
+  } catch (e) { 
+    console.error(e); 
+  } finally { 
     DOM.sendComment.disabled = false; 
     DOM.sendComment.style.opacity = "1";
     DOM.commentInput.focus();
@@ -782,6 +783,28 @@ async function postComment() {
 // ==========================================
 // 7. UTILITIES
 // ==========================================
+function syncLocalPostCount(firebaseId, change) {
+  let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
+  let updated = false;
+
+  posts = posts.map(p => {
+    if (p.firebaseId === firebaseId) {
+      p.commentCount = (p.commentCount || 0) + change;
+      updated = true;
+    }
+    return p;
+  });
+
+  if (updated) {
+    localStorage.setItem('freeform_v2', JSON.stringify(posts));
+    // If we are currently looking at the Archive tab, refresh the UI immediately
+    if (currentTab === 'private') {
+      allPrivatePosts = posts.slice().reverse();
+      renderPrivateBatch();
+    }
+  }
+}
+
 function getOrCreateUserId() {
   let id = localStorage.getItem('freeform_user_id');
   if (!id) {
