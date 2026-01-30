@@ -51,7 +51,6 @@ const BATCH_SIZE = 15;
 let currentLimit = BATCH_SIZE;
 let isLoadingMore = false;
 let allPrivatePosts = []; 
-// NEW: Load font from storage or default to sans
 let selectedFont = localStorage.getItem('freeform_font_pref') || 'font-sans'; 
 let publicUnsubscribe = null;
 let commentsUnsubscribe = null;
@@ -64,20 +63,17 @@ document.addEventListener('DOMContentLoaded', () => {
   runMigration();
   setRandomPlaceholder();
   
-  // Restore Toggle State
   const savedToggleState = localStorage.getItem('freeform_toggle_pref');
   DOM.toggle.checked = (savedToggleState === 'true');
   updateToggleUI(); 
   updateTabClasses(); 
   
-  // NEW: Apply the saved font immediately
   applyFontPreference(selectedFont);
 
   loadFeed(); 
   updateMeter();
   setupInfiniteScroll();
 
-  // Event Listeners
   DOM.btn.addEventListener('click', handlePost);
   
   DOM.toggle.addEventListener('change', () => {
@@ -88,18 +84,16 @@ document.addEventListener('DOMContentLoaded', () => {
   DOM.tabPrivate.addEventListener('click', () => switchTab('private'));
   DOM.tabPublic.addEventListener('click', () => switchTab('public'));
 
-  // Updated Font Button Logic
   DOM.fontBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       const font = btn.getAttribute('data-font');
       selectedFont = font;
-      localStorage.setItem('freeform_font_pref', font); // Save to memory
-      applyFontPreference(font); // Update UI
+      localStorage.setItem('freeform_font_pref', font);
+      applyFontPreference(font); 
       DOM.input.focus();
     });
   });
 
-  // Modal Listeners
   DOM.modalOverlay.addEventListener('click', closeModal);
   DOM.closeBtn.addEventListener('click', closeModal);
   DOM.sendComment.addEventListener('click', postComment);
@@ -115,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Global Click Listener (Closes Share Menus)
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.share-container')) {
       document.querySelectorAll('.share-menu.active').forEach(menu => {
@@ -130,13 +123,10 @@ document.addEventListener('DOMContentLoaded', () => {
 // 3. CORE FUNCTIONS (Feed & Tabs)
 // ==========================================
 
-// NEW: Helper function to update Input class and Button styles
 function applyFontPreference(font) {
-  // 1. Update Input Class (Remove old fonts, add new)
   DOM.input.classList.remove('font-sans', 'font-serif', 'font-mono', 'font-hand');
   DOM.input.classList.add(font);
 
-  // 2. Update Active Button State
   DOM.fontBtns.forEach(btn => {
     if (btn.getAttribute('data-font') === font) {
       btn.classList.add('ring-2', 'ring-brand-500', 'ring-offset-1');
@@ -317,7 +307,8 @@ async function sharePost(text, platform) {
 
 function renderListItems(items) {
   if (items.length === 0) {
-    DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl"><p class="text-slate-400">No thoughts here yet.</p></div>`;
+    // ✅ CONTRAST FIX: slate-400 -> slate-500
+    DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl"><p class="text-slate-500">No thoughts here yet.</p></div>`;
     return;
   }
 
@@ -356,6 +347,7 @@ function renderListItems(items) {
       </div>
     `;
 
+    // ✅ CONTRAST FIX: slate-400 -> slate-500 for time
     const footerHtml = `
       <div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
         <div class="flex items-center text-xs text-brand-500 font-medium gap-1 hover:text-brand-700 transition-colors group">
@@ -371,7 +363,7 @@ function renderListItems(items) {
           <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
             ${item.isFirebase ? 'Global' : 'Local'}
           </span>
-          <span class="text-xs text-slate-400 font-medium">${time}</span>
+          <span class="text-xs text-slate-500 font-medium">${time}</span>
         </div>
       </div>
       <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[17px] pointer-events-none ${fontClass}">${cleanText(item.content)}</p>
@@ -568,7 +560,7 @@ async function deleteLocal(id) {
 }
 
 async function deleteGlobal(postId) {
-  if (!confirm("Delete from Global?")) return;
+  if (!confirm("Delete from Global? This will also remove all comments.")) return;
 
   try {
     const batch = writeBatch(db);
