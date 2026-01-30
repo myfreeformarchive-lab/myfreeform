@@ -186,6 +186,61 @@ function subscribePublicFeed() {
   });
 }
 
+// === RENDERING & SMART SHARE LOGIC ===
+
+function getSmartShareButtons(text) {
+  const len = text ? text.length : 0;
+  
+  // Platform definitions with branding colors
+  const platforms = [
+    { 
+      id: 'x', 
+      limit: 250, // Safe cut-off for URL
+      icon: '<span class="text-[13px] font-bold leading-none">𝕏</span>', 
+      classes: 'hover:bg-black hover:border-black hover:text-white',
+      name: 'X'
+    },
+    { 
+      id: 'threads', 
+      limit: 490, 
+      icon: '<span class="text-[15px] font-sans font-bold leading-none mt-[1px]">@</span>', 
+      classes: 'hover:bg-black hover:border-black hover:text-white',
+      name: 'Threads'
+    },
+    { 
+      id: 'whatsapp', 
+      limit: 2000, 
+      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592z"/></svg>', 
+      classes: 'hover:bg-green-500 hover:border-green-500 hover:text-white',
+      name: 'WhatsApp'
+    },
+    { 
+      id: 'messenger', 
+      limit: 1000, 
+      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M0 7.76C0 3.301 3.493 0 8 0s8 3.301 8 7.76-3.493 7.76-8 7.76c-1.087 0-2.119-.199-3.072-.559L1.4 16l.84-3.525C1.173 11.53 0 9.735 0 7.76zm5.546-1.459-2.35 3.728c-.225.358.214.761.551.506l2.525-1.916a.48.48 0 0 1 .577-.002l2.152 1.628c.456.345 1.086.136 1.258-.419l1.614-3.695c.224-.356-.214-.76-.549-.506l-2.53 1.918a.48.48 0 0 1-.58.002L6.046 5.86c-.456-.345-1.087-.137-1.256.419z"/></svg>', 
+      classes: 'hover:bg-blue-500 hover:border-blue-500 hover:text-white',
+      name: 'Messenger'
+    },
+    { 
+      id: 'telegram', 
+      limit: 4000, 
+      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.287 5.906c-.778.324-2.334.994-4.666 2.01-.378.15-.577.298-.595.442-.03.243.275.339.69.47l.175.055c.408.133.958.288 1.243.287.427-.001.826-.115 1.118-.348 1.325-1.054 2.189-1.728 2.593-2.022.287-.21.57-.18.463.15-.173.53-1.026 1.341-1.581 1.913-.393.407-.735.632-1.066.868-.344.246-.688.492-1.428 1.234.338.567.925.753 1.956 1.433.844.555 1.517.994 2.146 1.063.535.059.972-.218 1.109-.854.275-1.272.846-4.653 1.056-6.176.064-.46-.038-.853-.292-1.127-.376-.402-1.023-.427-1.397-.333z"/></svg>', 
+      classes: 'hover:bg-sky-500 hover:border-sky-500 hover:text-white',
+      name: 'Telegram'
+    },
+    { 
+      id: 'facebook', 
+      limit: 63206, 
+      icon: '<span class="text-[14px] font-bold leading-none font-serif">f</span>', 
+      classes: 'hover:bg-blue-700 hover:border-blue-700 hover:text-white',
+      name: 'Facebook'
+    }
+  ];
+
+  // Filter based on text length
+  return platforms.filter(p => len <= p.limit);
+}
+
 function renderListItems(items) {
   if (items.length === 0) {
     DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl"><p class="text-slate-400">No thoughts here yet.</p></div>`;
@@ -197,38 +252,32 @@ function renderListItems(items) {
     el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative";
     const time = getRelativeTime(item.createdAt);
     const fontClass = item.font || 'font-sans'; 
-    const contentLength = item.content ? item.content.length : 0;
     
     const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
-
-    const LIMIT_X = 280;
-    const LIMIT_THREADS = 500;
-
-    let shareButtons = '';
-    
-    if (contentLength <= LIMIT_X) {
-      shareButtons += `
-        <button class="share-btn-x w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-400 hover:bg-black hover:border-black hover:text-white transition-all duration-200" title="Share on X">
-          <span class="text-[13px] font-bold leading-none">𝕏</span>
-        </button>`;
-    }
-    if (contentLength <= LIMIT_THREADS) {
-      shareButtons += `
-        <button class="share-btn-threads w-7 h-7 flex items-center justify-center rounded-full bg-slate-50 border border-slate-100 text-slate-400 hover:bg-black hover:border-black hover:text-white transition-all duration-200" title="Share on Threads">
-          <span class="text-[15px] font-sans font-bold leading-none mt-[1px]">@</span>
-        </button>`;
-    }
-
     const hasCommentsAccess = item.isFirebase || item.firebaseId;
     const viewLabel = hasCommentsAccess ? "View Comments" : "Open";
+
+    // --- SMART SHARE LOGIC ---
+    const allowedPlatforms = getSmartShareButtons(item.content);
+    let shareButtonsHtml = '';
+
+    allowedPlatforms.forEach(p => {
+      shareButtonsHtml += `
+        <button class="share-btn flex items-center justify-center w-8 h-8 rounded-full bg-slate-50 border border-slate-100 text-slate-400 transition-all duration-200 ${p.classes}" 
+          data-platform="${p.id}" 
+          title="Share on ${p.name}">
+          ${p.icon}
+        </button>
+      `;
+    });
 
     const footerHtml = `
       <div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
         <div class="flex items-center text-xs text-brand-500 font-medium gap-1 hover:text-brand-700 transition-colors group">
           <span class="text-base group-hover:scale-110 transition-transform">${hasCommentsAccess ? '💬' : '📄'}</span> ${viewLabel}
         </div>
-        <div class="flex items-center gap-2">
-          ${shareButtons}
+        <div class="flex items-center gap-1.5 flex-wrap justify-end">
+          ${shareButtonsHtml}
         </div>
       </div>
     `;
@@ -246,6 +295,7 @@ function renderListItems(items) {
       ${footerHtml}
     `;
 
+    // Delete Button
     if (!item.isFirebase || isMyGlobalPost) {
       const delBtn = document.createElement('button');
       delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
@@ -260,21 +310,25 @@ function renderListItems(items) {
           deleteLocal(item.id); 
         }
       };
-      
       el.appendChild(delBtn);
     }
 
-    el.onclick = () => openModal(item);
+    // Modal Trigger
+    el.onclick = (e) => {
+      // Prevent modal opening if clicking a button
+      if (e.target.closest('button')) return;
+      openModal(item);
+    };
 
-    const xBtn = el.querySelector('.share-btn-x');
-    const tBtn = el.querySelector('.share-btn-threads');
-
-    if (xBtn) {
-      xBtn.onclick = (e) => { e.stopPropagation(); sharePost(item.content, 'x'); };
-    }
-    if (tBtn) {
-      tBtn.onclick = (e) => { e.stopPropagation(); sharePost(item.content, 'threads'); };
-    }
+    // Attach Share Events
+    const shareBtns = el.querySelectorAll('.share-btn');
+    shareBtns.forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const platform = btn.getAttribute('data-platform');
+        sharePost(item.content, platform);
+      };
+    });
     
     DOM.list.appendChild(el);
   });
@@ -282,13 +336,38 @@ function renderListItems(items) {
 
 function sharePost(text, platform) {
   const urlText = encodeURIComponent(text);
+  // For platforms that require a URL link, we use the current page or a placeholder if no routing exists
+  const currentUrl = encodeURIComponent(window.location.href); 
+  
   let url = '';
-  if (platform === 'x') {
-    url = `https://twitter.com/intent/tweet?text=${urlText}`;
-  } else if (platform === 'threads') {
-    url = `https://www.threads.net/intent/post?text=${urlText}`;
+
+  switch(platform) {
+    case 'x':
+      url = `https://twitter.com/intent/tweet?text=${urlText}`;
+      break;
+    case 'threads':
+      url = `https://www.threads.net/intent/post?text=${urlText}`;
+      break;
+    case 'whatsapp':
+      url = `https://wa.me/?text=${urlText}`;
+      break;
+    case 'telegram':
+      // Telegram usually prefers a URL, but we can pass text in the url param or text param
+      url = `https://t.me/share/url?url=${currentUrl}&text=${urlText}`;
+      break;
+    case 'messenger':
+      // Messenger web intent (Note: Pre-filled text is often restricted by FB, acts as link sharer)
+      url = `http://www.facebook.com/dialog/send?link=${currentUrl}&app_id=${firebaseConfig.appId}&redirect_uri=${currentUrl}`;
+      break;
+    case 'facebook':
+      // Facebook Sharer (Does not support pre-filled text due to policy, shares the link)
+      url = `https://www.facebook.com/sharer/sharer.php?u=${currentUrl}&quote=${urlText}`;
+      break;
   }
-  window.open(url, '_blank', 'width=600,height=400,noopener,noreferrer');
+
+  if (url) {
+    window.open(url, '_blank', 'width=600,height=500,noopener,noreferrer');
+  }
 }
 
 function setupInfiniteScroll() {
