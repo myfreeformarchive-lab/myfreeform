@@ -125,6 +125,45 @@ function getOrCreateUserId() {
   return id;
 }
 
+// === AFTER getOrCreateUserId() function, ADD THESE: ===
+
+/**
+ * Calculate safe character count accounting for emojis
+ */
+function calculateSafeLength(text, emojiMultiplier = 2) {
+  if (!text) return 0;
+  
+  let count = 0;
+  
+  for (const char of text) {
+    const codePoint = char.codePointAt(0);
+    
+    const isEmoji = (
+      (codePoint >= 0x1F300 && codePoint <= 0x1F9FF) ||
+      (codePoint >= 0x2600 && codePoint <= 0x27BF) ||
+      (codePoint >= 0x1F600 && codePoint <= 0x1F64F) ||
+      (codePoint >= 0x1F680 && codePoint <= 0x1F6FF) ||
+      (codePoint >= 0xFE00 && codePoint <= 0xFE0F)
+    );
+    
+    if (isEmoji) {
+      count += emojiMultiplier;
+    } else {
+      count += 1;
+    }
+  }
+  
+  return count;
+}
+
+/**
+ * Detect if text contains URLs
+ */
+function containsURL(text) {
+  const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/gi;
+  return urlRegex.test(text);
+}
+
 function setRandomPlaceholder() {
   const phrases = [
     "What's on your mind?", "Share your ideas...", "What's the vibe today?",
@@ -201,54 +240,70 @@ function subscribePublicFeed() {
 // === SMART SHARE LOGIC ===
 
 function getSmartShareButtons(text) {
-  const len = text ? text.length : 0;
+  const hasUrl = containsURL(text);
   
   const platforms = [
     { 
       id: 'x', 
-      limit: 250, 
+      limit: 250,
+      urlPenalty: 23,
+      emojiMultiplier: 2,
       icon: '<span class="text-[13px] font-bold leading-none">𝕏</span>', 
       classes: 'hover:bg-black hover:border-black hover:text-white',
       name: 'X'
     },
     { 
       id: 'threads', 
-      limit: 490, 
+      limit: 490,
+      urlPenalty: 0,
+      emojiMultiplier: 1,
       icon: '<span class="text-[15px] font-sans font-bold leading-none mt-[1px]">@</span>', 
       classes: 'hover:bg-black hover:border-black hover:text-white',
       name: 'Threads'
     },
     { 
       id: 'whatsapp', 
-      limit: 2000, 
+      limit: 2000,
+      urlPenalty: 0,
+      emojiMultiplier: 1,
       icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592z"/></svg>', 
       classes: 'hover:bg-green-500 hover:border-green-500 hover:text-white',
       name: 'WhatsApp'
     },
     { 
       id: 'messenger', 
-      limit: 1000, 
+      limit: 1000,
+      urlPenalty: 0,
+      emojiMultiplier: 1,
       icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M0 7.76C0 3.301 3.493 0 8 0s8 3.301 8 7.76-3.493 7.76-8 7.76c-1.087 0-2.119-.199-3.072-.559L1.4 16l.84-3.525C1.173 11.53 0 9.735 0 7.76zm5.546-1.459-2.35 3.728c-.225.358.214.761.551.506l2.525-1.916a.48.48 0 0 1 .577-.002l2.152 1.628c.456.345 1.086.136 1.258-.419l1.614-3.695c.224-.356-.214-.76-.549-.506l-2.53 1.918a.48.48 0 0 1-.58.002L6.046 5.86c-.456-.345-1.087-.137-1.256.419z"/></svg>', 
       classes: 'hover:bg-blue-500 hover:border-blue-500 hover:text-white',
       name: 'Messenger'
     },
     { 
       id: 'telegram', 
-      limit: 4000, 
+      limit: 4000,
+      urlPenalty: 0,
+      emojiMultiplier: 1,
       icon: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.287 5.906c-.778.324-2.334.994-4.666 2.01-.378.15-.577.298-.595.442-.03.243.275.339.69.47l.175.055c.408.133.958.288 1.243.287.427-.001.826-.115 1.118-.348 1.325-1.054 2.189-1.728 2.593-2.022.287-.21.57-.18.463.15-.173.53-1.026 1.341-1.581 1.913-.393.407-.735.632-1.066.868-.344.246-.688.492-1.428 1.234.338.567.925.753 1.956 1.433.844.555 1.517.994 2.146 1.063.535.059.972-.218 1.109-.854.275-1.272.846-4.653 1.056-6.176.064-.46-.038-.853-.292-1.127-.376-.402-1.023-.427-1.397-.333z"/></svg>', 
       classes: 'hover:bg-sky-500 hover:border-sky-500 hover:text-white',
       name: 'Telegram'
     },
     { 
       id: 'facebook', 
-      limit: 63206, 
+      limit: 10000,
+      urlPenalty: 0,
+      emojiMultiplier: 1,
       icon: '<span class="text-[14px] font-bold leading-none font-serif">f</span>', 
       classes: 'hover:bg-blue-700 hover:border-blue-700 hover:text-white',
       name: 'Facebook'
     }
   ];
 
-  return platforms.filter(p => len <= p.limit);
+  return platforms.filter(p => {
+    const effectiveLimit = hasUrl ? p.limit - p.urlPenalty : p.limit;
+    const textLength = calculateSafeLength(text, p.emojiMultiplier);
+    return textLength <= effectiveLimit;
+  });
 }
 
 function renderListItems(items) {
@@ -358,21 +413,30 @@ function renderListItems(items) {
 }
 
 function sharePost(text, platform) {
-  // 1. Determine safe raw text limit based on platform to prevent URL bloat
-  const limits = { x: 250, threads: 480, whatsapp: 1500, telegram: 2800, messenger: 1000, facebook: 50000 };
-  const safeText = text.substring(0, limits[platform] || 1000);
-  
-  const urlText = encodeURIComponent(safeText);
+  const urlText = encodeURIComponent(text);
   const currentUrl = encodeURIComponent(window.location.href); 
   
   let url = '';
+
   switch(platform) {
-    case 'x': url = `https://twitter.com/intent/tweet?text=${urlText}`; break;
-    case 'threads': url = `https://www.threads.net/intent/post?text=${urlText}`; break;
-    case 'whatsapp': url = `https://wa.me/?text=${urlText}`; break;
-    case 'telegram': url = `https://t.me/share/url?url=${currentUrl}&text=${urlText}`; break;
-    case 'messenger': url = `fb-messenger://share/?link=${currentUrl}`; break; // Cleaner mobile deep link
-    case 'facebook': url = `https://www.facebook.com/sharer/sharer.php?u=${currentUrl}`; break; // FB ignores 'quote' mostly now
+    case 'x':
+      url = `https://twitter.com/intent/tweet?text=${urlText}`;
+      break;
+    case 'threads':
+      url = `https://www.threads.net/intent/post?text=${urlText}`;
+      break;
+    case 'whatsapp':
+      url = `https://wa.me/?text=${urlText}`;
+      break;
+    case 'telegram':
+      url = `https://t.me/share/url?url=${currentUrl}&text=${urlText}`;
+      break;
+    case 'messenger':
+      url = `http://www.facebook.com/dialog/send?link=${currentUrl}&app_id=${firebaseConfig.appId}&redirect_uri=${currentUrl}`;
+      break;
+    case 'facebook':
+      url = `https://www.facebook.com/sharer/sharer.php?u=${currentUrl}&quote=${urlText}`;
+      break;
   }
 
   if (url) {
