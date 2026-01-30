@@ -101,11 +101,13 @@
   </main>
 
   <!-- Footer -->
-  <!-- ✅ CONTRAST FIX: Changed slate-400 to slate-500 -->
   <footer class="max-w-xl mx-auto px-4 py-8 text-center text-slate-500 text-xs relative">
-    <div class="group inline-block relative mb-4 cursor-help">
+    <!-- Added tabindex="0" and focus-within classes for mobile touch support -->
+    <div class="group inline-block relative mb-4 cursor-help outline-none" tabindex="0">
       <span class="text-brand-500 underline decoration-dotted decoration-brand-300 underline-offset-4">Disclaimer & Info</span>
-      <div class="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 bg-white text-slate-600 text-left p-4 rounded-lg shadow-xl border border-slate-200 z-50 pointer-events-none group-hover:pointer-events-auto">
+      
+      <!-- Added group-focus-within:visible and group-focus-within:opacity-100 -->
+      <div class="invisible group-hover:visible group-focus-within:visible opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200 absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 bg-white text-slate-600 text-left p-4 rounded-lg shadow-xl border border-slate-200 z-50 pointer-events-none group-hover:pointer-events-auto">
         <p class="font-bold text-slate-800 mb-2">Local by Default:</p>
         <ul class="list-disc pl-4 space-y-1">
           <li><strong>Private by Default</strong> – Stays on device unless Public Mode is enabled.</li>
