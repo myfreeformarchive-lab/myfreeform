@@ -51,7 +51,8 @@ const BATCH_SIZE = 15;
 let currentLimit = BATCH_SIZE;
 let isLoadingMore = false;
 let allPrivatePosts = []; 
-let selectedFont = 'font-sans'; 
+// NEW: Load font from storage or default to sans
+let selectedFont = localStorage.getItem('freeform_font_pref') || 'font-sans'; 
 let publicUnsubscribe = null;
 let commentsUnsubscribe = null;
 let activePostId = null; 
@@ -68,6 +69,10 @@ document.addEventListener('DOMContentLoaded', () => {
   DOM.toggle.checked = (savedToggleState === 'true');
   updateToggleUI(); 
   updateTabClasses(); 
+  
+  // NEW: Apply the saved font immediately
+  applyFontPreference(selectedFont);
+
   loadFeed(); 
   updateMeter();
   setupInfiniteScroll();
@@ -83,12 +88,13 @@ document.addEventListener('DOMContentLoaded', () => {
   DOM.tabPrivate.addEventListener('click', () => switchTab('private'));
   DOM.tabPublic.addEventListener('click', () => switchTab('public'));
 
+  // Updated Font Button Logic
   DOM.fontBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      DOM.fontBtns.forEach(b => b.classList.remove('ring-2', 'ring-brand-500', 'ring-offset-1'));
-      btn.classList.add('ring-2', 'ring-brand-500', 'ring-offset-1');
-      selectedFont = btn.getAttribute('data-font');
-      DOM.input.className = DOM.input.className.replace(/font-\w+/, selectedFont);
+      const font = btn.getAttribute('data-font');
+      selectedFont = font;
+      localStorage.setItem('freeform_font_pref', font); // Save to memory
+      applyFontPreference(font); // Update UI
       DOM.input.focus();
     });
   });
@@ -123,6 +129,23 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 // 3. CORE FUNCTIONS (Feed & Tabs)
 // ==========================================
+
+// NEW: Helper function to update Input class and Button styles
+function applyFontPreference(font) {
+  // 1. Update Input Class (Remove old fonts, add new)
+  DOM.input.classList.remove('font-sans', 'font-serif', 'font-mono', 'font-hand');
+  DOM.input.classList.add(font);
+
+  // 2. Update Active Button State
+  DOM.fontBtns.forEach(btn => {
+    if (btn.getAttribute('data-font') === font) {
+      btn.classList.add('ring-2', 'ring-brand-500', 'ring-offset-1');
+    } else {
+      btn.classList.remove('ring-2', 'ring-brand-500', 'ring-offset-1');
+    }
+  });
+}
+
 function switchTab(tab) {
   if (currentTab === tab) return;
   currentTab = tab;
@@ -190,13 +213,11 @@ function subscribePublicFeed() {
 // 4. SMART SHARE SYSTEM
 // ==========================================
 
-// Logic: Text Length + URL Length determines which platforms appear
 function getSmartShareButtons(text) {
   const urlToShare = window.location.href;
   const totalLength = (text ? text.length : 0) + urlToShare.length;
   
   const platforms = [
-    // 1. Copy Button (Always useful, no limit)
     {
       id: 'copy',
       limit: 999999, 
@@ -204,10 +225,9 @@ function getSmartShareButtons(text) {
       icon: '<span class="text-[14px] font-bold leading-none">📋</span>',
       classes: 'hover:bg-slate-800 hover:border-slate-800 hover:text-white'
     },
-    // 2. Social Platforms
     { 
       id: 'x', 
-      limit: 280, // Text + Link must fit
+      limit: 280, 
       name: 'X',
       icon: '<span class="text-[13px] font-bold leading-none">𝕏</span>', 
       classes: 'hover:bg-black hover:border-black hover:text-white'
@@ -252,13 +272,11 @@ function getSmartShareButtons(text) {
   return platforms.filter(p => totalLength <= p.limit);
 }
 
-// Logic: Handles the actual sharing action (including Copy)
 async function sharePost(text, platform) {
   const currentUrl = window.location.href;
   const urlText = encodeURIComponent(text);
   const urlLink = encodeURIComponent(currentUrl);
 
-  // 1. Handle Copy
   if (platform === 'copy') {
     try {
       await navigator.clipboard.writeText(`${text}\n\n${currentUrl}`);
@@ -270,7 +288,6 @@ async function sharePost(text, platform) {
     return;
   }
 
-  // 2. Handle Socials
   let url = '';
   switch(platform) {
     case 'x':
@@ -298,7 +315,6 @@ async function sharePost(text, platform) {
   }
 }
 
-// Logic: Renders the Feed Items and the Share Menu Structure
 function renderListItems(items) {
   if (items.length === 0) {
     DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl"><p class="text-slate-400">No thoughts here yet.</p></div>`;
@@ -314,10 +330,8 @@ function renderListItems(items) {
     const hasCommentsAccess = item.isFirebase || item.firebaseId;
     const viewLabel = hasCommentsAccess ? "View Comments" : "Open";
 
-    // 1. Calculate Valid Platforms
     const allowedPlatforms = getSmartShareButtons(item.content);
     
-    // 2. Build the Pop-up Menu HTML
     let menuHtml = '';
     allowedPlatforms.forEach(p => {
       menuHtml += `
@@ -329,7 +343,6 @@ function renderListItems(items) {
       `;
     });
 
-    // 3. Build the Share Component (Trigger + Menu)
     const shareComponent = `
       <div class="share-container relative z-20">
         <div class="share-menu" id="menu-${item.id}">
@@ -365,9 +378,6 @@ function renderListItems(items) {
       ${footerHtml}
     `;
 
-    // --- Event Listeners ---
-
-    // 1. Delete Button
     if (!item.isFirebase || isMyGlobalPost) {
       const delBtn = document.createElement('button');
       delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
@@ -379,14 +389,11 @@ function renderListItems(items) {
       el.appendChild(delBtn);
     }
 
-    // 2. Open Modal (Card Click)
     el.onclick = (e) => {
-      // Prevent modal opening if clicking a button or share menu
       if (e.target.closest('button') || e.target.closest('.share-container')) return;
       openModal(item);
     };
 
-    // 3. Platform Share Clicks (Inside the generated menu)
     const platformBtns = el.querySelectorAll('.share-icon-btn');
     platformBtns.forEach(btn => {
       btn.onclick = (e) => {
@@ -394,7 +401,6 @@ function renderListItems(items) {
         const platform = btn.getAttribute('data-platform');
         sharePost(item.content, platform);
         
-        // Close menu after selection
         const menu = el.querySelector('.share-menu');
         const trigger = el.querySelector('.share-trigger-btn');
         if (menu) menu.classList.remove('active');
@@ -406,7 +412,6 @@ function renderListItems(items) {
   });
 }
 
-// Logic: Attached to window so the HTML onclick="" works
 window.toggleShare = function(event, menuId) {
   event.stopPropagation();
   const menu = document.getElementById(menuId);
@@ -416,13 +421,11 @@ window.toggleShare = function(event, menuId) {
 
   const isActive = menu.classList.contains('active');
 
-  // Close ALL other menus first
   document.querySelectorAll('.share-menu.active').forEach(m => {
     m.classList.remove('active');
     if(m.nextElementSibling) m.nextElementSibling.classList.remove('active');
   });
 
-  // Toggle this one
   if (!isActive) {
     menu.classList.add('active');
     trigger.classList.add('active');
@@ -565,7 +568,7 @@ async function deleteLocal(id) {
 }
 
 async function deleteGlobal(postId) {
-  if (!confirm("Delete from Global?")) return;
+  if (!confirm("Delete from Global? This will also remove all comments.")) return;
 
   try {
     const batch = writeBatch(db);
@@ -583,7 +586,6 @@ async function deleteGlobal(postId) {
     
     console.log(`Successfully deleted post ${postId} and ${commentsSnapshot.size} comments.`);
 
-    // Also update local storage if it exists there
     let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
     let updated = false;
 
