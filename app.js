@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
 import { 
   getFirestore, collection, addDoc, deleteDoc, doc,
-  query, orderBy, limit, serverTimestamp, onSnapshot 
+  query, orderBy, limit, serverTimestamp, onSnapshot,
+  writeBatch, getDocs
 } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -402,10 +403,16 @@ async function deleteLocal(id) {
 
   if (targetPost && targetPost.firebaseId) {
     try {
-      await deleteDoc(doc(db, "globalPosts", targetPost.firebaseId));
-      console.log("Linked global post deleted.");
+      const batch = writeBatch(db);
+      const postRef = doc(db, "globalPosts", targetPost.firebaseId);
+      const commentsRef = collection(db, "globalPosts", targetPost.firebaseId, "comments");
+      const commentsSnapshot = await getDocs(commentsRef);
+
+      commentsSnapshot.forEach(doc => batch.delete(doc.ref));
+      batch.delete(postRef);
+      await batch.commit();
     } catch(e) {
-      console.log("Global post not found or already deleted.", e);
+      console.warn("Global version already gone or unreachable:", e);
     }
   }
 
@@ -416,17 +423,32 @@ async function deleteLocal(id) {
   updateMeter();
 }
 
-async function deleteGlobal(id) {
-  if (!confirm("Delete from Global Feed?")) return;
+async function deleteGlobal(postId) {
+  if (!confirm("Delete from Global? This will also remove all comments.")) return;
+
   try {
-    await deleteDoc(doc(db, "globalPosts", id));
+    const batch = writeBatch(db);
+    const postRef = doc(db, "globalPosts", postId);
+    const commentsRef = collection(db, "globalPosts", postId, "comments");
+    const commentsSnapshot = await getDocs(commentsRef);
+
+    commentsSnapshot.forEach((commentDoc) => {
+      batch.delete(commentDoc.ref);
+    });
+
+    batch.delete(postRef);
+
+    await batch.commit();
     
+    console.log(`Successfully deleted post ${postId} and ${commentsSnapshot.size} comments.`);
+
     let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
     let updated = false;
 
     posts = posts.map(p => {
-      if (p.firebaseId === id) {
-        delete p.firebaseId;
+      if (p.firebaseId === postId) {
+       
+        delete p.firebaseId; 
         updated = true;
       }
       return p;
@@ -435,23 +457,28 @@ async function deleteGlobal(id) {
     if (updated) {
       localStorage.setItem('freeform_v2', JSON.stringify(posts));
       allPrivatePosts = posts.reverse();
+     
       if (currentTab === 'private') {
         renderPrivateBatch();
       }
     }
 
   } catch (e) {
-    console.error("Error deleting global post:", e);
-    alert("Could not delete post.");
+    console.error("Error during batch delete:", e);
+    alert("Delete failed. You might not have permission or a connection issue.");
   }
 }
 
 async function deleteComment(postId, commentId) {
-  if (!confirm("Delete comment?")) return;
+  if (!confirm("Delete this comment?")) return;
+
   try {
-    await deleteDoc(doc(db, `globalPosts/${postId}/comments`, commentId));
+    const commentRef = doc(db, "globalPosts", postId, "comments", commentId);
+    await deleteDoc(commentRef);
+    console.log("Comment deleted successfully");
   } catch (e) {
     console.error("Error deleting comment:", e);
+    alert("Could not delete comment. You might not have permission.");
   }
 }
 
