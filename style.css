@@ -50,3 +50,35 @@ textarea::-webkit-scrollbar { display: none; }
 .comment-bubble {
   animation: popIn 0.2s ease-out forwards;
 }
+
+/* --- Share Menu Animations --- */
+.share-menu {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px) scale(0.95);
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.share-menu.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+/* Icon Buttons inside menu */
+.share-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.share-icon-btn:active {
+  transform: scale(0.9);
+}
