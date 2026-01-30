@@ -1,8 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
 import { 
-  getFirestore, collection, addDoc, deleteDoc, doc,
+  getFirestore, collection, addDoc, deleteDoc, doc, updateDoc,
   query, orderBy, limit, serverTimestamp, onSnapshot,
-  writeBatch, getDocs
+  writeBatch, getDocs, increment
 } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -307,7 +307,6 @@ async function sharePost(text, platform) {
 
 function renderListItems(items) {
   if (items.length === 0) {
-    // ✅ CONTRAST FIX: slate-400 -> slate-500
     DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl"><p class="text-slate-500">No thoughts here yet.</p></div>`;
     return;
   }
@@ -318,8 +317,10 @@ function renderListItems(items) {
     const time = getRelativeTime(item.createdAt);
     const fontClass = item.font || 'font-sans'; 
     const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
+    
+    // Logic for counting comments
     const hasCommentsAccess = item.isFirebase || item.firebaseId;
-    const viewLabel = hasCommentsAccess ? "View Comments" : "Open";
+    const commentCount = item.commentCount || 0; // Display 0 if undefined
 
     const allowedPlatforms = getSmartShareButtons(item.content);
     
@@ -347,12 +348,34 @@ function renderListItems(items) {
       </div>
     `;
 
-    // ✅ CONTRAST FIX: slate-400 -> slate-500 for time
+    // 🆕 UPDATED COMMENT BUBBLE UI
+    const commentButtonHtml = `
+      <div class="group flex items-center gap-1.5 relative cursor-pointer text-brand-500 hover:text-brand-700 transition-colors">
+        <div class="hover:scale-110 transition-transform duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-message-circle-2" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+             <path d="M3 20l1.3 -3.9a9 8 0 1 1 3.4 2.9l-4.7 1"></path>
+          </svg>
+        </div>
+        
+        <span class="text-sm font-semibold">${commentCount}</span>
+
+        <!-- Tooltip -->
+        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] font-medium text-white bg-slate-800 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-lg">
+          Comments
+          <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800"></div>
+        </div>
+      </div>
+    `;
+
+    // Only show comment bubble if it has access (Global or Linked Local), otherwise show "Private Draft" text
+    const actionArea = hasCommentsAccess 
+      ? commentButtonHtml
+      : `<span class="text-xs text-slate-400 font-medium italic">Private Draft</span>`;
+
     const footerHtml = `
       <div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
-        <div class="flex items-center text-xs text-brand-500 font-medium gap-1 hover:text-brand-700 transition-colors group">
-          <span class="text-base group-hover:scale-110 transition-transform">${hasCommentsAccess ? '💬' : '📄'}</span> ${viewLabel}
-        </div>
+        ${actionArea}
         ${shareComponent}
       </div>
     `;
@@ -464,7 +487,8 @@ async function handlePost() {
         content: text, 
         font: selectedFont, 
         authorId: MY_USER_ID,
-        createdAt: serverTimestamp() 
+        createdAt: serverTimestamp(),
+        commentCount: 0 // Initialize count
       });
       firebaseId = docRef.id; 
     }
@@ -475,7 +499,8 @@ async function handlePost() {
       font: selectedFont, 
       createdAt: new Date().toISOString(), 
       isFirebase: false,
-      firebaseId: firebaseId 
+      firebaseId: firebaseId,
+      commentCount: 0
     };
 
     const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
@@ -508,7 +533,8 @@ async function publishDraft(post) {
       content: post.content, 
       font: post.font || 'font-sans', 
       authorId: MY_USER_ID,
-      createdAt: serverTimestamp() 
+      createdAt: serverTimestamp(),
+      commentCount: 0
     });
 
     const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
@@ -516,6 +542,7 @@ async function publishDraft(post) {
     
     if (targetIndex !== -1) {
       posts[targetIndex].firebaseId = docRef.id;
+      posts[targetIndex].commentCount = 0;
       localStorage.setItem('freeform_v2', JSON.stringify(posts));
       
       allPrivatePosts = posts.reverse();
@@ -609,6 +636,13 @@ async function deleteComment(postId, commentId) {
   try {
     const commentRef = doc(db, "globalPosts", postId, "comments", commentId);
     await deleteDoc(commentRef);
+    
+    // 🆕 Update count on parent doc (Decrement)
+    const postRef = doc(db, "globalPosts", postId);
+    await updateDoc(postRef, {
+        commentCount: increment(-1)
+    });
+
     console.log("Comment deleted successfully");
   } catch (e) {
     console.error("Error deleting comment:", e);
@@ -725,6 +759,13 @@ async function postComment() {
       authorId: MY_USER_ID, 
       createdAt: serverTimestamp()
     });
+
+    // 🆕 Update count on parent doc (Increment)
+    const postRef = doc(db, "globalPosts", activePostId);
+    await updateDoc(postRef, {
+        commentCount: increment(1)
+    });
+
     DOM.commentInput.value = '';
     
     const scrollArea = document.getElementById('modalScrollArea');
