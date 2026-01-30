@@ -1,12 +1,9 @@
-/* 🚀 TAILWIND v4 MODERN DIRECTIVES */
 @import "tailwindcss";
 
 @theme {
-  /* This defines your custom brand colors for v4 */
   --color-brand-500: #3f51b5;
   --color-brand-600: #303f9f;
 
-  /* This defines your custom fonts for v4 */
   --font-sans: "Inter", ui-sans-serif, system-ui;
   --font-serif: "Playfair Display", ui-serif, Georgia;
   --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular;
@@ -14,19 +11,22 @@
 }
 
 /* 1. Base Settings */
-@layer base {
-  body {
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-  }
+body {
+  -webkit-font-smoothing: antialiased;
 }
-
-/* Custom Scrollbar helpers */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 textarea::-webkit-scrollbar { display: none; }
 
-/* 2. Animations */
+/* Hide scrollbar for Chrome/Safari/Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* 2. Feed Item Animation */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -35,8 +35,14 @@ textarea::-webkit-scrollbar { display: none; }
   animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-#commentModal:not(.hidden) #closeModalOverlay { animation: fadeIn 0.3s ease-out forwards; }
+/* 3. Modal Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+#commentModal:not(.hidden) #closeModalOverlay {
+  animation: fadeIn 0.3s ease-out forwards;
+}
 
 @keyframes slideUp {
   from { transform: translateY(100%); opacity: 0; }
@@ -46,32 +52,88 @@ textarea::-webkit-scrollbar { display: none; }
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes popIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-.comment-bubble { animation: popIn 0.2s ease-out forwards; }
+/* 4. Comment Bubbles */
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+.comment-bubble {
+  animation: popIn 0.2s ease-out forwards;
+}
 
-/* 3. SHARE SYSTEM COMPONENTS */
+/* =========================================
+   5. NEW SHARE SYSTEM 
+   ========================================= */
+
 .share-trigger-btn {
-  width: 32px; height: 32px; border-radius: 9999px;
-  display: flex; align-items: center; justify-content: center;
-  background-color: #f8fafc; border: 1px solid #f1f5f9; color: #94a3b8;
-  transition: all 0.2s ease; cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8fafc; 
+  border: 1px solid #f1f5f9; 
+  color: #94a3b8; 
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
-.share-trigger-btn:hover, .share-trigger-btn.active {
-  background-color: #eef2ff; border-color: #c7d2fe; color: #4f46e5; transform: scale(1.05);
+
+.share-trigger-btn:hover,
+.share-trigger-btn.active {
+  background-color: #eef2ff; 
+  border-color: #c7d2fe; 
+  color: #4f46e5; 
+  transform: scale(1.05);
 }
+
 .share-menu {
-  position: absolute; right: 0; bottom: 100%; margin-bottom: 8px;
-  display: flex; gap: 6px; background-color: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px); padding: 6px; border-radius: 9999px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #f1f5f9; z-index: 50;
-  opacity: 0; visibility: hidden; transform: translateY(10px) scale(0.95);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none;
+  position: absolute;
+  right: 0;
+  bottom: 100%; 
+  margin-bottom: 8px; 
+  display: flex;
+  gap: 6px;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  padding: 6px;
+  border-radius: 9999px; 
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f1f5f9;
+  z-index: 50;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px) scale(0.95);
+  transform-origin: bottom right;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
 }
-.share-menu.active { opacity: 1; visibility: visible; transform: translateY(0) scale(1); pointer-events: auto; }
+
+.share-menu.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
 .share-icon-btn {
-  width: 34px; height: 34px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  background-color: #f8fafc; color: #64748b; border: 1px solid #e2e8f0;
-  transition: transform 0.2s; cursor: pointer;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  transition: transform 0.2s, background-color 0.2s, color 0.2s;
+  cursor: pointer;
 }
-.share-icon-btn:hover { transform: translateY(-2px); }
+
+.share-icon-btn:hover {
+  transform: translateY(-2px);
+}
+
+.share-icon-btn:active {
+  transform: scale(0.95);
+}
