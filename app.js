@@ -560,7 +560,7 @@ async function deleteLocal(id) {
 }
 
 async function deleteGlobal(postId) {
-  if (!confirm("Delete from Global? This will also remove all comments.")) return;
+  if (!confirm("Delete from Global?")) return;
 
   try {
     const batch = writeBatch(db);
