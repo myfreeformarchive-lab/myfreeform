@@ -1,0 +1,19 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  // ✅ Scan HTML and Javascript for Tailwind classes
+  content: ["./index.html", "./app.js"],
+  theme: {
+    extend: {
+      fontFamily: { 
+        sans: ['Inter', 'sans-serif'],
+        serif: ['Playfair Display', 'serif'],
+        mono: ['Roboto Mono', 'monospace'],
+        hand: ['Dancing Script', 'cursive']
+      },
+      colors: { 
+        brand: { 500: '#3f51b5', 600: '#303f9f' } 
+      }
+    }
+  },
+  plugins: [],
+}
