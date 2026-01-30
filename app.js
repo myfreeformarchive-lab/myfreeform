@@ -31,7 +31,6 @@ const DOM = {
   storage: document.getElementById('storageInfo'),
   loadTrigger: document.getElementById('loadTrigger'),
   fontBtns: document.querySelectorAll('.font-btn'),
-  // Modal Elements
   modal: document.getElementById('commentModal'),
   modalOverlay: document.getElementById('closeModalOverlay'),
   closeBtn: document.getElementById('closeModalBtn'),
@@ -44,7 +43,6 @@ const DOM = {
   emojiButtons: document.querySelectorAll('.emoji-btn')
 };
 
-// Application State
 let currentTab = localStorage.getItem('freeform_tab_pref') || 'private';
 const MY_USER_ID = getOrCreateUserId(); 
 const BATCH_SIZE = 15;
@@ -200,62 +198,63 @@ function subscribePublicFeed() {
 }
 
 // ==========================================
-// 4. SMART SHARE SYSTEM
+// 4. SMART SHARE SYSTEM (UPDATED COLORS)
 // ==========================================
 
 function getSmartShareButtons(text) {
   const urlToShare = window.location.href;
   const totalLength = (text ? text.length : 0) + urlToShare.length;
   
+  // ✅ COLORS ADDED HERE: bg-x-50 text-x-600 by default for visibility
   const platforms = [
     {
       id: 'copy',
       limit: 999999, 
       name: 'Copy Text',
       icon: '<span class="text-[14px] font-bold leading-none">📋</span>',
-      classes: 'hover:bg-slate-800 hover:border-slate-800 hover:text-white'
+      classes: 'bg-slate-50 text-slate-600 hover:bg-slate-800 hover:border-slate-800 hover:text-white'
     },
     { 
       id: 'x', 
       limit: 280, 
       name: 'X',
       icon: '<span class="text-[13px] font-bold leading-none">𝕏</span>', 
-      classes: 'hover:bg-black hover:border-black hover:text-white'
+      classes: 'bg-slate-50 text-slate-800 hover:bg-black hover:border-black hover:text-white'
     },
     { 
       id: 'threads', 
       limit: 500, 
       name: 'Threads',
       icon: '<span class="text-[15px] font-sans font-bold leading-none mt-[1px]">@</span>', 
-      classes: 'hover:bg-black hover:border-black hover:text-white'
+      classes: 'bg-slate-50 text-slate-800 hover:bg-black hover:border-black hover:text-white'
     },
     { 
       id: 'whatsapp', 
       limit: 2000, 
       name: 'WhatsApp',
       icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592z"/></svg>', 
-      classes: 'hover:bg-green-500 hover:border-green-500 hover:text-white'
+      classes: 'bg-green-50 text-green-600 border-green-200 hover:bg-green-500 hover:border-green-500 hover:text-white'
     },
     { 
       id: 'messenger', 
       limit: 1000, 
       name: 'Messenger',
       icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M0 7.76C0 3.301 3.493 0 8 0s8 3.301 8 7.76-3.493 7.76-8 7.76c-1.087 0-2.119-.199-3.072-.559L1.4 16l.84-3.525C1.173 11.53 0 9.735 0 7.76zm5.546-1.459-2.35 3.728c-.225.358.214.761.551.506l2.525-1.916a.48.48 0 0 1 .577-.002l2.152 1.628c.456.345 1.086.136 1.258-.419l1.614-3.695c.224-.356-.214-.76-.549-.506l-2.53 1.918a.48.48 0 0 1-.58.002L6.046 5.86c-.456-.345-1.087-.137-1.256.419z"/></svg>', 
-      classes: 'hover:bg-blue-500 hover:border-blue-500 hover:text-white'
+      classes: 'bg-blue-50 text-blue-500 border-blue-200 hover:bg-blue-500 hover:border-blue-500 hover:text-white'
     },
     { 
       id: 'telegram', 
       limit: 4000, 
       name: 'Telegram',
       icon: '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.287 5.906c-.778.324-2.334.994-4.666 2.01-.378.15-.577.298-.595.442-.03.243.275.339.69.47l.175.055c.408.133.958.288 1.243.287.427-.001.826-.115 1.118-.348 1.325-1.054 2.189-1.728 2.593-2.022.287-.21.57-.18.463.15-.173.53-1.026 1.341-1.581 1.913-.393.407-.735.632-1.066.868-.344.246-.688.492-1.428 1.234.338.567.925.753 1.956 1.433.844.555 1.517.994 2.146 1.063.535.059.972-.218 1.109-.854.275-1.272.846-4.653 1.056-6.176.064-.46-.038-.853-.292-1.127-.376-.402-1.023-.427-1.397-.333z"/></svg>', 
-      classes: 'hover:bg-sky-500 hover:border-sky-500 hover:text-white'
+      classes: 'bg-sky-50 text-sky-500 border-sky-200 hover:bg-sky-500 hover:border-sky-500 hover:text-white'
     },
     { 
       id: 'facebook', 
       limit: 60000, 
       name: 'Facebook',
       icon: '<span class="text-[14px] font-bold leading-none font-serif">f</span>', 
-      classes: 'hover:bg-blue-700 hover:border-blue-700 hover:text-white'
+      classes: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-700 hover:border-blue-700 hover:text-white'
     }
   ];
 
@@ -320,7 +319,7 @@ function renderListItems(items) {
     
     // Logic for counting comments
     const hasCommentsAccess = item.isFirebase || item.firebaseId;
-    const commentCount = item.commentCount || 0; // Display 0 if undefined
+    const commentCount = item.commentCount || 0; 
 
     const allowedPlatforms = getSmartShareButtons(item.content);
     
@@ -348,7 +347,6 @@ function renderListItems(items) {
       </div>
     `;
 
-    // 🆕 UPDATED COMMENT BUBBLE UI
     const commentButtonHtml = `
       <div class="group flex items-center gap-1.5 relative cursor-pointer text-brand-500 hover:text-brand-700 transition-colors">
         <div class="hover:scale-110 transition-transform duration-200">
@@ -368,7 +366,6 @@ function renderListItems(items) {
       </div>
     `;
 
-    // Only show comment bubble if it has access (Global or Linked Local), otherwise show "Private Draft" text
     const actionArea = hasCommentsAccess 
       ? commentButtonHtml
       : `<span class="text-xs text-slate-400 font-medium italic">Private Draft</span>`;
@@ -637,17 +634,16 @@ async function deleteComment(postId, commentId) {
     const commentRef = doc(db, "globalPosts", postId, "comments", commentId);
     await deleteDoc(commentRef);
     
-    // 1. Update count in Firebase
+    // 🆕 Update count on parent doc (Decrement)
     const postRef = doc(db, "globalPosts", postId);
-    await updateDoc(postRef, { commentCount: increment(-1) });
-
-    // 2. ✅ NEW: Sync the Archive (LocalStorage)
-    syncLocalPostCount(postId, -1);
+    await updateDoc(postRef, {
+        commentCount: increment(-1)
+    });
 
     console.log("Comment deleted successfully");
   } catch (e) {
     console.error("Error deleting comment:", e);
-    alert("Could not delete comment.");
+    alert("Could not delete comment. You might not have permission.");
   }
 }
 
@@ -761,19 +757,19 @@ async function postComment() {
       createdAt: serverTimestamp()
     });
 
-    // 1. Update count in Firebase
+    // 🆕 Update count on parent doc (Increment)
     const postRef = doc(db, "globalPosts", activePostId);
-    await updateDoc(postRef, { commentCount: increment(1) });
-
-    // 2. ✅ NEW: Sync the Archive (LocalStorage)
-    syncLocalPostCount(activePostId, 1);
+    await updateDoc(postRef, {
+        commentCount: increment(1)
+    });
 
     DOM.commentInput.value = '';
+    
     const scrollArea = document.getElementById('modalScrollArea');
     scrollArea.scrollTop = 0; 
-  } catch (e) { 
-    console.error(e); 
-  } finally { 
+
+  } catch (e) { console.error(e); } 
+  finally { 
     DOM.sendComment.disabled = false; 
     DOM.sendComment.style.opacity = "1";
     DOM.commentInput.focus();
@@ -783,28 +779,6 @@ async function postComment() {
 // ==========================================
 // 7. UTILITIES
 // ==========================================
-function syncLocalPostCount(firebaseId, change) {
-  let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
-  let updated = false;
-
-  posts = posts.map(p => {
-    if (p.firebaseId === firebaseId) {
-      p.commentCount = (p.commentCount || 0) + change;
-      updated = true;
-    }
-    return p;
-  });
-
-  if (updated) {
-    localStorage.setItem('freeform_v2', JSON.stringify(posts));
-    // If we are currently looking at the Archive tab, refresh the UI immediately
-    if (currentTab === 'private') {
-      allPrivatePosts = posts.slice().reverse();
-      renderPrivateBatch();
-    }
-  }
-}
-
 function getOrCreateUserId() {
   let id = localStorage.getItem('freeform_user_id');
   if (!id) {
