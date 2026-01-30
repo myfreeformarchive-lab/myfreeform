@@ -54,6 +54,18 @@ let allPrivatePosts = [];
 let selectedFont = 'font-sans'; 
 const MY_USER_ID = getOrCreateUserId(); 
 
+// === GLOBAL LISTENER TO CLOSE MENUS ===
+// This makes sure if you click anywhere else, the menu closes
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.share-container')) {
+    document.querySelectorAll('.share-menu.active').forEach(menu => {
+      menu.classList.remove('active');
+      const trigger = menu.nextElementSibling; 
+      if(trigger) trigger.classList.remove('active');
+    });
+  }
+});
+
 // === INIT ===
 document.addEventListener('DOMContentLoaded', () => {
   runMigration();
@@ -186,16 +198,15 @@ function subscribePublicFeed() {
   });
 }
 
-// === RENDERING & SMART SHARE LOGIC ===
+// === SMART SHARE LOGIC ===
 
 function getSmartShareButtons(text) {
   const len = text ? text.length : 0;
   
-  // Platform definitions with branding colors
   const platforms = [
     { 
       id: 'x', 
-      limit: 250, // Safe cut-off for URL
+      limit: 250, 
       icon: '<span class="text-[13px] font-bold leading-none">𝕏</span>', 
       classes: 'hover:bg-black hover:border-black hover:text-white',
       name: 'X'
@@ -237,7 +248,6 @@ function getSmartShareButtons(text) {
     }
   ];
 
-  // Filter based on text length
   return platforms.filter(p => len <= p.limit);
 }
 
@@ -252,18 +262,18 @@ function renderListItems(items) {
     el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative";
     const time = getRelativeTime(item.createdAt);
     const fontClass = item.font || 'font-sans'; 
-    
     const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
     const hasCommentsAccess = item.isFirebase || item.firebaseId;
     const viewLabel = hasCommentsAccess ? "View Comments" : "Open";
 
-    // --- SMART SHARE LOGIC ---
+    // 1. Calculate Valid Platforms
     const allowedPlatforms = getSmartShareButtons(item.content);
-    let shareButtonsHtml = '';
-
+    
+    // 2. Build the Pop-up Menu HTML
+    let menuHtml = '';
     allowedPlatforms.forEach(p => {
-      shareButtonsHtml += `
-        <button class="share-btn flex items-center justify-center w-8 h-8 rounded-full bg-slate-50 border border-slate-100 text-slate-400 transition-all duration-200 ${p.classes}" 
+      menuHtml += `
+        <button class="share-icon-btn ${p.classes}" 
           data-platform="${p.id}" 
           title="Share on ${p.name}">
           ${p.icon}
@@ -271,14 +281,26 @@ function renderListItems(items) {
       `;
     });
 
+    // 3. Build the Share Component (Trigger + Menu)
+    const shareComponent = `
+      <div class="share-container relative z-20">
+        <div class="share-menu" id="menu-${item.id}">
+          ${menuHtml}
+        </div>
+        <button class="share-trigger-btn" onclick="toggleShare(event, 'menu-${item.id}')" title="Share Options">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
+          </svg>
+        </button>
+      </div>
+    `;
+
     const footerHtml = `
       <div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
         <div class="flex items-center text-xs text-brand-500 font-medium gap-1 hover:text-brand-700 transition-colors group">
           <span class="text-base group-hover:scale-110 transition-transform">${hasCommentsAccess ? '💬' : '📄'}</span> ${viewLabel}
         </div>
-        <div class="flex items-center gap-1.5 flex-wrap justify-end">
-          ${shareButtonsHtml}
-        </div>
+        ${shareComponent}
       </div>
     `;
 
@@ -295,38 +317,39 @@ function renderListItems(items) {
       ${footerHtml}
     `;
 
-    // Delete Button
+    // --- Event Listeners ---
+
+    // 1. Delete Button
     if (!item.isFirebase || isMyGlobalPost) {
       const delBtn = document.createElement('button');
       delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
       delBtn.innerHTML = "✕";
-      delBtn.title = item.isFirebase ? "Delete from Global" : "Delete from Archive";
-      
       delBtn.onclick = (e) => { 
         e.stopPropagation(); 
-        if (item.isFirebase) {
-          deleteGlobal(item.id);
-        } else {
-          deleteLocal(item.id); 
-        }
+        item.isFirebase ? deleteGlobal(item.id) : deleteLocal(item.id); 
       };
       el.appendChild(delBtn);
     }
 
-    // Modal Trigger
+    // 2. Open Modal (Card Click)
     el.onclick = (e) => {
-      // Prevent modal opening if clicking a button
-      if (e.target.closest('button')) return;
+      if (e.target.closest('button') || e.target.closest('.share-container')) return;
       openModal(item);
     };
 
-    // Attach Share Events
-    const shareBtns = el.querySelectorAll('.share-btn');
-    shareBtns.forEach(btn => {
+    // 3. Platform Share Clicks
+    const platformBtns = el.querySelectorAll('.share-icon-btn');
+    platformBtns.forEach(btn => {
       btn.onclick = (e) => {
         e.stopPropagation();
         const platform = btn.getAttribute('data-platform');
         sharePost(item.content, platform);
+        
+        // Close menu after selection
+        const menu = el.querySelector('.share-menu');
+        const trigger = el.querySelector('.share-trigger-btn');
+        menu.classList.remove('active');
+        trigger.classList.remove('active');
       };
     });
     
@@ -336,7 +359,6 @@ function renderListItems(items) {
 
 function sharePost(text, platform) {
   const urlText = encodeURIComponent(text);
-  // For platforms that require a URL link, we use the current page or a placeholder if no routing exists
   const currentUrl = encodeURIComponent(window.location.href); 
   
   let url = '';
@@ -352,15 +374,12 @@ function sharePost(text, platform) {
       url = `https://wa.me/?text=${urlText}`;
       break;
     case 'telegram':
-      // Telegram usually prefers a URL, but we can pass text in the url param or text param
       url = `https://t.me/share/url?url=${currentUrl}&text=${urlText}`;
       break;
     case 'messenger':
-      // Messenger web intent (Note: Pre-filled text is often restricted by FB, acts as link sharer)
       url = `http://www.facebook.com/dialog/send?link=${currentUrl}&app_id=${firebaseConfig.appId}&redirect_uri=${currentUrl}`;
       break;
     case 'facebook':
-      // Facebook Sharer (Does not support pre-filled text due to policy, shares the link)
       url = `https://www.facebook.com/sharer/sharer.php?u=${currentUrl}&quote=${urlText}`;
       break;
   }
@@ -369,6 +388,27 @@ function sharePost(text, platform) {
     window.open(url, '_blank', 'width=600,height=500,noopener,noreferrer');
   }
 }
+
+// Helper to toggle specific menu (Attached to Window for HTML onclick)
+window.toggleShare = function(event, menuId) {
+  event.stopPropagation();
+  const menu = document.getElementById(menuId);
+  const trigger = event.currentTarget;
+  
+  const isActive = menu.classList.contains('active');
+
+  // Close ALL other menus first
+  document.querySelectorAll('.share-menu.active').forEach(m => {
+    m.classList.remove('active');
+    if(m.nextElementSibling) m.nextElementSibling.classList.remove('active');
+  });
+
+  // Toggle this one
+  if (!isActive) {
+    menu.classList.add('active');
+    trigger.classList.add('active');
+  }
+};
 
 function setupInfiniteScroll() {
   const observer = new IntersectionObserver((entries) => {
@@ -565,7 +605,6 @@ async function deleteComment(postId, commentId) {
 // 💬 MODAL
 // ==========================================
 function openModal(post) {
-  // DISABLE MAIN INPUT TO PREVENT NAV ARROWS
   if (DOM.input) {
     DOM.input.disabled = true;
   }
@@ -653,7 +692,6 @@ function closeModal() {
   activePostId = null;
   if (commentsUnsubscribe) { commentsUnsubscribe(); commentsUnsubscribe = null; }
   
-  // RE-ENABLE MAIN INPUT
   if (DOM.input) {
     DOM.input.disabled = false;
   }
