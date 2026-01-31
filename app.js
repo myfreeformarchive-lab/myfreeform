@@ -194,7 +194,7 @@ function subscribePublicFeed() {
       const id = doc.id;
 
       // ✅ SYNC: If this post is in our local archive, update its count to match the server
-      updateLocalPostWithServerData(id, data.commentCount || 0);
+      updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
 
       return { id, ...data, isFirebase: true };
     });
@@ -681,32 +681,63 @@ async function toggleLike(event, postId) {
   const myLikes = JSON.parse(localStorage.getItem('my_likes_cache')) || {};
   const currentlyLiked = !!myLikes[postId];
 
-  // 1. Optimistic UI Update (Instant Feedback)
-  const countSpan = document.querySelector(`.count-like-${postId}`); // Note: ID matching is tricky in mixed lists, might need specific targeting
-  // ideally, regenerate the list item or toggle classes directly on event.currentTarget
-  // For now, let's just do the Logic, UI will refresh on snapshot
+  // ==========================================
+  // ⚡️ OPTIMISTIC UI UPDATE (Instant)
+  // ==========================================
+  const wrapper = event.currentTarget; // The div you clicked
+  const icon = wrapper.querySelector('svg');
+  const countSpan = wrapper.querySelector('span');
+  
+  // Get current number safely
+  let currentCount = parseInt(countSpan.textContent) || 0;
 
+  if (currentlyLiked) {
+    // VISUAL: Turn Gray / Hollow
+    icon.classList.remove('fill-red-500', 'text-red-500');
+    icon.classList.add('fill-none', 'text-slate-400');
+    
+    // COUNT: Decrement
+    countSpan.textContent = Math.max(0, currentCount - 1);
+    countSpan.classList.remove('text-red-600');
+    countSpan.classList.add('text-slate-500');
+    
+    // STATE: Remove from local cache immediately
+    delete myLikes[postId];
+  } else {
+    // VISUAL: Turn Red / Filled
+    icon.classList.remove('fill-none', 'text-slate-400');
+    icon.classList.add('fill-red-500', 'text-red-500');
+    
+    // COUNT: Increment
+    countSpan.textContent = currentCount + 1;
+    countSpan.classList.remove('text-slate-500');
+    countSpan.classList.add('text-red-600');
+    
+    // STATE: Add to local cache immediately
+    myLikes[postId] = true;
+  }
+  
+  // Save cache immediately so scrolling doesn't flicker
+  localStorage.setItem('my_likes_cache', JSON.stringify(myLikes));
+
+  // ==========================================
+  // ☁️ FIREBASE UPDATE (Background)
+  // ==========================================
   try {
     const postRef = doc(db, "globalPosts", postId);
     const likeRef = doc(db, "globalPosts", postId, "likes", MY_USER_ID);
 
     if (currentlyLiked) {
-      // UNLIKE: Delete the unique doc, decrement count
       await deleteDoc(likeRef);
       await updateDoc(postRef, { likeCount: increment(-1) });
-      delete myLikes[postId];
     } else {
-      // LIKE: Create doc with USER ID (Enforces Uniqueness), increment count
       await setDoc(likeRef, { createdAt: serverTimestamp() });
       await updateDoc(postRef, { likeCount: increment(1) });
-      myLikes[postId] = true;
     }
-
-    localStorage.setItem('my_likes_cache', JSON.stringify(myLikes));
-
   } catch (error) {
     console.error("Like failed:", error);
-    alert("Action failed. Check connection.");
+    // Optional: Revert UI here if you really want to be safe
+    alert("Connection failed. Like not saved.");
   }
 }
 window.toggleLike = toggleLike;
@@ -760,8 +791,8 @@ function openModal(post) {
     onSnapshot(postRef, (docSnap) => {
       if (docSnap.exists()) {
         const serverData = docSnap.data();
-        updateLocalPostWithServerData(realFirestoreId, serverData.commentCount || 0);
-      }
+        updateLocalPostWithServerData(realFirestoreId, serverData.commentCount || 0, serverData.likeCount || 0);
+		}
     });
 
     const q = query(collection(db, `globalPosts/${realFirestoreId}/comments`), orderBy("createdAt", "desc"));
@@ -939,6 +970,7 @@ function updateLocalPostWithServerData(firebaseId, serverCount) {
     if (p.firebaseId === firebaseId) {
       if (p.commentCount !== serverCount) {
         p.commentCount = serverCount;
+		p.likeCount = serverLikeCount;
         updated = true;
       }
     }
