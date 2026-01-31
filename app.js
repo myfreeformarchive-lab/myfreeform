@@ -200,30 +200,37 @@ function subscribePublicFeed() {
   DOM.loadTrigger.style.display = 'flex'; 
 
   publicUnsubscribe = onSnapshot(q, (snapshot) => {
-    const posts = snapshot.docs.map(doc => {
+    const incomingPosts = snapshot.docs.map(doc => {
       const data = doc.data();
       const id = doc.id;
       updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
       return { id, ...data, isFirebase: true };
     });
 
-    const hasItems = DOM.list.querySelector('.feed-item');
+    // Determine what is already on screen
+    const onScreenIds = new Set([...document.querySelectorAll('.feed-item')].map(el => el.getAttribute('data-id')));
 
-    if (!hasItems) {
-      // First load: Instant render
+    if (onScreenIds.size === 0) {
+      // 🟢 INITIAL LOAD: Show everything immediately
       DOM.list.innerHTML = '';
-      renderListItems(posts);
-      startPulseCycle(); 
+      renderListItems(incomingPosts);
     } else {
-      // BACKGROUND UPDATE:
-      // Instead of just overwriting, we store it.
-      pulseBuffer = posts;
+      // 🟡 METERED UPDATES:
+      // Filter for posts that are NOT on screen AND not already in the waitlist
+      const newDiscoveries = incomingPosts.filter(p => 
+        !onScreenIds.has(p.id) && 
+        !postWaitlist.find(queued => queued.id === p.id)
+      );
 
-      // --- LOGIC: How many are ACTUALLY new? ---
-      const onScreenIds = new Set([...document.querySelectorAll('.feed-item')].map(el => el.getAttribute('data-id')));
-      const trulyNewCount = posts.filter(p => !onScreenIds.has(p.id)).length;
-      
-      console.log(`[Pulse Engine] Snapshot received. Total items: ${posts.length}. Truly NEW items: ${trulyNewCount}`);
+      if (newDiscoveries.length > 0) {
+        // Add new items to the END of the waitlist (keeping oldest first)
+        // Reverse them so the oldest new post is first
+        postWaitlist.push(...newDiscoveries.reverse());
+        console.log(`[Engine] ${newDiscoveries.length} new items added to queue.`);
+        
+        // Trigger the engine to start processing
+        processWaitlist();
+      }
     }
 
     isLoadingMore = false;
@@ -1243,37 +1250,57 @@ function runMigration() {
 
 /**
  * ==========================================
- * 8. THE SILENT PULSE ENGINE (LAPTOP FIX)
+ * 8. THE METERING ENGINE (One-by-One Drip)
  * ==========================================
  */
-let pulseTimer = null;
-let pulseBuffer = null; 
+let postWaitlist = [];
+let meteringTimer = null;
+let isMeteringActive = false;
 
-function stopPulseEngine() {
-  if (pulseTimer) clearTimeout(pulseTimer);
-  pulseTimer = null;
-  pulseBuffer = null;
+function stopMeteringEngine() {
+  clearTimeout(meteringTimer);
+  meteringTimer = null;
+  postWaitlist = [];
+  isMeteringActive = false;
 }
 
-function startPulseCycle() {
-  if (pulseTimer) clearTimeout(pulseTimer);
-  
-  const nextInterval = (Math.floor(Math.random() * (300 - 30 + 1)) + 30) * 1000;
-  
-  pulseTimer = setTimeout(() => {
-    commitPulse();
-  }, nextInterval);
+function processWaitlist() {
+  // If we are already waiting for a timer, or the list is empty, do nothing
+  if (isMeteringActive || postWaitlist.length === 0) return;
+
+  isMeteringActive = true;
+
+  // 1. Pick a random interval (30-300s)
+  const interval = (Math.floor(Math.random() * (300 - 30 + 1)) + 30) * 1000;
+  console.log(`[Engine] Drip ready. Next post in ${interval / 1000}s. Queue: ${postWaitlist.length}`);
+
+  meteringTimer = setTimeout(() => {
+    // 2. Take the OLDEST post (the one at the start of the array)
+    const nextPost = postWaitlist.shift();
+
+    if (nextPost && currentTab === 'public') {
+      injectSinglePost(nextPost);
+      console.log("[Engine] 1 Post Released. Remaining in queue:", postWaitlist.length);
+    }
+
+    // 3. Reset and check if we need to start again for the next item
+    isMeteringActive = false;
+    processWaitlist(); 
+  }, interval);
 }
 
-function commitPulse() {
-  // Only commit if we have data and we are still on the public tab
-  if (pulseBuffer && currentTab === 'public') {
-    DOM.list.innerHTML = '';
-    renderListItems(pulseBuffer);
-    pulseBuffer = null; 
-    console.log("Pulse Engine: Screen Updated.");
-  }
-  startPulseCycle(); 
+// Injects a post at the very top of the list with a smooth fade-in
+function injectSinglePost(item) {
+  // Create a temporary array to use your existing renderer
+  const tempWrap = document.createElement('div');
+  renderListItems([item]); // This populates DOM.list, but we want to move it
+  
+  const newElement = DOM.list.firstChild;
+  newElement.classList.add('animate-pulse-in'); // Add a CSS class for a smooth entry
+  
+  // Ensure the "No results" message is gone
+  const emptyMsg = DOM.list.querySelector('.border-dashed');
+  if (emptyMsg) emptyMsg.remove();
 }
 
 /**
@@ -1282,18 +1309,17 @@ function commitPulse() {
  * ==========================================
  */
  
-/*type: pulseEngine.status()*/
-window.pulseEngine = {
-  status: () => {
-    const onScreenIds = new Set([...document.querySelectorAll('.feed-item')].map(el => el.getAttribute('data-id')));
-    const trulyNewCount = pulseBuffer ? pulseBuffer.filter(p => !onScreenIds.has(p.id)).length : 0;
-
-    return {
-      trulyNewPostsWaiting: trulyNewCount, // THIS is the number you care about
-      totalBufferItems: pulseBuffer ? pulseBuffer.length : 0,
-      timerActive: !!pulseTimer,
-      tab: currentTab
-    };
-  },
-  forcePulse: () => commitPulse()
+/*type: meteringEngine.status()*/
+window.meteringEngine = {
+  status: () => ({
+    queueSize: postWaitlist.length,
+    isWaiting: isMeteringActive,
+    nextInLine: postWaitlist.length > 0 ? postWaitlist[0].content.substring(0, 20) + "..." : "None"
+  }),
+  // Force the very next post in queue to pop NOW
+  popNext: () => {
+    isMeteringActive = false;
+    clearTimeout(meteringTimer);
+    processWaitlist();
+  }
 };
