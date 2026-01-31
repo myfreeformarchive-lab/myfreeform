@@ -425,7 +425,7 @@ function renderListItems(items) {
           <span class="text-xs text-slate-500 font-medium">${time}</span>
         </div>
       </div>
-      <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[17px] pointer-events-none ${fontClass}">${cleanText(item.content)}</p>
+      <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] pointer-events-none ${fontClass}">${cleanText(item.content)}</p>
       ${footerHtml}
     `;
 
