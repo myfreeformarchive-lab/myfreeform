@@ -200,7 +200,6 @@ function subscribePublicFeed() {
   DOM.loadTrigger.style.display = 'flex'; 
 
   publicUnsubscribe = onSnapshot(q, (snapshot) => {
-    // 1. Map the data
     const posts = snapshot.docs.map(doc => {
       const data = doc.data();
       const id = doc.id;
@@ -208,27 +207,27 @@ function subscribePublicFeed() {
       return { id, ...data, isFirebase: true };
     });
 
-    // 2. CHECK: Is the feed currently showing items?
-    // We check for '.feed-item' class specifically.
     const hasItems = DOM.list.querySelector('.feed-item');
 
     if (!hasItems) {
-      // 🟢 UI IS EMPTY (First load or tab switch)
-      // Render immediately so the laptop shows results instantly.
+      // First load: Instant render
       DOM.list.innerHTML = '';
       renderListItems(posts);
       startPulseCycle(); 
     } else {
-      // 🟡 UI HAS CONTENT
-      // Store new updates in buffer to prevent "jumping"
+      // BACKGROUND UPDATE:
+      // Instead of just overwriting, we store it.
       pulseBuffer = posts;
+
+      // --- LOGIC: How many are ACTUALLY new? ---
+      const onScreenIds = new Set([...document.querySelectorAll('.feed-item')].map(el => el.getAttribute('data-id')));
+      const trulyNewCount = posts.filter(p => !onScreenIds.has(p.id)).length;
+      
+      console.log(`[Pulse Engine] Snapshot received. Total items: ${posts.length}. Truly NEW items: ${trulyNewCount}`);
     }
 
     isLoadingMore = false;
     DOM.loadTrigger.style.opacity = '0';
-  }, (err) => {
-    console.error("Firebase Error:", err);
-    DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Connection Error.</div>`;
   });
 }
 
@@ -353,6 +352,7 @@ function renderListItems(items) {
 
   items.forEach(item => {
     const el = document.createElement('div');
+	el.setAttribute('data-id', item.id); 
     el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative";
     const time = getRelativeTime(item.createdAt);
     const fontClass = item.font || 'font-sans'; 
@@ -1281,21 +1281,19 @@ function commitPulse() {
  * DEBUG TOOLS (Console Testing)
  * ==========================================
  */
+ 
+/*type: pulseEngine.status()*/
 window.pulseEngine = {
-  // Type: pulseEngine.status() in console
-  status: () => ({
-    postsInBuffer: pulseBuffer ? pulseBuffer.length : 0,
-    timerActive: !!pulseTimer,
-    currentTab: currentTab,
-    isFirstLoad: typeof isFirstPublicLoad !== 'undefined' ? isFirstPublicLoad : 'n/a'
-  }),
+  status: () => {
+    const onScreenIds = new Set([...document.querySelectorAll('.feed-item')].map(el => el.getAttribute('data-id')));
+    const trulyNewCount = pulseBuffer ? pulseBuffer.filter(p => !onScreenIds.has(p.id)).length : 0;
 
-  // Type: pulseEngine.forcePulse() in console
-  forcePulse: () => {
-    console.log("Forcing manual update...");
-    commitPulse();
+    return {
+      trulyNewPostsWaiting: trulyNewCount, // THIS is the number you care about
+      totalBufferItems: pulseBuffer ? pulseBuffer.length : 0,
+      timerActive: !!pulseTimer,
+      tab: currentTab
+    };
   },
-
-  // Type: pulseEngine.stop()
-  stop: () => stopPulseEngine()
+  forcePulse: () => commitPulse()
 };
