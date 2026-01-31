@@ -785,14 +785,17 @@ function openModal(post) {
   if (realFirestoreId) {
     if(DOM.commentInputBar) DOM.commentInputBar.style.display = 'block';
 	
-	// ✅ SYNC: Get latest count from server whenever modal opens
-    // This ensures even if a 2nd device commented, your local storage updates now
+	// ✅ SYNC: Get latest counts (Comments AND Likes)
     const postRef = doc(db, "globalPosts", realFirestoreId);
     onSnapshot(postRef, (docSnap) => {
       if (docSnap.exists()) {
         const serverData = docSnap.data();
-        updateLocalPostWithServerData(realFirestoreId, serverData.commentCount || 0, serverData.likeCount || 0);
-		}
+        updateLocalPostWithServerData(
+            realFirestoreId, 
+            serverData.commentCount || 0, 
+            serverData.likeCount || 0 // <--- Added this
+        );
+      }
     });
 
     const q = query(collection(db, `globalPosts/${realFirestoreId}/comments`), orderBy("createdAt", "desc"));
