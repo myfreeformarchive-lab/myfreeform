@@ -965,15 +965,17 @@ function checkSpamGuard(newContent) {
   return true; 
 }
 
-function updateLocalPostWithServerData(firebaseId, serverCount) {
+// Change "serverCount" to "serverCommentCount" for clarity, and ADD "serverLikeCount"
+function updateLocalPostWithServerData(firebaseId, serverCommentCount, serverLikeCount) {
   let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
   let updated = false;
 
   posts = posts.map(p => {
     if (p.firebaseId === firebaseId) {
-      if (p.commentCount !== serverCount) {
-        p.commentCount = serverCount;
-		p.likeCount = serverLikeCount;
+      // Check if EITHER comments OR likes are different
+      if (p.commentCount !== serverCommentCount || p.likeCount !== serverLikeCount) {
+        p.commentCount = serverCommentCount;
+        p.likeCount = serverLikeCount; // Now this variable exists!
         updated = true;
       }
     }
@@ -982,7 +984,6 @@ function updateLocalPostWithServerData(firebaseId, serverCount) {
 
   if (updated) {
     localStorage.setItem('freeform_v2', JSON.stringify(posts));
-    // Only refresh the UI if we are currently looking at the Archive tab
     if (currentTab === 'private') {
       allPrivatePosts = posts.slice().reverse();
       renderPrivateBatch();
