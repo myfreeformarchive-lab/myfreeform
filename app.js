@@ -1031,7 +1031,9 @@ function showDialog(title, message, confirmText, onConfirm) {
 
   // 3. Show
   overlay.classList.remove('hidden');
-  setTimeout(() => overlay.classList.add('dialog-open'), 10);
+  requestAnimationFrame(() => {
+    overlay.classList.add('dialog-open');
+  });
 
   // 4. Setup Button
   const newBtn = confirmBtn.cloneNode(true);
