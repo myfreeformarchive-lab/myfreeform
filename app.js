@@ -978,6 +978,7 @@ async function postComment() {
     });
 
     DOM.commentInput.value = '';
+	showToast("Comment added!");
     
     const scrollArea = document.getElementById('modalScrollArea');
     scrollArea.scrollTop = 0; 
