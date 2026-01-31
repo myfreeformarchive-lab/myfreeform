@@ -1275,3 +1275,27 @@ function commitPulse() {
   }
   startPulseCycle(); 
 }
+
+/**
+ * ==========================================
+ * DEBUG TOOLS (Console Testing)
+ * ==========================================
+ */
+window.pulseEngine = {
+  // Type: pulseEngine.status() in console
+  status: () => ({
+    postsInBuffer: pulseBuffer ? pulseBuffer.length : 0,
+    timerActive: !!pulseTimer,
+    currentTab: currentTab,
+    isFirstLoad: typeof isFirstPublicLoad !== 'undefined' ? isFirstPublicLoad : 'n/a'
+  }),
+
+  // Type: pulseEngine.forcePulse() in console
+  forcePulse: () => {
+    console.log("Forcing manual update...");
+    commitPulse();
+  },
+
+  // Type: pulseEngine.stop()
+  stop: () => stopPulseEngine()
+};
