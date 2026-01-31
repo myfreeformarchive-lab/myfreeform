@@ -13,6 +13,8 @@
   <title>My Freeform</title>
   
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  
+  <link rel="modulepreload" href="app.js" fetchpriority="high">
 
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js">
@@ -42,6 +44,28 @@
 
 </head>
 <body class="bg-slate-50 text-slate-900 pb-24">
+
+ <script>
+    /** 
+     * ✅ 2026 INSTANT CONFIG PATTERN
+     * We grab all preferences in one micro-task before the browser paints.
+     */
+    (function() {
+      const get = (key, fallback) => localStorage.getItem(key) || fallback;
+      
+      const config = {
+        font: get('freeform_font_pref', 'font-sans'),
+        tab: get('freeform_tab_pref', 'private'),
+        isPublic: get('freeform_toggle_pref', 'false') === 'true'
+      };
+
+      // 1. Apply font to root immediately to prevent layout shift
+      document.documentElement.classList.add(config.font);
+      
+      // 2. Attach config to window so app.js doesn't have to talk to localStorage again
+      window.__FREEFORM_CONFIG__ = config;
+    })();
+  </script>
 
   <!-- Header -->
   <header class="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 z-50">
