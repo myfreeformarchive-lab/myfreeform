@@ -262,6 +262,19 @@
   testToast.innerHTML = '<span class="text-lg">✅</span> <span class="text-sm font-medium">Post saved to archive</span>';
   document.getElementById('toast-container').appendChild(testToast);
 </script>
+
+<script>
+  // 1. Get the dialog element
+  const dialog = document.getElementById('custom-dialog');
+
+  // 2. Remove 'hidden' so it exists in the DOM
+  dialog.classList.remove('hidden');
+
+  // 3. Add the 'dialog-open' class after a tiny delay to trigger the CSS Fade In animation
+  setTimeout(() => {
+    dialog.classList.add('dialog-open');
+  }, 10);
+</script>
   
 </body>
 </html>
