@@ -165,7 +165,7 @@ function updateToggleUI() {
 }
 
 function loadFeed() {
-  DOM.list.innerHTML = ''; 
+  
   if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
 
   if (currentTab === 'private') {
@@ -203,6 +203,10 @@ function subscribePublicFeed() {
     renderListItems(posts);
     isLoadingMore = false;
     DOM.loadTrigger.style.opacity = '0';
+  }, (error) => {
+    console.error("Snapshot error:", error);
+    // If it fails, clear skeletons and show error
+    DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Unable to load feed.</div>`;
   });
 }
 
