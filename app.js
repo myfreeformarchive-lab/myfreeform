@@ -331,28 +331,24 @@ function renderListItems(items) {
     const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
     
     // ============================================================
-    // 🆕 NEW LOGIC: Likes & Comments
+    // LOGIC: Likes & Comments
     // ============================================================
     const hasCommentsAccess = item.isFirebase || item.firebaseId;
     const realId = item.isFirebase ? item.id : item.firebaseId;
     
-    // 1. Data Retrieval
     const commentCount = item.commentCount || 0; 
     const likeCount = item.likeCount || 0;
     
-    // 2. Check Local Storage: Did I like this?
     const myLikes = JSON.parse(localStorage.getItem('my_likes_cache')) || {};
     const isLiked = !!myLikes[realId];
 
-    // 3. Dynamic Styling for Heart
     const heartFill = isLiked ? 'fill-red-500 text-red-500' : 'fill-none text-slate-400 group-hover:text-red-500';
     const countColor = isLiked ? 'text-red-600' : 'text-slate-500';
 
-    // 4. HTML for the Buttons (Like + Comment)
     const interactiveButtonsHtml = `
       <div class="flex items-center gap-5">
         
-        <div class="group flex items-center gap-1.5 cursor-pointer transition-colors"
+        <div class="like-trigger group flex items-center gap-1.5 cursor-pointer transition-colors"
              onclick="toggleLike(event, '${realId}')">
           <div class="hover:scale-110 transition-transform duration-200">
              <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-heart ${heartFill}" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -376,17 +372,13 @@ function renderListItems(items) {
       </div>
     `;
 
-    // 5. Decide what to show (Buttons vs Private Text)
     const actionArea = hasCommentsAccess 
       ? interactiveButtonsHtml 
       : `<span class="text-xs text-slate-400 font-medium italic">Private Draft</span>`;
     
     // ============================================================
-    // END NEW LOGIC
-    // ============================================================
-
-    const allowedPlatforms = getSmartShareButtons(item.content);
     
+    const allowedPlatforms = getSmartShareButtons(item.content);
     let menuHtml = '';
     allowedPlatforms.forEach(p => {
       menuHtml += `
@@ -442,8 +434,13 @@ function renderListItems(items) {
       el.appendChild(delBtn);
     }
 
+    // ✅ FIXED CLICK HANDLER HERE
     el.onclick = (e) => {
-      if (e.target.closest('button') || e.target.closest('.share-container')) return;
+      // If we clicked a button, the share menu, OR the new like trigger... IGNORE IT.
+      if (e.target.closest('button') || 
+          e.target.closest('.share-container') || 
+          e.target.closest('.like-trigger')) return;
+      
       openModal(item);
     };
 
