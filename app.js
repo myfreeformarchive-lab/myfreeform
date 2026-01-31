@@ -513,6 +513,7 @@ function loadMoreData() {
 async function handlePost() {
   const text = DOM.input.value.trim();
   if (!text) return;
+  const isPublic = DOM.toggle.checked;
   
   // --- 🚦 SPAM GUARD START ---
   if (isPublic) {
@@ -522,7 +523,6 @@ async function handlePost() {
   }
   // --- 🚦 SPAM GUARD END ---
   
-  const isPublic = DOM.toggle.checked;
   DOM.btn.textContent = "...";
   DOM.btn.disabled = true;
 
