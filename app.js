@@ -515,8 +515,10 @@ async function handlePost() {
   if (!text) return;
   
   // --- 🚦 SPAM GUARD START ---
-  if (!checkSpamGuard(text)) {
-    return; // Stop execution immediately
+  if (isPublic) {
+    if (!checkSpamGuard(text)) {
+      return; // Stop execution only if it's public spam
+    }
   }
   // --- 🚦 SPAM GUARD END ---
   
