@@ -140,11 +140,12 @@ textarea::-webkit-scrollbar { display: none; }
    6. TOAST & DIALOG ANIMATIONS 
    ========================================= */
 
-/* The snap-in effect */
-@keyframes toastSlideIn {
+/* Update your Section 6 CSS */
+
+@keyframes toastSlideUp {
   0% { 
     opacity: 0; 
-    transform: translateY(-40px) scale(0.9); 
+    transform: translateY(40px) scale(0.9); 
   }
   100% { 
     opacity: 1; 
@@ -152,18 +153,17 @@ textarea::-webkit-scrollbar { display: none; }
   }
 }
 
-/* The slide-up-and-away effect */
-@keyframes toastFadeOut {
+@keyframes toastFadeDown {
   0% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-20px); }
+  100% { opacity: 0; transform: translateY(20px); }
 }
 
 .toast-enter {
-  animation: toastSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+  animation: toastSlideUp 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
 }
 
 .toast-exit {
-  animation: toastFadeOut 0.3s ease-in forwards;
+  animation: toastFadeDown 0.3s ease-in forwards;
 }
 
 /* Modal/Dialog Backdrop Blur */
