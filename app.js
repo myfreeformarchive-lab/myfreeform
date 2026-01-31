@@ -199,16 +199,18 @@ function subscribePublicFeed() {
   DOM.loadTrigger.style.display = 'flex'; 
 
   publicUnsubscribe = onSnapshot(q, (snapshot) => {
-    const incomingPosts = snapshot.docs.map(doc => {
+    const posts = snapshot.docs.map(doc => {
       const data = doc.data();
+	  const id = doc.id;
+	  updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
       return { id: doc.id, ...data, isFirebase: true };
     });
 
     // 🟢 VIP GATE: If this is the first data we've seen since refresh/tab switch
-    if (isInitialSnapshot && incomingPosts.length > 0) {
+    if (isInitialSnapshot && posts.length > 0) {
       stopMeteringEngine(); // Ensure queue is 0
       DOM.list.innerHTML = '';
-      renderListItems(incomingPosts);
+      renderListItems(posts);
       
       console.log("[Engine] ⚡️ VIP Initial Load: Rendered instantly.");
       
@@ -219,7 +221,7 @@ function subscribePublicFeed() {
     else {
       const onScreenIds = new Set([...document.querySelectorAll('.feed-item')].map(el => el.getAttribute('data-id')));
       
-      const newDiscoveries = incomingPosts.filter(p => 
+      const newDiscoveries = posts.filter(p => 
         !onScreenIds.has(p.id) && 
         !postWaitlist.find(queued => queued.id === p.id)
       );
