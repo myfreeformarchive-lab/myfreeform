@@ -809,23 +809,37 @@ async function toggleLike(event, postId) {
 window.toggleLike = toggleLike;
 
 async function deleteComment(postId, commentId) {
-  if (!confirm("Delete this comment?")) return;
+  // 1. Swap 'confirm()' for your custom 'showDialog'
+  showDialog(
+    "Delete Comment", 
+    "Are you sure you want to remove this? This action cannot be undone.", 
+    "Delete", // This triggers the red text logic in your showDialog
+    async () => {
+      // --- ALL YOUR ORIGINAL LOGIC STARTS HERE ---
+      try {
+        const commentRef = doc(db, "globalPosts", postId, "comments", commentId);
+        await deleteDoc(commentRef);
+        
+        // Update count on parent doc (Decrement)
+        const postRef = doc(db, "globalPosts", postId);
+        await updateDoc(postRef, {
+            commentCount: increment(-1)
+        });
 
-  try {
-    const commentRef = doc(db, "globalPosts", postId, "comments", commentId);
-    await deleteDoc(commentRef);
-    
-    // 🆕 Update count on parent doc (Decrement)
-    const postRef = doc(db, "globalPosts", postId);
-    await updateDoc(postRef, {
-        commentCount: increment(-1)
-    });
+        console.log("Comment deleted successfully");
+        
+        // 2. Success! Show the toast instead of just a console log
+        showToast("Comment deleted");
 
-    console.log("Comment deleted successfully");
-  } catch (e) {
-    console.error("Error deleting comment:", e);
-    alert("Could not delete comment. You might not have permission.");
-  }
+      } catch (e) {
+        console.error("Error deleting comment:", e);
+        
+        // 3. Swap 'alert()' for a toast or dialog
+        showToast("Could not delete comment", "error");
+      }
+      // --- ALL YOUR ORIGINAL LOGIC ENDS HERE ---
+    }
+  );
 }
 
 // ==========================================
