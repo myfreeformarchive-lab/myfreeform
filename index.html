@@ -221,8 +221,7 @@
   <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
   <script type="module" src="app.js"></script>
   
-  <div id="toast-container" class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none w-full max-w-sm items-center">
-  </div>
+<div id="toast-container" class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none w-full max-w-sm items-center"></div>
 
 <div id="custom-dialog" class="fixed inset-0 z-[200] hidden flex items-center justify-center transition-all duration-200 opacity-0">
   
@@ -231,8 +230,8 @@
   <div class="relative bg-white/90 backdrop-blur-xl w-[85%] max-w-[320px] rounded-2xl shadow-2xl transform scale-95 transition-all duration-200 overflow-hidden border border-white/50 ring-1 ring-black/5">
     
     <div class="pt-7 pb-5 px-6 text-center">
-      <h3 id="dialog-title" class="text-[17px] font-bold text-slate-900 mb-2 font-sans tracking-tight">Confirm Action</h3>
-      <p id="dialog-msg" class="text-[13px] leading-relaxed text-slate-500 font-medium">Are you sure you want to remove this from the global feed?</p>
+      <h3 id="dialog-title" class="text-[17px] font-bold text-slate-900 mb-2 font-sans tracking-tight"></h3>
+      <p id="dialog-msg" class="text-[13px] leading-relaxed text-slate-500 font-medium"></p>
     </div>
 
     <div class="h-[1px] bg-slate-200/50 w-full"></div>
@@ -243,13 +242,13 @@
         Cancel
       </button>
 
-      <button id="dialog-confirm-btn" class="flex-1 text-[15px] font-bold text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors outline-none">
-        Delete
+      <button id="dialog-confirm-btn" class="flex-1 text-[15px] font-bold text-blue-600 hover:bg-slate-50 active:bg-slate-100 transition-colors outline-none">
+        Confirm
       </button>
 
     </div>
   </div>
 </div>
-  
+
 </body>
 </html>
