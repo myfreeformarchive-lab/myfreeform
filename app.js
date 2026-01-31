@@ -891,7 +891,7 @@ function openModal(post) {
 
         div.innerHTML = `
           <div class="bg-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-none max-w-[90%]">
-             <p class="text-sm text-gray-800 leading-snug break-words font-sans">${cleanText(c.text)}</p>
+             <p class="text-[15px] text-gray-800 leading-snug break-words font-sans">${cleanText(c.text)}</p>
           </div>
           <div class="flex items-center mt-1 ml-1">
             <span class="text-[10px] text-gray-400">${time}</span>
