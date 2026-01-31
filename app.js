@@ -709,6 +709,7 @@ async function toggleLike(event, postId) {
     alert("Action failed. Check connection.");
   }
 }
+window.toggleLike = toggleLike;
 
 async function deleteComment(postId, commentId) {
   if (!confirm("Delete this comment?")) return;
