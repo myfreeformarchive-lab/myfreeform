@@ -173,14 +173,29 @@ textarea::-webkit-scrollbar { display: none; }
   animation: toastFadeDown 0.3s ease-in forwards;
 }
 
-/* Snappier Backdrop */
+/* =========================================
+   6. TOAST & DIALOG ANIMATIONS 
+   ========================================= */
+
+/* Ensure the overlay is invisible but ready */
 #custom-dialog {
-  transition: opacity 0.15s ease-out; /* Cut in half */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease-out;
 }
 
-/* Snappier Card Scale-up */
-.dialog-open .relative {
+/* The card's starting state (shrunk) */
+#custom-dialog .relative {
+  transform: scale(0.9);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* State when active */
+#custom-dialog.dialog-open {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+#custom-dialog.dialog-open .relative {
   transform: scale(1) !important;
-  /* Removed the spring, added a fast 'out' curve */
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); 
 }
