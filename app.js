@@ -134,22 +134,21 @@ function applyFontPreference(font) {
   });
 }
 
-// Replace your old function with this:
 function switchTab(tab) {
   if (currentTab === tab) return;
   currentTab = tab;
   localStorage.setItem('freeform_tab_pref', tab);
+  
+  // Reset pagination
   currentLimit = BATCH_SIZE;
   updateTabClasses();
 
-  // Pulse Engine Housekeeping: Stop it if moving to Private, let it run if Public
+  // Pulse Engine Housekeeping
   if (tab === 'private') {
-    clearTimeout(pulseTimer);
-    pulseTimer = null;
-    pulseBuffer = null;
-    console.log("[Pulse Engine] Engine powered down (Private Mode)");
+    stopPulseEngine();
   } else {
-    console.log("[Pulse Engine] Engine active (Public Mode)");
+    // We set a flag so the next load is instant
+    isFirstPublicLoad = true; 
   }
   
   loadFeed();
@@ -209,22 +208,22 @@ function subscribePublicFeed() {
       return { id, ...data, isFirebase: true };
     });
 
-    // LOGIC: 
-    // 1. If the list is empty (first load), show immediately.
-    // 2. Otherwise, store in buffer and wait for the Pulse Engine.
-    if (!DOM.list.hasChildNodes()) {
+    if (isFirstPublicLoad) {
+      // 🟢 ACTION: This is the first time they opened the tab.
+      // Load everything INSTANTLY.
+      DOM.list.innerHTML = '';
       renderListItems(posts);
-      startPulseCycle(); // Start the random background timer after first load
+      
+      isFirstPublicLoad = false; // "Lock" the gate for future updates
+      startPulseCycle();        // Start the background random timer
     } else {
+      // 🟡 ACTION: The user is already looking at the feed.
+      // Store new bot posts/real posts in the buffer silently.
       pulseBuffer = posts;
-      console.log("[Pulse Engine] Data received silently. Holding in buffer...");
     }
 
     isLoadingMore = false;
     DOM.loadTrigger.style.opacity = '0';
-  }, (error) => {
-    console.error("Snapshot error:", error);
-    DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Unable to load feed.</div>`;
   });
 }
 
@@ -1239,35 +1238,36 @@ function runMigration() {
 
 /**
  * ==========================================
- * 8. SILENT PULSE ENGINE (The "Brake")
+ * 8. THE SILENT PULSE ENGINE (CORRECTED)
  * ==========================================
  */
-
-const PULSE_CONFIG = { min: 30, max: 300 }; // Seconds
+let isFirstPublicLoad = true;
 let pulseTimer = null;
-let pulseBuffer = null; // This is where "hidden" posts live
-let pulseActive = false;
+let pulseBuffer = null; 
+
+function stopPulseEngine() {
+  clearTimeout(pulseTimer);
+  pulseTimer = null;
+  pulseBuffer = null;
+  isFirstPublicLoad = true;
+}
 
 function startPulseCycle() {
   if (pulseTimer) clearTimeout(pulseTimer);
   
-  const nextInterval = (Math.floor(Math.random() * (PULSE_CONFIG.max - PULSE_CONFIG.min + 1)) + PULSE_CONFIG.min) * 1000;
+  // Pick random interval 30-300s
+  const nextInterval = (Math.floor(Math.random() * (300 - 30 + 1)) + 30) * 1000;
   
   pulseTimer = setTimeout(() => {
     commitPulse();
   }, nextInterval);
-  
-  console.log(`[Pulse Engine] Next update in ${nextInterval / 1000}s`);
 }
 
 function commitPulse() {
   if (pulseBuffer && currentTab === 'public') {
-    // Only update the UI if we actually have new data
     DOM.list.innerHTML = '';
     renderListItems(pulseBuffer);
-    console.log("[Pulse Engine] Committed new posts to UI.");
+    pulseBuffer = null; // Clear buffer after showing
   }
-  
-  // Choose the next random interval and start over
-  startPulseCycle();
+  startPulseCycle(); // Queue the next pulse
 }
