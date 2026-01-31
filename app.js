@@ -570,108 +570,168 @@ async function handlePost() {
 }
 
 async function publishDraft(post) {
-  if (!confirm("Are you sure you want to make this post public? It will appear in the Global Feed.")) return;
-  
-  try {
-    const docRef = await addDoc(collection(db, "globalPosts"), { 
-      content: post.content, 
-      font: post.font || 'font-sans', 
-      authorId: MY_USER_ID,
-      createdAt: serverTimestamp(),
-      commentCount: 0
-    });
+  // 1. Trigger the Custom Dialog (Blue Button)
+  showDialog(
+    "Publish to World?",
+    "This note will be visible to everyone on the Global Feed.",
+    "Publish",
+    async () => {
+      // === 🟢 PUBLISH LOGIC STARTS HERE ===
+      try {
+        const docRef = await addDoc(collection(db, "globalPosts"), { 
+          content: post.content, 
+          font: post.font || 'font-sans', 
+          authorId: MY_USER_ID,
+          createdAt: serverTimestamp(),
+          commentCount: 0,
+          likeCount: 0 // Initialize likes too
+        });
 
-    const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
-    const targetIndex = posts.findIndex(p => p.id === post.id);
-    
-    if (targetIndex !== -1) {
-      posts[targetIndex].firebaseId = docRef.id;
-      posts[targetIndex].commentCount = 0;
-      localStorage.setItem('freeform_v2', JSON.stringify(posts));
-      
-      allPrivatePosts = posts.reverse();
-      loadFeed();
-      
-      const updatedPost = posts.find(p => p.id === post.id);
-      openModal(updatedPost);
+        const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
+        const targetIndex = posts.findIndex(p => p.id === post.id);
+        
+        if (targetIndex !== -1) {
+          // Link local post to the new global ID
+          posts[targetIndex].firebaseId = docRef.id;
+          posts[targetIndex].commentCount = 0;
+          posts[targetIndex].likeCount = 0;
+          localStorage.setItem('freeform_v2', JSON.stringify(posts));
+          
+          allPrivatePosts = posts.reverse();
+          loadFeed();
+          
+          // Re-open modal to show the new "Live" status
+          const updatedPost = posts.find(p => p.id === post.id);
+          openModal(updatedPost);
+          
+          // Success Toast
+          showToast("Post is now live!");
+        }
+
+      } catch (e) {
+        console.error("Error publishing draft:", e);
+        showToast("Could not publish. Check connection.", "error");
+      }
     }
-
-  } catch (e) {
-    console.error("Error publishing draft:", e);
-    alert("Could not publish post. Check connection.");
-  }
+  );
 }
 
 async function deleteLocal(id) {
-  if (!confirm("Delete from Archive?")) return;
-  
-  let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
-  const targetPost = posts.find(p => p.id === id);
+  // 1. Trigger the Dialog instead of window.confirm
+  showDialog(
+    "Delete from Archive?", 
+    "This will permanently remove this note from your device.",
+    "Delete",
+    async () => {
+      // === 🔴 THE DELETION LOGIC STARTS HERE ===
+      
+      let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
+      const targetPost = posts.find(p => p.id === id);
 
-  if (targetPost && targetPost.firebaseId) {
-    try {
-      const batch = writeBatch(db);
-      const postRef = doc(db, "globalPosts", targetPost.firebaseId);
-      const commentsRef = collection(db, "globalPosts", targetPost.firebaseId, "comments");
-      const commentsSnapshot = await getDocs(commentsRef);
+      if (targetPost && targetPost.firebaseId) {
+        try {
+          const batch = writeBatch(db);
+          const postRef = doc(db, "globalPosts", targetPost.firebaseId);
+          const commentsRef = collection(db, "globalPosts", targetPost.firebaseId, "comments");
+          const likesRef = collection(db, "globalPosts", targetPost.firebaseId, "likes");
 
-      commentsSnapshot.forEach(doc => batch.delete(doc.ref));
-      batch.delete(postRef);
-      await batch.commit();
-    } catch(e) {
-      console.warn("Global version already gone or unreachable:", e);
+          // Clean up sub-collections first
+          const commentsSnapshot = await getDocs(commentsRef);
+          commentsSnapshot.forEach(doc => batch.delete(doc.ref));
+          
+          const likesSnapshot = await getDocs(likesRef);
+          likesSnapshot.forEach(doc => batch.delete(doc.ref));
+
+          batch.delete(postRef);
+          await batch.commit();
+        } catch(e) {
+          console.warn("Global version already gone or unreachable:", e);
+        }
+      }
+
+      // Remove from Local Storage
+      posts = posts.filter(p => p.id !== id);
+      localStorage.setItem('freeform_v2', JSON.stringify(posts));
+      
+      // Update UI
+      allPrivatePosts = posts.reverse();
+      renderPrivateBatch();
+      updateMeter();
+      
+      // Notify the user
+      showToast("Note deleted from archive", "neutral");
     }
-  }
-
-  posts = posts.filter(p => p.id !== id);
-  localStorage.setItem('freeform_v2', JSON.stringify(posts));
-  allPrivatePosts = posts.reverse();
-  renderPrivateBatch();
-  updateMeter();
+  );
 }
 
 async function deleteGlobal(postId) {
-  if (!confirm("Delete from Global?")) return;
+  // 1. Trigger the Custom Dialog instead of window.confirm
+  showDialog(
+    "Delete from Global?", 
+    "This will permanently remove the post for everyone.",
+    "Delete", 
+    async () => {
+      // === 🔴 DELETION LOGIC STARTS HERE ===
+      try {
+        const batch = writeBatch(db);
+        const postRef = doc(db, "globalPosts", postId);
+        const commentsRef = collection(db, "globalPosts", postId, "comments");
+        const likesRef = collection(db, "globalPosts", postId, "likes"); // <--- Added Likes cleanup
+        
+        // 2. Queue up Comment deletions
+        const commentsSnapshot = await getDocs(commentsRef);
+        commentsSnapshot.forEach((commentDoc) => {
+          batch.delete(commentDoc.ref);
+        });
 
-  try {
-    const batch = writeBatch(db);
-    const postRef = doc(db, "globalPosts", postId);
-    const commentsRef = collection(db, "globalPosts", postId, "comments");
-    const commentsSnapshot = await getDocs(commentsRef);
+        // 3. Queue up Like deletions (New)
+        const likesSnapshot = await getDocs(likesRef);
+        likesSnapshot.forEach((likeDoc) => {
+           batch.delete(likeDoc.ref);
+        });
 
-    commentsSnapshot.forEach((commentDoc) => {
-      batch.delete(commentDoc.ref);
-    });
+        // 4. Delete the Post itself
+        batch.delete(postRef);
 
-    batch.delete(postRef);
+        // 5. Commit all changes at once
+        await batch.commit();
+        
+        console.log(`Successfully deleted post ${postId}, comments, and likes.`);
 
-    await batch.commit();
-    
-    console.log(`Successfully deleted post ${postId} and ${commentsSnapshot.size} comments.`);
+        // 6. Update Local Storage (Remove "Global" status)
+        let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
+        let updated = false;
 
-    let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
-    let updated = false;
+        posts = posts.map(p => {
+          if (p.firebaseId === postId) {
+            delete p.firebaseId; 
+            // Also reset counts locally since it's no longer global
+            p.commentCount = 0;
+            p.likeCount = 0;
+            updated = true;
+          }
+          return p;
+        });
 
-    posts = posts.map(p => {
-      if (p.firebaseId === postId) {
-        delete p.firebaseId; 
-        updated = true;
-      }
-      return p;
-    });
+        if (updated) {
+          localStorage.setItem('freeform_v2', JSON.stringify(posts));
+          allPrivatePosts = posts.reverse();
+          
+          // Refresh UI if we are on the private tab
+          if (currentTab === 'private') {
+            renderPrivateBatch();
+          }
+        }
+        
+        // 7. Success Notification
+        showToast("Post deleted from global feed");
 
-    if (updated) {
-      localStorage.setItem('freeform_v2', JSON.stringify(posts));
-      allPrivatePosts = posts.reverse();
-      if (currentTab === 'private') {
-        renderPrivateBatch();
+      } catch (e) {
+        console.error("Error during batch delete:", e);
+        showToast("Delete failed. Check connection.", "error");
       }
     }
-
-  } catch (e) {
-    console.error("Error during batch delete:", e);
-    alert("Delete failed. You might not have permission or a connection issue.");
-  }
+  );
 }
 
 async function toggleLike(event, postId) {
@@ -913,8 +973,53 @@ async function postComment() {
 // ==========================================
 // 7. UTILITIES
 // =========================================
-// SPAM GUARD (TRAFFIC LIGHT SYSTEM)
-// ==========================================
+
+function showDialog(title, message, confirmText, onConfirm) {
+  const overlay = document.getElementById('custom-dialog');
+  const titleEl = document.getElementById('dialog-title');
+  const msgEl = document.getElementById('dialog-msg');
+  const confirmBtn = document.getElementById('dialog-confirm-btn');
+
+  // 1. Set Content
+  titleEl.textContent = title;
+  msgEl.textContent = message;
+  confirmBtn.textContent = confirmText || "Confirm";
+
+  // 🎨 2. SMART COLOR LOGIC
+  // If the button says "Delete", make it Red. Otherwise, keep it Blue.
+  const isDestructive = confirmText && confirmText.toLowerCase().includes('delete');
+  
+  if (isDestructive) {
+    // RED STYLE (Danger)
+    confirmBtn.className = "flex-1 text-[15px] font-bold text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors outline-none";
+  } else {
+    // BLUE STYLE (Safe / Publish)
+    confirmBtn.className = "flex-1 text-[15px] font-bold text-blue-600 hover:bg-blue-50 active:bg-blue-100 transition-colors outline-none";
+  }
+
+  // 3. Show (Animate In)
+  overlay.classList.remove('hidden');
+  setTimeout(() => overlay.classList.add('dialog-open'), 10);
+
+  // 4. Setup Confirm Button (Remove old listeners first)
+  const newBtn = confirmBtn.cloneNode(true);
+  confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+  
+  newBtn.onclick = () => {
+    onConfirm(); // Run the actual code
+    closeDialog();
+  };
+}
+
+function closeDialog() {
+  const overlay = document.getElementById('custom-dialog');
+  overlay.classList.remove('dialog-open'); // Fade out
+  setTimeout(() => overlay.classList.add('hidden'), 200); // Hide after fade
+}
+
+// Expose to window
+window.showDialog = showDialog;
+window.closeDialog = closeDialog;
 
 // ==========================================
 // SPAM GUARD (TRAFFIC LIGHT SYSTEM)
@@ -933,7 +1038,15 @@ function checkSpamGuard(newContent) {
   // 1. CHECK JAIL TIME (Applies to everyone)
   if (now < history.jailReleaseTime) {
     let minutesLeft = Math.ceil((history.jailReleaseTime - now) / 60000);
-    alert(`❄️ You are cooling down! Please wait ${minutesLeft} more minutes.`);
+    
+    // 🚨 REPLACED ALERT WITH DIALOG
+    showDialog(
+      "Penalty Box ❄️",
+      `You are currently blocked from posting. Please wait ${minutesLeft} more minutes.`,
+      "Okay",
+      () => {} // No extra action needed, just close
+    );
+    
     return false; // BLOCK EVERYTHING
   }
 
@@ -956,7 +1069,15 @@ function checkSpamGuard(newContent) {
     // RED LIGHT (3rd strike)
     history.jailReleaseTime = now + (COOLDOWN_MINUTES * 60 * 1000);
     localStorage.setItem('spam_guard', JSON.stringify(history));
-    alert("🚨 You posted the exact same thing 3 times. Take a 30-minute break.");
+    
+    // 🚨 REPLACED ALERT WITH DIALOG
+    showDialog(
+      "Spam Detected 🚨",
+      "You posted the exact same thing 3 times. You are taking a 30-minute break.",
+      "Understood",
+      () => {} // No extra action needed
+    );
+
     return false; // BLOCK
   }
 
