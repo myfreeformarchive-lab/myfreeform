@@ -140,11 +140,11 @@ textarea::-webkit-scrollbar { display: none; }
    6. TOAST & DIALOG ANIMATIONS 
    ========================================= */
 
-/* Toast Slide Down Animation */
+/* The snap-in effect */
 @keyframes toastSlideIn {
   0% { 
     opacity: 0; 
-    transform: translateY(-20px) scale(0.95); 
+    transform: translateY(-40px) scale(0.9); 
   }
   100% { 
     opacity: 1; 
@@ -152,23 +152,31 @@ textarea::-webkit-scrollbar { display: none; }
   }
 }
 
+/* The slide-up-and-away effect */
 @keyframes toastFadeOut {
   0% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 0; transform: translateY(-20px); }
 }
 
 .toast-enter {
-  animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: toastSlideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
 }
 
 .toast-exit {
-  animation: toastFadeOut 0.2s ease-in forwards;
+  animation: toastFadeOut 0.3s ease-in forwards;
 }
 
-/* Dialog Scale Animation (toggled via JS classes) */
+/* Modal/Dialog Backdrop Blur */
+#custom-dialog {
+  transition: opacity 0.3s ease;
+}
+
 .dialog-open {
   opacity: 1 !important;
 }
-.dialog-open .relative { /* Target the card inside */
+
+/* The Card Scale-up */
+.dialog-open .relative {
   transform: scale(1) !important;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
