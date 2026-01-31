@@ -668,7 +668,7 @@ async function deleteGlobal(postId) {
   // 1. Trigger the Custom Dialog instead of window.confirm
   showDialog(
     "Delete from Global?", 
-    "This will permanently remove the post for everyone.",
+    "This will permanently remove the post for everyone. Comments and likes will also be deleted.",
     "Delete", 
     async () => {
       // === 🔴 DELETION LOGIC STARTS HERE ===
