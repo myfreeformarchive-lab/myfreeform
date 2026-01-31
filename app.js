@@ -139,18 +139,17 @@ function switchTab(tab) {
   currentTab = tab;
   localStorage.setItem('freeform_tab_pref', tab);
   
-  // Reset pagination
+  // 1. Reset pagination
   currentLimit = BATCH_SIZE;
   updateTabClasses();
 
-  // Pulse Engine Housekeeping
-  if (tab === 'private') {
-    stopPulseEngine();
-  } else {
-    // We set a flag so the next load is instant
-    isFirstPublicLoad = true; 
-  }
+  // 2. Clear UI immediately so the user sees a "clean slate"
+  DOM.list.innerHTML = ''; 
+
+  // 3. Stop any existing engine
+  stopPulseEngine();
   
+  // 4. Load the new feed
   loadFeed();
 }
 
@@ -201,6 +200,7 @@ function subscribePublicFeed() {
   DOM.loadTrigger.style.display = 'flex'; 
 
   publicUnsubscribe = onSnapshot(q, (snapshot) => {
+    // 1. Map the data
     const posts = snapshot.docs.map(doc => {
       const data = doc.data();
       const id = doc.id;
@@ -208,22 +208,27 @@ function subscribePublicFeed() {
       return { id, ...data, isFirebase: true };
     });
 
-    if (isFirstPublicLoad) {
-      // 🟢 ACTION: This is the first time they opened the tab.
-      // Load everything INSTANTLY.
+    // 2. CHECK: Is the feed currently showing items?
+    // We check for '.feed-item' class specifically.
+    const hasItems = DOM.list.querySelector('.feed-item');
+
+    if (!hasItems) {
+      // 🟢 UI IS EMPTY (First load or tab switch)
+      // Render immediately so the laptop shows results instantly.
       DOM.list.innerHTML = '';
       renderListItems(posts);
-      
-      isFirstPublicLoad = false; // "Lock" the gate for future updates
-      startPulseCycle();        // Start the background random timer
+      startPulseCycle(); 
     } else {
-      // 🟡 ACTION: The user is already looking at the feed.
-      // Store new bot posts/real posts in the buffer silently.
+      // 🟡 UI HAS CONTENT
+      // Store new updates in buffer to prevent "jumping"
       pulseBuffer = posts;
     }
 
     isLoadingMore = false;
     DOM.loadTrigger.style.opacity = '0';
+  }, (err) => {
+    console.error("Firebase Error:", err);
+    DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Connection Error.</div>`;
   });
 }
 
@@ -1238,24 +1243,21 @@ function runMigration() {
 
 /**
  * ==========================================
- * 8. THE SILENT PULSE ENGINE (CORRECTED)
+ * 8. THE SILENT PULSE ENGINE (LAPTOP FIX)
  * ==========================================
  */
-let isFirstPublicLoad = true;
 let pulseTimer = null;
 let pulseBuffer = null; 
 
 function stopPulseEngine() {
-  clearTimeout(pulseTimer);
+  if (pulseTimer) clearTimeout(pulseTimer);
   pulseTimer = null;
   pulseBuffer = null;
-  isFirstPublicLoad = true;
 }
 
 function startPulseCycle() {
   if (pulseTimer) clearTimeout(pulseTimer);
   
-  // Pick random interval 30-300s
   const nextInterval = (Math.floor(Math.random() * (300 - 30 + 1)) + 30) * 1000;
   
   pulseTimer = setTimeout(() => {
@@ -1264,10 +1266,12 @@ function startPulseCycle() {
 }
 
 function commitPulse() {
+  // Only commit if we have data and we are still on the public tab
   if (pulseBuffer && currentTab === 'public') {
     DOM.list.innerHTML = '';
     renderListItems(pulseBuffer);
-    pulseBuffer = null; // Clear buffer after showing
+    pulseBuffer = null; 
+    console.log("Pulse Engine: Screen Updated.");
   }
-  startPulseCycle(); // Queue the next pulse
+  startPulseCycle(); 
 }
