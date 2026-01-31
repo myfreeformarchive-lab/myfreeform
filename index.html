@@ -170,34 +170,26 @@
     <p>&copy;<span id="year"></span> My Freeform</p>
   </footer>
 
-  <!-- CLEAN MODAL -->
-  <div id="commentModal" class="fixed inset-0 z-[100] hidden flex items-end md:items-center justify-center">
-    <!-- Backdrop -->
+<div id="commentModal" class="fixed inset-0 z-[100] hidden flex items-end md:items-center justify-center">
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="closeModalOverlay"></div>
     
-    <!-- Modal Card -->
-    <div id="modalCard" class="relative w-full md:w-[500px] h-[85vh] md:h-[700px] bg-white md:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col overflow-hidden">
+    <div id="modalCard" class="relative w-full h-full md:h-auto md:w-[800px] md:aspect-video bg-white md:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
       
-      <!-- Header -->
       <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-white z-10 shrink-0">
         <h3 class="font-bold text-gray-800 text-sm tracking-wide">COMMENTS</h3>
         <button id="closeModalBtn" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">✕</button>
       </div>
 
-      <!-- Scrollable Content -->
       <div class="flex-1 overflow-y-auto bg-white scroll-smooth" id="modalScrollArea">
-        <!-- HERO POST -->
         <div class="p-6 border-b border-gray-100 bg-gray-50/50">
           <div class="text-xs text-brand-500 font-bold mb-2 uppercase tracking-wider">Original Post</div>
           <p id="modalPostContent" class="text-gray-900 text-[15px] leading-relaxed whitespace-pre-wrap"></p>
           <div class="text-xs text-gray-400 mt-3" id="modalPostDate">...</div>
         </div>
 
-        <!-- Comments List -->
         <div id="commentsList" class="p-4 space-y-4 pb-4"></div>
       </div>
 
-      <!-- Footer: Input & Emojis -->
       <div class="p-3 border-t border-gray-100 bg-white shrink-0">
         <div class="flex gap-2 mb-3 overflow-x-auto pb-1" id="emojiBar">
           <button class="emoji-btn text-xl hover:scale-125 transition-transform" data-char="❤️">❤️</button>
