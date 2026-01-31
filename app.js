@@ -986,18 +986,18 @@ function showToast(message, type = "success") {
 
   const toast = document.createElement('div');
   
-  const icons = { success: "✓", error: "✕", neutral: "⋯" };
-  const colors = {
-    success: "bg-slate-900",
-    error: "bg-red-600",
-    neutral: "bg-slate-800"
+  // Clean, colored icons for a bright theme
+  const icons = { 
+    success: '<span class="text-emerald-500">✓</span>', 
+    error: '<span class="text-rose-500">✕</span>', 
+    neutral: '<span class="text-slate-400">⋯</span>' 
   };
 
-  // mt-3 instead of mb-3 because it's at the bottom
-  toast.className = `toast-enter pointer-events-auto flex items-center gap-3 px-5 py-2.5 rounded-full shadow-lg ${colors[type] || colors.success} text-white text-[13px] font-semibold mt-3 border border-white/10`;
+  // Using 'toast-glass' for that bright, high-end feel
+  toast.className = `toast-enter toast-glass pointer-events-auto flex items-center gap-3 px-5 py-2.5 rounded-full text-[13px] font-bold mt-3`;
   
   toast.innerHTML = `
-    <span class="opacity-70">${icons[type] || icons.success}</span>
+    <span>${icons[type] || icons.success}</span>
     <span>${message}</span>
   `;
 
