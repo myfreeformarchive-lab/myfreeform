@@ -53,6 +53,7 @@ let selectedFont = localStorage.getItem('freeform_font_pref') || 'font-sans';
 let publicUnsubscribe = null;
 let commentsUnsubscribe = null;
 let activePostId = null; 
+let isInitialSnapshot = true; // 
 
 // ==========================================
 // 2. INITIALIZATION
@@ -142,13 +143,12 @@ function switchTab(tab) {
   currentLimit = BATCH_SIZE;
   updateTabClasses();
 
-  // 1. Wipe the UI so onScreenIds.size becomes 0
   DOM.list.innerHTML = ''; 
-
-  // 2. Wipe the Queue and the Timers
   stopMeteringEngine();
   
-  // 3. Re-subscribe
+  // 🟢 RESET THE GATE: The next snapshot should be instant
+  isInitialSnapshot = true; 
+  
   loadFeed();
 }
 
@@ -201,31 +201,31 @@ function subscribePublicFeed() {
   publicUnsubscribe = onSnapshot(q, (snapshot) => {
     const incomingPosts = snapshot.docs.map(doc => {
       const data = doc.data();
-      const id = doc.id;
-      updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
-      return { id, ...data, isFirebase: true };
+      return { id: doc.id, ...data, isFirebase: true };
     });
 
-    const onScreenIds = new Set([...document.querySelectorAll('.feed-item')].map(el => el.getAttribute('data-id')));
-
-    // 🟢 PRIORITY RESET: If screen is empty (Refresh/Tab Switch)
-    if (onScreenIds.size === 0) {
-      stopMeteringEngine(); // ⚡️ Kill any background tasks immediately
+    // 🟢 VIP GATE: If this is the first data we've seen since refresh/tab switch
+    if (isInitialSnapshot && incomingPosts.length > 0) {
+      stopMeteringEngine(); // Ensure queue is 0
       DOM.list.innerHTML = '';
       renderListItems(incomingPosts);
-      console.log("[Engine] Priority Load Complete. Queue is 0.");
+      
+      console.log("[Engine] ⚡️ VIP Initial Load: Rendered instantly.");
+      
+      // 🔴 CLOSE THE GATE: Every snapshot after this one goes to the queue
+      isInitialSnapshot = false; 
     } 
-    // 🟡 DRIP MODE: Feed already has content
+    // 🟡 DRIP MODE: Gate is closed, screen already has content
     else {
+      const onScreenIds = new Set([...document.querySelectorAll('.feed-item')].map(el => el.getAttribute('data-id')));
+      
       const newDiscoveries = incomingPosts.filter(p => 
         !onScreenIds.has(p.id) && 
         !postWaitlist.find(queued => queued.id === p.id)
       );
 
       if (newDiscoveries.length > 0) {
-        // Reverse so newest bot posts go to the end of the waitlist
         postWaitlist.push(...newDiscoveries.reverse());
-        // Attempt to start the engine (will only start if not already active)
         processWaitlist();
       }
     }
