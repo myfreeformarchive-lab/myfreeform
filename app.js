@@ -139,15 +139,18 @@ function switchTab(tab) {
   currentTab = tab;
   localStorage.setItem('freeform_tab_pref', tab);
   
-  // 1. Reset pagination
+  // 1. Reset pagination to start from the top
   currentLimit = BATCH_SIZE;
   updateTabClasses();
 
-  // 2. Clear UI immediately so the user sees a "clean slate"
+  // 2. Clear UI immediately 
+  // This ensures the "Initial Load" logic (onScreenIds.size === 0) 
+  // triggers correctly in the subscribePublicFeed function.
   DOM.list.innerHTML = ''; 
 
-  // 3. Stop any existing engine
-  stopPulseEngine();
+  // 3. Stop the engine
+  // This clears any pending timers or waitlists from the previous session
+  stopMeteringEngine();
   
   // 4. Load the new feed
   loadFeed();
