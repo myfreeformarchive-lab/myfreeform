@@ -45,27 +45,23 @@
 </head>
 <body class="bg-slate-50 text-slate-900 pb-24">
 
- <script>
-    /** 
-     * ✅ 2026 INSTANT CONFIG PATTERN
-     * We grab all preferences in one micro-task before the browser paints.
-     */
-    (function() {
-      const get = (key, fallback) => localStorage.getItem(key) || fallback;
-      
-      const config = {
-        font: get('freeform_font_pref', 'font-sans'),
-        tab: get('freeform_tab_pref', 'private'),
-        isPublic: get('freeform_toggle_pref', 'false') === 'true'
-      };
+<script>
+  (function() {
+    const get = (key, fallback) => localStorage.getItem(key) || fallback;
+    
+    // We still grab the data instantly
+    const config = {
+      font: get('freeform_font_pref', 'font-sans'),
+      tab: get('freeform_tab_pref', 'private'),
+      isPublic: get('freeform_toggle_pref', 'false') === 'true'
+    };
 
-      // 1. Apply font to root immediately to prevent layout shift
-      document.documentElement.classList.add(config.font);
-      
-      // 2. Attach config to window so app.js doesn't have to talk to localStorage again
-      window.__FREEFORM_CONFIG__ = config;
-    })();
-  </script>
+    // ✅ FIX: Removed document.documentElement.classList.add(config.font);
+    // This prevents the font from leaking to the header, buttons, and footer.
+    
+    window.__FREEFORM_CONFIG__ = config;
+  })();
+</script>
 
   <!-- Header -->
   <header class="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 z-50">
