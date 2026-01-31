@@ -841,6 +841,12 @@ function closeModal() {
 
 async function postComment() {
   const text = DOM.commentInput.value.trim();
+  
+  // --- 🚦 SPAM GUARD CHECK ---
+  // Pass 'null' to checking jail status without affecting post history
+  if (!checkSpamGuard(null)) return; 
+  // ---------------------------
+  
   if (!text || !activePostId) return;
 
   DOM.sendComment.disabled = true;
@@ -878,6 +884,9 @@ async function postComment() {
 // SPAM GUARD (TRAFFIC LIGHT SYSTEM)
 // ==========================================
 
+// ==========================================
+// SPAM GUARD (TRAFFIC LIGHT SYSTEM)
+// ==========================================
 function checkSpamGuard(newContent) {
   const COOLDOWN_MINUTES = 30;
   
@@ -889,14 +898,19 @@ function checkSpamGuard(newContent) {
 
   const now = Date.now();
 
-  // 1. CHECK JAIL TIME
+  // 1. CHECK JAIL TIME (Applies to everyone)
   if (now < history.jailReleaseTime) {
     let minutesLeft = Math.ceil((history.jailReleaseTime - now) / 60000);
     alert(`❄️ You are cooling down! Please wait ${minutesLeft} more minutes.`);
-    return false; // BLOCK
+    return false; // BLOCK EVERYTHING
   }
 
-  // 2. COMPARE CONTENT
+  // 2. READ-ONLY CHECK (For Comments)
+  // If we pass 'null', we just want to know if they are in jail. 
+  // We return TRUE (allowed) because they passed step 1.
+  if (newContent === null) return true;
+
+  // 3. COMPARE CONTENT (For Posts)
   if (newContent === history.lastContent) {
     history.repeatCount++; 
   } else {
@@ -905,7 +919,7 @@ function checkSpamGuard(newContent) {
     history.repeatCount = 0; 
   }
 
-  // 3. TRAFFIC LIGHT JUDGMENT
+  // 4. TRAFFIC LIGHT JUDGMENT
   if (history.repeatCount >= 2) { 
     // RED LIGHT (3rd strike)
     history.jailReleaseTime = now + (COOLDOWN_MINUTES * 60 * 1000);
