@@ -1294,16 +1294,33 @@ function processWaitlist() {
 
 // Injects a post at the very top of the list with a smooth fade-in
 function injectSinglePost(item) {
-  // Create a temporary array to use your existing renderer
-  const tempWrap = document.createElement('div');
-  renderListItems([item]); // This populates DOM.list, but we want to move it
+  // 1. Create a "Sandbox" (a hidden temporary div)
+  const sandbox = document.createElement('div');
   
-  const newElement = DOM.list.firstChild;
-  newElement.classList.add('animate-pulse-in'); // Add a CSS class for a smooth entry
+  // 2. Temporarily redirect the renderer to the sandbox
+  const originalList = DOM.list;
+  DOM.list = sandbox;
   
-  // Ensure the "No results" message is gone
-  const emptyMsg = DOM.list.querySelector('.border-dashed');
-  if (emptyMsg) emptyMsg.remove();
+  // 3. Run your existing renderer for just this one item
+  renderListItems([item]);
+  
+  // 4. Restore the original DOM.list reference
+  DOM.list = originalList;
+  
+  // 5. Get the post element that was just created in our sandbox
+  const elementToInject = sandbox.firstChild;
+  
+  if (elementToInject) {
+    // Add the slide-in animation
+    elementToInject.classList.add('animate-pulse-in');
+    
+    // 🟢 THE FIX: Use .prepend() to put it at the very top of the feed
+    DOM.list.prepend(elementToInject);
+    
+    // Cleanup: Remove the "No thoughts here yet" message if it exists
+    const emptyMsg = DOM.list.querySelector('.border-dashed');
+    if (emptyMsg) emptyMsg.remove();
+  }
 }
 
 /**
