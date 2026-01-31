@@ -135,3 +135,40 @@ textarea::-webkit-scrollbar { display: none; }
 .share-icon-btn:active {
   transform: scale(0.95);
 }
+
+/* =========================================
+   6. TOAST & DIALOG ANIMATIONS 
+   ========================================= */
+
+/* Toast Slide Down Animation */
+@keyframes toastSlideIn {
+  0% { 
+    opacity: 0; 
+    transform: translateY(-20px) scale(0.95); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: translateY(0) scale(1); 
+  }
+}
+
+@keyframes toastFadeOut {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+
+.toast-enter {
+  animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.toast-exit {
+  animation: toastFadeOut 0.2s ease-in forwards;
+}
+
+/* Dialog Scale Animation (toggled via JS classes) */
+.dialog-open {
+  opacity: 1 !important;
+}
+.dialog-open .relative { /* Target the card inside */
+  transform: scale(1) !important;
+}
