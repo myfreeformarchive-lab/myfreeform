@@ -139,20 +139,16 @@ function switchTab(tab) {
   currentTab = tab;
   localStorage.setItem('freeform_tab_pref', tab);
   
-  // 1. Reset pagination to start from the top
   currentLimit = BATCH_SIZE;
   updateTabClasses();
 
-  // 2. Clear UI immediately 
-  // This ensures the "Initial Load" logic (onScreenIds.size === 0) 
-  // triggers correctly in the subscribePublicFeed function.
+  // 1. Wipe the UI so onScreenIds.size becomes 0
   DOM.list.innerHTML = ''; 
 
-  // 3. Stop the engine
-  // This clears any pending timers or waitlists from the previous session
+  // 2. Wipe the Queue and the Timers
   stopMeteringEngine();
   
-  // 4. Load the new feed
+  // 3. Re-subscribe
   loadFeed();
 }
 
@@ -210,28 +206,26 @@ function subscribePublicFeed() {
       return { id, ...data, isFirebase: true };
     });
 
-    // Determine what is already on screen
     const onScreenIds = new Set([...document.querySelectorAll('.feed-item')].map(el => el.getAttribute('data-id')));
 
+    // 🟢 PRIORITY RESET: If screen is empty (Refresh/Tab Switch)
     if (onScreenIds.size === 0) {
-      // 🟢 INITIAL LOAD: Show everything immediately
+      stopMeteringEngine(); // ⚡️ Kill any background tasks immediately
       DOM.list.innerHTML = '';
       renderListItems(incomingPosts);
-    } else {
-      // 🟡 METERED UPDATES:
-      // Filter for posts that are NOT on screen AND not already in the waitlist
+      console.log("[Engine] Priority Load Complete. Queue is 0.");
+    } 
+    // 🟡 DRIP MODE: Feed already has content
+    else {
       const newDiscoveries = incomingPosts.filter(p => 
         !onScreenIds.has(p.id) && 
         !postWaitlist.find(queued => queued.id === p.id)
       );
 
       if (newDiscoveries.length > 0) {
-        // Add new items to the END of the waitlist (keeping oldest first)
-        // Reverse them so the oldest new post is first
+        // Reverse so newest bot posts go to the end of the waitlist
         postWaitlist.push(...newDiscoveries.reverse());
-        console.log(`[Engine] ${newDiscoveries.length} new items added to queue.`);
-        
-        // Trigger the engine to start processing
+        // Attempt to start the engine (will only start if not already active)
         processWaitlist();
       }
     }
@@ -1253,7 +1247,7 @@ function runMigration() {
 
 /**
  * ==========================================
- * 8. THE METERING ENGINE (One-by-One Drip)
+ * 8. THE METERING ENGINE (V3 - CIRCUIT BREAKER)
  * ==========================================
  */
 let postWaitlist = [];
@@ -1261,34 +1255,42 @@ let meteringTimer = null;
 let isMeteringActive = false;
 
 function stopMeteringEngine() {
-  clearTimeout(meteringTimer);
+  console.log("[Engine] 🛑 Circuit Breaker: Stopping engine and clearing queue.");
+  if (meteringTimer) clearTimeout(meteringTimer);
   meteringTimer = null;
-  postWaitlist = [];
   isMeteringActive = false;
+  postWaitlist = []; // Force reset queue to 0
 }
 
 function processWaitlist() {
-  // If we are already waiting for a timer, or the list is empty, do nothing
-  if (isMeteringActive || postWaitlist.length === 0) return;
+  // If no items, or already running, don't start a duplicate loop
+  if (postWaitlist.length === 0 || isMeteringActive) return;
 
   isMeteringActive = true;
 
-  // 1. Pick a random interval (30-300s)
   const interval = (Math.floor(Math.random() * (300 - 30 + 1)) + 30) * 1000;
-  console.log(`[Engine] Drip ready. Next post in ${interval / 1000}s. Queue: ${postWaitlist.length}`);
+  console.log(`[Engine] Drip scheduled. In: ${interval / 1000}s. Queue: ${postWaitlist.length}`);
 
   meteringTimer = setTimeout(() => {
-    // 2. Take the OLDEST post (the one at the start of the array)
-    const nextPost = postWaitlist.shift();
+    try {
+      // 1. Take the oldest item
+      const nextPost = postWaitlist.shift();
 
-    if (nextPost && currentTab === 'public') {
-      injectSinglePost(nextPost);
-      console.log("[Engine] 1 Post Released. Remaining in queue:", postWaitlist.length);
+      // 2. Only inject if we are still on the public tab
+      if (nextPost && currentTab === 'public') {
+        injectSinglePost(nextPost);
+      }
+    } catch (err) {
+      console.error("[Engine] Injection failed:", err);
+    } finally {
+      // 3. 🟢 THE FIX: Always reset the flag so the next post can try
+      isMeteringActive = false;
+      
+      // 4. If there's more in the queue, start the next timer
+      if (postWaitlist.length > 0) {
+        processWaitlist();
+      }
     }
-
-    // 3. Reset and check if we need to start again for the next item
-    isMeteringActive = false;
-    processWaitlist(); 
   }, interval);
 }
 
