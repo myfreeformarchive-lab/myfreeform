@@ -175,7 +175,7 @@
 <div id="commentModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center">
   <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="closeModalOverlay"></div>
   
-  <div id="modalCard" class="relative w-full h-full md:max-w-xl md:h-screen bg-white shadow-2xl flex flex-col overflow-hidden">
+  <div id="modalCard" class="relative w-full h-[100dvh] md:max-w-xl md:h-[90vh] bg-white shadow-2xl flex flex-col overflow-hidden">
     
     <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-white z-10 shrink-0">
       <h3 class="font-bold text-gray-800 text-sm tracking-wide">COMMENTS</h3>
@@ -203,10 +203,10 @@
       </div>
 
       <div class="flex items-center gap-2 bg-gray-100 rounded-2xl px-4 py-2 border border-transparent focus-within:border-brand-200 focus-within:bg-white transition-all focus-within:ring-2 focus-within:ring-brand-500/10">
-        <input type="search" id="commentInput" placeholder="Add a comment..." 
-          class="flex-1 bg-transparent border-none focus:ring-0 text-sm text-gray-800 placeholder-gray-400 h-9 outline-none appearance-none rounded-none [&::-webkit-search-cancel-button]:hidden" 
-          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="send" name="comment_field_safe">
-        <button id="sendCommentBtn" class="text-brand-600 font-bold text-sm hover:text-brand-700 disabled:opacity-50 transition-colors uppercase tracking-wide">Post</button>
+        <input type="text" id="commentInput" placeholder="Add a comment..." 
+          class="flex-1 bg-transparent border-none focus:ring-0 text-[16px] text-gray-800 placeholder-gray-400 h-9 outline-none appearance-none rounded-none [&::-webkit-search-cancel-button]:hidden" 
+          autocomplete="off" autocorrect="on" autocapitalize="off" spellcheck="true" enterkeyhint="send" inputmode="text" name="comment_field_safe">
+        <button id="sendCommentBtn" class="text-brand-600 font-bold text-[16px] hover:text-brand-700 disabled:opacity-50 transition-colors uppercase tracking-wide">Post</button>
       </div>
     </div>
   </div>
@@ -214,6 +214,7 @@
 
   <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
   <script type="module" src="app.js"></script>
+  <script type="module" src="design.js"></script>
 
 <div id="toast-container" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] flex flex-col-reverse gap-2 pointer-events-none w-full max-w-sm items-center">
 </div>
