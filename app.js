@@ -150,7 +150,6 @@ function switchTab(tab) {
   // Clear UI and Reset Engine
   DOM.list.innerHTML = ''; 
   stopMeteringEngine();
-  isInitialSnapshot = true; // Set gate for VIP load
   
   loadFeed();
 }
@@ -1253,45 +1252,51 @@ function stopMeteringEngine() {
   meteringTimer = null;
   isMeteringActive = false;
   postWaitlist = [];
+  isInitialSnapshot = true;
 }
 
 function processWaitlist() {
-  if (postWaitlist.length === 0 || isMeteringActive) return;
+  // If the engine is busy or the list is empty, stay quiet
+  if (isMeteringActive || postWaitlist.length === 0) return;
 
   isMeteringActive = true;
+
+  // Pick random interval: 30-300 seconds
   const interval = (Math.floor(Math.random() * (300 - 30 + 1)) + 30) * 1000;
-  
-  console.log(`[Engine] Pulse scheduled in ${interval/1000}s. Queue: ${postWaitlist.length}`);
+  console.log(`[Firewall] Drip scheduled: ${interval/1000}s. Queue: ${postWaitlist.length}`);
 
   meteringTimer = setTimeout(() => {
     try {
-      const nextPost = postWaitlist.shift();
+      const nextPost = postWaitlist.shift(); // Take oldest
       if (nextPost && currentTab === 'public') {
         injectSinglePost(nextPost);
       }
     } catch (e) {
-      console.error("[Engine] Drip Error:", e);
+      console.error("[Engine Error]", e);
     } finally {
       isMeteringActive = false;
+      // Immediately schedule the next drip if more items exist
       if (postWaitlist.length > 0) processWaitlist();
     }
   }, interval);
 }
 
 function injectSinglePost(item) {
+  // We use a sandbox to build the item using your existing renderListItems logic
   const sandbox = document.createElement('div');
   const originalList = DOM.list;
-  DOM.list = sandbox;
+  DOM.list = sandbox; // Redirect renderer
   
   renderListItems([item]);
   
-  DOM.list = originalList;
-  const elementToInject = sandbox.firstChild;
+  DOM.list = originalList; // Restore renderer
+  const element = sandbox.firstChild;
   
-  if (elementToInject) {
-    elementToInject.classList.add('animate-drip');
-    DOM.list.prepend(elementToInject);
+  if (element) {
+    element.classList.add('animate-drip');
+    DOM.list.prepend(element); // Put it at the very top
     
+    // Cleanup "No results" message
     const emptyMsg = DOM.list.querySelector('.border-dashed');
     if (emptyMsg) emptyMsg.remove();
   }
