@@ -1269,52 +1269,61 @@ function runMigration() {
 }
 
 /**
- * SUPPRESS KEYBOARD LOGIC
+ * MOBILE KEYBOARD SUPPRESSION LOGIC
  */
-const handleCommentSubmission = async () => {
-    const commentText = DOM.commentInput.value.trim();
-    if (!commentText) return;
+const handleMobilePost = async (e) => {
+    // 1. Find elements directly to avoid "undefined" errors
+    const input = document.getElementById('commentInput');
+    const btn = document.getElementById('sendCommentBtn');
+    const list = document.getElementById('commentsList');
 
-    // 1. Force the keyboard to close (The "Hard Blur" method)
-    DOM.commentInput.blur(); 
-    DOM.commentInput.disabled = true; // Temporarily disable to force OS to drop keyboard
+    const text = input.value.trim();
+    if (!text) return;
 
+    // 2. FORCE KEYBOARD DOWN (The "Hard Kill" for iOS/Android)
+    input.blur(); 
+    input.disabled = true; // Briefly disable to snap keyboard shut
+    
     if ('virtualKeyboard' in navigator) {
         navigator.virtualKeyboard.hide();
     }
 
-    // 2. UI Loading State
-    DOM.sendComment.disabled = true;
-    const originalText = DOM.sendComment.innerText;
-    DOM.sendComment.innerText = '...';
+    // 3. UI Loading State
+    btn.disabled = true;
+    const originalBtnText = btn.innerText;
+    btn.innerText = '...';
 
     try {
-        // --- YOUR FIREBASE LOGIC HERE ---
-        // Example: await addDoc(collection(db, "comments"), { text: commentText });
-
-        DOM.commentInput.value = '';
+        // --- YOUR FIREBASE CODE ---
+        // If you have a function named 'postComment', call it here:
+        // await postComment(text); 
         
-        // 3. Success feedback
-        DOM.commentList.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+        console.log("Comment submitted:", text);
 
-    } catch (error) {
-        console.error("Post failed", error);
+        // 4. Reset Field
+        input.value = '';
+        
+        // 5. Scroll to new comment
+        list.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+
+    } catch (err) {
+        console.error("Post failed:", err);
     } finally {
-        // 4. Re-enable after delay to ensure keyboard stays closed
+        // 6. Re-enable after delay so keyboard doesn't pop back up
         setTimeout(() => {
-            DOM.commentInput.disabled = false;
-            DOM.sendComment.disabled = false;
-            DOM.sendComment.innerText = originalText;
+            input.disabled = false;
+            btn.disabled = false;
+            btn.innerText = originalBtnText;
         }, 300);
     }
 };
 
-// Listeners
-DOM.sendComment.addEventListener('click', handleCommentSubmission);
+// ATTACH LISTENERS (Directly to IDs)
+document.getElementById('sendCommentBtn')?.addEventListener('click', handleMobilePost);
 
-DOM.commentInput.addEventListener('keydown', (e) => {
+document.getElementById('commentInput')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        handleCommentSubmission();
+        handleMobilePost();
     }
 });
