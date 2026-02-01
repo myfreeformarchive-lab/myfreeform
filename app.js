@@ -20,30 +20,6 @@ const db = getFirestore(app);
 // ==========================================
 // 1. STATE & DOM
 // ==========================================
-// Inside app.js
-export const DOM = {
-   input: document.getElementById('postInput'),
-  btn: document.getElementById('postBtn'),
-  list: document.getElementById('feedList'),
-  toggle: document.getElementById('publicToggle'),
-  label: document.getElementById('publicLabel'),
-  tabPrivate: document.getElementById('tabPrivate'),
-  tabPublic: document.getElementById('tabPublic'),
-  storage: document.getElementById('storageInfo'),
-  loadTrigger: document.getElementById('loadTrigger'),
-  fontBtns: document.querySelectorAll('.font-btn'),
-  modal: document.getElementById('commentModal'),
-  modalOverlay: document.getElementById('closeModalOverlay'),
-  closeBtn: document.getElementById('closeModalBtn'),
-  modalContent: document.getElementById('modalPostContent'),
-  modalDate: document.getElementById('modalPostDate'),
-  commentList: document.getElementById('commentsList'),
-  commentInput: document.getElementById('commentInput'),
-  commentInputBar: document.querySelector('#commentModal .border-t'), 
-  sendComment: document.getElementById('sendCommentBtn'),
-  emojiButtons: document.querySelectorAll('.emoji-btn')
-};
-
 const DOM = {
   input: document.getElementById('postInput'),
   btn: document.getElementById('postBtn'),
