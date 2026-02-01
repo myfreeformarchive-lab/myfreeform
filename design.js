@@ -1,3 +1,6 @@
+// design.js
+import { DOM } from './app.js';
+
 /**
  * Logic to dismiss the mobile keyboard and handle submission
  */
