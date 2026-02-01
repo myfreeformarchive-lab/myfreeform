@@ -58,7 +58,8 @@ let activePostId = null;
 let postWaitlist = [];
 let meteringTimer = null;
 let isMeteringActive = false;
-let isInitialSnapshot = true;
+let seenRegistry = new Set(); // 🛡️ The Firewall: Stores every ID we've handled
+let isFirstBoot = true;
 
 // ==========================================
 // 2. INITIALIZATION
@@ -144,12 +145,12 @@ function switchTab(tab) {
   if (currentTab === tab) return;
   currentTab = tab;
   localStorage.setItem('freeform_tab_pref', tab);
+  
   currentLimit = BATCH_SIZE;
   updateTabClasses();
-  
-  // Clear UI and Reset Engine
+
   DOM.list.innerHTML = ''; 
-  stopMeteringEngine();
+  stopMeteringEngine(); // This now clears the seenRegistry Set
   
   loadFeed();
 }
@@ -196,42 +197,112 @@ function renderPrivateBatch() {
 
 function subscribePublicFeed() {
   if (publicUnsubscribe) publicUnsubscribe();
+  
   const q = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(currentLimit));
   DOM.loadTrigger.style.display = 'flex'; 
 
   publicUnsubscribe = onSnapshot(q, (snapshot) => {
-    const incomingPosts = snapshot.docs.map(doc => {
-      const data = doc.data();
-      const id = doc.id;
-      updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
-      return { id, ...data, isFirebase: true };
-    });
+    const incomingBatch = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), isFirebase: true }));
 
-    // 🟢 VIP Initial Load
-    if (isInitialSnapshot && incomingPosts.length > 0) {
-      stopMeteringEngine();
+    // 1. If this is the absolute first load of the tab
+    if (isFirstBoot && incomingBatch.length > 0) {
       DOM.list.innerHTML = '';
-      renderListItems(incomingPosts);
-      isInitialSnapshot = false; 
-      console.log("[Engine] Initial VIP Load Complete.");
+      renderListItems(incomingBatch);
+      
+      // Mark all these as "Seen" so they never enter the queue
+      incomingBatch.forEach(p => seenRegistry.add(p.id));
+      
+      isFirstBoot = false; 
+      console.log("[Engine] Initial Registry Primed.");
     } 
-    // 🟡 Drip Mode
+    // 2. Subsequent updates (Likes, Comments, or New Posts)
     else {
-      const onScreenIds = new Set([...document.querySelectorAll('.feed-item')].map(el => el.getAttribute('data-id')));
-      const newDiscoveries = incomingPosts.filter(p => 
-        !onScreenIds.has(p.id) && 
-        !postWaitlist.find(queued => queued.id === p.id)
-      );
-
-      if (newDiscoveries.length > 0) {
-        postWaitlist.push(...newDiscoveries.reverse());
-        processWaitlist();
-      }
+      incomingBatch.forEach(post => {
+        // ✅ SCENARIO A: We've seen this ID before
+        if (seenRegistry.has(post.id)) {
+          // Update the counts (Likes/Comments) on the existing UI element
+          updateLiveCounts(post.id, post.commentCount || 0, post.likeCount || 0);
+          // Also sync with local storage
+          updateLocalPostWithServerData(post.id, post.commentCount || 0, post.likeCount || 0);
+        } 
+        // 🆕 SCENARIO B: This is a TRULY new ID (Spam Bot or New User)
+        else {
+          seenRegistry.add(post.id); // Register it immediately so it doesn't duplicate
+          postWaitlist.push(post);    // Put it in the drip queue
+          processWaitlist();
+        }
+      });
     }
 
     isLoadingMore = false;
     DOM.loadTrigger.style.opacity = '0';
   });
+}
+
+// Helper to update numbers on screen WITHOUT re-rendering the whole post
+function updateLiveCounts(id, comments, likes) {
+  const postEl = document.querySelector(`[data-id="${id}"]`);
+  if (!postEl) return;
+
+  // Update Comment Count
+  const cSpan = postEl.querySelector('.text-brand-500 span');
+  if (cSpan) cSpan.textContent = comments;
+
+  // Update Like Count (unless the user is currently interacting with it)
+  const lSpan = postEl.querySelector('.like-trigger span');
+  if (lSpan) lSpan.textContent = likes;
+}
+
+/**
+ * ==========================================
+ * 8. THE REGISTRY ENGINE (V5 - ID BOUNCER)
+ * ==========================================
+ */
+
+function stopMeteringEngine() {
+  if (meteringTimer) clearTimeout(meteringTimer);
+  meteringTimer = null;
+  isMeteringActive = false;
+  postWaitlist = [];
+  seenRegistry.clear(); // Total wipe
+  isFirstBoot = true;
+}
+
+function processWaitlist() {
+  if (isMeteringActive || postWaitlist.length === 0) return;
+  isMeteringActive = true;
+
+  const interval = (Math.floor(Math.random() * (300 - 30 + 1)) + 30) * 1000;
+  console.log(`[Engine] Drip scheduled: ${interval/1000}s. Queue: ${postWaitlist.length}`);
+
+  meteringTimer = setTimeout(() => {
+    try {
+      const nextPost = postWaitlist.shift();
+      if (nextPost && currentTab === 'public') {
+        injectSinglePost(nextPost);
+      }
+    } finally {
+      isMeteringActive = false;
+      if (postWaitlist.length > 0) processWaitlist();
+    }
+  }, interval);
+}
+
+function injectSinglePost(item) {
+  const sandbox = document.createElement('div');
+  const originalList = DOM.list;
+  DOM.list = sandbox; 
+  renderListItems([item]);
+  DOM.list = originalList;
+  const element = sandbox.firstChild;
+  
+  if (element) {
+    element.classList.add('animate-drip');
+    DOM.list.prepend(element);
+    
+    const emptyMsg = DOM.list.querySelector('.border-dashed');
+    if (emptyMsg) emptyMsg.remove();
+  }
 }
 
 // ==========================================
@@ -1241,63 +1312,4 @@ function runMigration() {
   });
   localStorage.setItem('freeform_v2', JSON.stringify(newStore));
   localStorage.setItem('freeform_migrated_v3', 'true');
-}
-
-// ==========================================
-// 8. THE METERING ENGINE (V3 CIRCUIT BREAKER)
-// ==========================================
-
-function stopMeteringEngine() {
-  if (meteringTimer) clearTimeout(meteringTimer);
-  meteringTimer = null;
-  isMeteringActive = false;
-  postWaitlist = [];
-  isInitialSnapshot = true;
-}
-
-function processWaitlist() {
-  // If the engine is busy or the list is empty, stay quiet
-  if (isMeteringActive || postWaitlist.length === 0) return;
-
-  isMeteringActive = true;
-
-  // Pick random interval: 30-300 seconds
-  const interval = (Math.floor(Math.random() * (300 - 30 + 1)) + 30) * 1000;
-  console.log(`[Firewall] Drip scheduled: ${interval/1000}s. Queue: ${postWaitlist.length}`);
-
-  meteringTimer = setTimeout(() => {
-    try {
-      const nextPost = postWaitlist.shift(); // Take oldest
-      if (nextPost && currentTab === 'public') {
-        injectSinglePost(nextPost);
-      }
-    } catch (e) {
-      console.error("[Engine Error]", e);
-    } finally {
-      isMeteringActive = false;
-      // Immediately schedule the next drip if more items exist
-      if (postWaitlist.length > 0) processWaitlist();
-    }
-  }, interval);
-}
-
-function injectSinglePost(item) {
-  // We use a sandbox to build the item using your existing renderListItems logic
-  const sandbox = document.createElement('div');
-  const originalList = DOM.list;
-  DOM.list = sandbox; // Redirect renderer
-  
-  renderListItems([item]);
-  
-  DOM.list = originalList; // Restore renderer
-  const element = sandbox.firstChild;
-  
-  if (element) {
-    element.classList.add('animate-drip');
-    DOM.list.prepend(element); // Put it at the very top
-    
-    // Cleanup "No results" message
-    const emptyMsg = DOM.list.querySelector('.border-dashed');
-    if (emptyMsg) emptyMsg.remove();
-  }
 }
