@@ -357,34 +357,26 @@ async function sharePost(text, platform) {
 
 function renderListItems(items) {
   if (items.length === 0) {
-    DOM.list.innerHTML = `
-      <div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl">
-        <p class="text-slate-500">No thoughts here yet.</p>
-      </div>`;
+    DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl"><p class="text-slate-500">No thoughts here yet.</p></div>`;
     return;
   }
 
   items.forEach(item => {
     const el = document.createElement('div');
-    // 2026 UI: Added slightly more rounding and subtle transitions
-    el.className = "feed-item bg-white p-5 rounded-2xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-all cursor-pointer relative active:scale-[0.99]";
-    
+    el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative";
     const time = getRelativeTime(item.createdAt);
     const fontClass = item.font || 'font-sans'; 
     const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
-	
-    // Your Unique Tag logic
-	const tagDisplay = item.uniqueTag 
-      ? `<span class="text-brand-600 font-bold text-[11px] bg-brand-50 px-2 py-0.5 rounded-md tracking-tight">${item.uniqueTag}</span>`
-      : `<span class="text-slate-400 font-medium text-[11px] bg-slate-50 px-2 py-0.5 rounded-md italic">#draft</span>`;
     
     // ============================================================
     // LOGIC: Likes & Comments
     // ============================================================
     const hasCommentsAccess = item.isFirebase || item.firebaseId;
     const realId = item.isFirebase ? item.id : item.firebaseId;
+    
     const commentCount = item.commentCount || 0; 
     const likeCount = item.likeCount || 0;
+    
     const myLikes = JSON.parse(localStorage.getItem('my_likes_cache')) || {};
     const isLiked = !!myLikes[realId];
 
@@ -393,70 +385,88 @@ function renderListItems(items) {
 
     const interactiveButtonsHtml = `
       <div class="flex items-center gap-5">
-        <div class="like-trigger group flex items-center gap-1.5 cursor-pointer transition-colors" onclick="toggleLike(event, '${realId}')">
+        
+        <div class="like-trigger group flex items-center gap-1.5 cursor-pointer transition-colors"
+             onclick="toggleLike(event, '${realId}')">
           <div class="hover:scale-110 transition-transform duration-200">
-             <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-heart ${heartFill}" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+             <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-heart ${heartFill}" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path>
              </svg>
           </div>
-          <span class="text-xs font-bold ${countColor}">${likeCount}</span>
+          <span class="text-sm font-semibold ${countColor} count-like-${realId}">${likeCount}</span>
         </div>
-        <div class="group flex items-center gap-1.5 cursor-pointer text-slate-400 hover:text-brand-500 transition-colors">
+
+        <div class="group flex items-center gap-1.5 relative cursor-pointer text-brand-500 hover:text-brand-700 transition-colors">
           <div class="hover:scale-110 transition-transform duration-200">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-message-circle-2" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                <path d="M3 20l1.3 -3.9a9 8 0 1 1 3.4 2.9l-4.7 1"></path>
             </svg>
           </div>
-          <span class="text-xs font-bold">${commentCount}</span>
+          <span class="text-sm font-semibold">${commentCount}</span>
         </div>
+
       </div>
     `;
 
     const actionArea = hasCommentsAccess 
       ? interactiveButtonsHtml 
-      : `<span class="text-[11px] text-slate-400 font-medium italic bg-slate-50 px-2 py-0.5 rounded">Private Draft</span>`;
+      : `<span class="text-xs text-slate-400 font-medium italic">Private Draft</span>`;
     
     // ============================================================
-    // SHARE & FOOTER
-    // ============================================================
+    
     const allowedPlatforms = getSmartShareButtons(item.content);
     let menuHtml = '';
     allowedPlatforms.forEach(p => {
-      menuHtml += `<button class="share-icon-btn ${p.classes}" data-platform="${p.id}">${p.icon}</button>`;
+      menuHtml += `
+        <button class="share-icon-btn ${p.classes}" 
+          data-platform="${p.id}" 
+          title="Share on ${p.name}">
+          ${p.icon}
+        </button>
+      `;
     });
 
     const shareComponent = `
       <div class="share-container relative z-20">
-        <div class="share-menu" id="menu-${item.id}">${menuHtml}</div>
-        <button class="share-trigger-btn" onclick="toggleShare(event, 'menu-${item.id}')">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>
+        <div class="share-menu" id="menu-${item.id}">
+          ${menuHtml}
+        </div>
+        <button class="share-trigger-btn" onclick="toggleShare(event, 'menu-${item.id}')" title="Share Options">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
+          </svg>
         </button>
       </div>
     `;
 
-    // BUILDING THE UI CARD
-    el.innerHTML = `
-      <div class="flex justify-between items-start mb-3">
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
-            ${item.isFirebase ? 'Global' : 'Local'}
-          </span>
-          ${tagDisplay} <!-- INTEGRATED UNIQUE TAG HERE -->
-          <span class="text-[11px] text-slate-400 font-medium">${time}</span>
-        </div>
-      </div>
-      
-      <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[16px] pointer-events-none mb-4 ${fontClass}">${cleanText(item.content)}</p>
-      
-      <div class="pt-3 border-t border-slate-50 flex items-center justify-between">
+    const footerHtml = `
+      <div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
         ${actionArea}
         ${shareComponent}
       </div>
     `;
 
-    // DELETE BUTTON
+    // ADDED: Logic for the faint uniqueTag
+    const tagDisplay = item.uniqueTag 
+      ? `<span class="absolute bottom-1 right-2 text-[7px] text-slate-200 pointer-events-none select-none uppercase tracking-tighter">${item.uniqueTag}</span>` 
+      : '';
+
+    el.innerHTML = `
+      <div class="flex justify-between items-start mb-2">
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
+            ${item.isFirebase ? 'Global' : 'Local'}
+          </span>
+          <span class="text-xs text-slate-500 font-medium">${time}</span>
+        </div>
+      </div>
+      <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] pointer-events-none ${fontClass}">${cleanText(item.content)}</p>
+      ${footerHtml}
+      ${tagDisplay}
+    `;
+
     if (!item.isFirebase || isMyGlobalPost) {
       const delBtn = document.createElement('button');
       delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
@@ -468,21 +478,26 @@ function renderListItems(items) {
       el.appendChild(delBtn);
     }
 
-    // CLICK HANDLER
+    // ✅ CLICK HANDLER
     el.onclick = (e) => {
-      if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) return;
+      if (e.target.closest('button') || 
+          e.target.closest('.share-container') || 
+          e.target.closest('.like-trigger')) return;
+      
       openModal(item);
     };
 
-    // PLATFORM SHARE HANDLERS
     const platformBtns = el.querySelectorAll('.share-icon-btn');
     platformBtns.forEach(btn => {
       btn.onclick = (e) => {
         e.stopPropagation();
         const platform = btn.getAttribute('data-platform');
         sharePost(item.content, platform);
+        
         const menu = el.querySelector('.share-menu');
+        const trigger = el.querySelector('.share-trigger-btn');
         if (menu) menu.classList.remove('active');
+        if (trigger) trigger.classList.remove('active');
       };
     });
     
