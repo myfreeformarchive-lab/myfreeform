@@ -1003,12 +1003,16 @@ function closeModal() {
 async function postComment() {
   const text = DOM.commentInput.value.trim();
   
-  // --- 🚦 SPAM GUARD CHECK ---
-  // Pass 'null' to checking jail status without affecting post history
   if (!checkSpamGuard(null)) return; 
-  // ---------------------------
-  
   if (!text || !activePostId) return;
+
+  // --- ⌨️ KEYBOARD SUPPRESSION ---
+  DOM.commentInput.blur(); 
+  DOM.commentInput.disabled = true; // "Hard Kill" focus so OS drops keyboard
+  
+  if ('virtualKeyboard' in navigator) {
+    navigator.virtualKeyboard.hide();
+  }
 
   DOM.sendComment.disabled = true;
   DOM.sendComment.style.opacity = "0.5";
@@ -1020,23 +1024,25 @@ async function postComment() {
       createdAt: serverTimestamp()
     });
 
-    // 🆕 Update count on parent doc (Increment)
     const postRef = doc(db, "globalPosts", activePostId);
-    await updateDoc(postRef, {
-        commentCount: increment(1)
-    });
+    await updateDoc(postRef, { commentCount: increment(1) });
 
     DOM.commentInput.value = '';
-	showToast("Comment added");
+    showToast("Comment added");
     
     const scrollArea = document.getElementById('modalScrollArea');
-    scrollArea.scrollTop = 0; 
+    if (scrollArea) scrollArea.scrollTop = 0; 
 
-  } catch (e) { console.error(e); } 
-  finally { 
-    DOM.sendComment.disabled = false; 
-    DOM.sendComment.style.opacity = "1";
-    DOM.commentInput.focus();
+  } catch (e) { 
+    console.error(e); 
+  } finally { 
+    // Re-enable UI after keyboard animation finishes
+    setTimeout(() => {
+      DOM.commentInput.disabled = false;
+      DOM.sendComment.disabled = false; 
+      DOM.sendComment.style.opacity = "1";
+      // NOTE: We do NOT call .focus() here anymore.
+    }, 300);
   }
 }
 
@@ -1267,63 +1273,3 @@ function runMigration() {
   localStorage.setItem('freeform_v2', JSON.stringify(newStore));
   localStorage.setItem('freeform_migrated_v3', 'true');
 }
-
-/**
- * MOBILE KEYBOARD SUPPRESSION LOGIC
- */
-const handleMobilePost = async (e) => {
-    // 1. Find elements directly to avoid "undefined" errors
-    const input = document.getElementById('commentInput');
-    const btn = document.getElementById('sendCommentBtn');
-    const list = document.getElementById('commentsList');
-
-    const text = input.value.trim();
-    if (!text) return;
-
-    // 2. FORCE KEYBOARD DOWN (The "Hard Kill" for iOS/Android)
-    input.blur(); 
-    input.disabled = true; // Briefly disable to snap keyboard shut
-    
-    if ('virtualKeyboard' in navigator) {
-        navigator.virtualKeyboard.hide();
-    }
-
-    // 3. UI Loading State
-    btn.disabled = true;
-    const originalBtnText = btn.innerText;
-    btn.innerText = '...';
-
-    try {
-        // --- YOUR FIREBASE CODE ---
-        // If you have a function named 'postComment', call it here:
-        // await postComment(text); 
-        
-        console.log("Comment submitted:", text);
-
-        // 4. Reset Field
-        input.value = '';
-        
-        // 5. Scroll to new comment
-        list.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
-
-    } catch (err) {
-        console.error("Post failed:", err);
-    } finally {
-        // 6. Re-enable after delay so keyboard doesn't pop back up
-        setTimeout(() => {
-            input.disabled = false;
-            btn.disabled = false;
-            btn.innerText = originalBtnText;
-        }, 300);
-    }
-};
-
-// ATTACH LISTENERS (Directly to IDs)
-document.getElementById('sendCommentBtn')?.addEventListener('click', handleMobilePost);
-
-document.getElementById('commentInput')?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleMobilePost();
-    }
-});
