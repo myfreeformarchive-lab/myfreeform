@@ -141,7 +141,7 @@ async function getNextUniqueTag() {
       return nextId;
     });
 
-    return `#hashtag${newCount}`;
+    return `#${newCount}`;
   } catch (e) {
     console.error("Counter transaction failed: ", e);
     // Fallback to timestamp if transaction fails to prevent blocking user
