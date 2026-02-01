@@ -102,8 +102,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   DOM.emojiButtons.forEach(btn => {
     btn.addEventListener('click', () => {
+      // 1. Append the emoji
       DOM.commentInput.value += btn.getAttribute('data-char');
-      DOM.commentInput.focus();
+
+      // 2. --- ⌨️ KEYBOARD SUPPRESSION ---
+      // We blur and briefly disable to force the OS to retract the keyboard
+      DOM.commentInput.blur();
+      DOM.commentInput.disabled = true;
+
+      if ('virtualKeyboard' in navigator) {
+        navigator.virtualKeyboard.hide();
+      }
+
+      // 3. Re-enable after delay (allows user to tap input again if they want)
+      setTimeout(() => {
+        DOM.commentInput.disabled = false;
+      }, 300);
     });
   });
 
