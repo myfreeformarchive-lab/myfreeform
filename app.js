@@ -1313,3 +1313,26 @@ window.addEventListener('popstate', (event) => {
     if (DOM.input) DOM.input.disabled = false;
   }
 });
+
+/**
+ * BACKGROUND/RESUME KEYBOARD SUPPRESSION
+ * Prevents the keyboard from auto-popping when re-entering the app
+ */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    // 1. The app is being minimized or the user switched tabs
+    // We "Hard Kill" the focus right now so the browser has nothing 
+    // to restore when the user comes back.
+    if (!DOM.modal.classList.contains('hidden')) {
+      DOM.commentInput.blur();
+      DOM.commentInput.disabled = true;
+    }
+  } else {
+    // 2. The user has returned to the app
+    // We wait a tiny bit for the "resume" logic to finish, then 
+    // make the input usable again WITHOUT focusing it.
+    setTimeout(() => {
+      DOM.commentInput.disabled = false;
+    }, 300);
+  }
+});
