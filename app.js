@@ -628,13 +628,17 @@ async function publishDraft(post) {
     async () => {
       // === 🟢 PUBLISH LOGIC STARTS HERE ===
       try {
+		
+        const uniqueTag = await getNextUniqueTag();		
+		
         const docRef = await addDoc(collection(db, "globalPosts"), { 
           content: post.content, 
           font: post.font || 'font-sans', 
           authorId: MY_USER_ID,
+		  uniqueTag: uniqueTag,
           createdAt: serverTimestamp(),
           commentCount: 0,
-          likeCount: 0 // Initialize likes too
+          likeCount: 0 
         });
 
         const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
@@ -643,6 +647,7 @@ async function publishDraft(post) {
         if (targetIndex !== -1) {
           // Link local post to the new global ID
           posts[targetIndex].firebaseId = docRef.id;
+		  posts[targetIndex].uniqueTag = uniqueTag;
           posts[targetIndex].commentCount = 0;
           posts[targetIndex].likeCount = 0;
           localStorage.setItem('freeform_v2', JSON.stringify(posts));
