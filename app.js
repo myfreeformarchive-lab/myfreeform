@@ -40,7 +40,9 @@ const DOM = {
   commentInput: document.getElementById('commentInput'),
   commentInputBar: document.querySelector('#commentModal .border-t'), 
   sendComment: document.getElementById('sendCommentBtn'),
-  emojiButtons: document.querySelectorAll('.emoji-btn')
+  emojiButtons: document.querySelectorAll('.emoji-btn'),
+  desktopEmojiTrigger: document.getElementById('desktopEmojiTrigger'),
+  desktopEmojiPopup: document.getElementById('desktopEmojiPopup')
 };
 
 let currentTab = localStorage.getItem('freeform_tab_pref') || 'private';
@@ -100,13 +102,30 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') postComment();
   });
 
-  DOM.emojiButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      // 1. Append the emoji
-      DOM.commentInput.value += btn.getAttribute('data-char');
+ // ==========================================
+// 1. UNIFIED EMOJI CLICK HANDLER
+// ==========================================
+DOM.emojiButtons.forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Stop bubble so we don't immediately close desktop popup
+    
+    // 1. Insert Emoji
+    DOM.commentInput.value += btn.getAttribute('data-char');
 
-      // 2. --- ⌨️ KEYBOARD SUPPRESSION ---
-      // We blur and briefly disable to force the OS to retract the keyboard
+    // 2. Check context: Is this the Desktop Popup or the Mobile Bar?
+    const isDesktopPopup = btn.closest('#desktopEmojiPopup');
+
+    if (isDesktopPopup) {
+      // 💻 DESKTOP BEHAVIOR
+      // Focus the input immediately so they can keep typing
+      DOM.commentInput.focus();
+      
+      // Close the popup
+      DOM.desktopEmojiPopup.classList.add('hidden');
+      DOM.desktopEmojiTrigger.classList.remove('text-brand-500', 'bg-brand-50');
+      
+    } else {
+      // 📱 MOBILE BEHAVIOR (Your existing Keyboard Suppression Hack)
       DOM.commentInput.blur();
       DOM.commentInput.disabled = true;
 
@@ -114,12 +133,41 @@ document.addEventListener('DOMContentLoaded', () => {
         navigator.virtualKeyboard.hide();
       }
 
-      // 3. Re-enable after delay (allows user to tap input again if they want)
       setTimeout(() => {
         DOM.commentInput.disabled = false;
       }, 300);
-    });
+    }
   });
+});
+
+// ==========================================
+// 2. DESKTOP POPUP TOGGLE LOGIC
+// ==========================================
+if (DOM.desktopEmojiTrigger && DOM.desktopEmojiPopup) {
+  
+  // Toggle Popup
+  DOM.desktopEmojiTrigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isHidden = DOM.desktopEmojiPopup.classList.contains('hidden');
+    
+    if (isHidden) {
+      DOM.desktopEmojiPopup.classList.remove('hidden');
+      DOM.desktopEmojiTrigger.classList.add('text-brand-500', 'bg-brand-50');
+    } else {
+      DOM.desktopEmojiPopup.classList.add('hidden');
+      DOM.desktopEmojiTrigger.classList.remove('text-brand-500', 'bg-brand-50');
+    }
+  });
+
+  // Close when clicking anywhere else on the document
+  document.addEventListener('click', (e) => {
+    // If click is NOT inside popup AND NOT on the trigger button
+    if (!DOM.desktopEmojiPopup.contains(e.target) && e.target !== DOM.desktopEmojiTrigger) {
+      DOM.desktopEmojiPopup.classList.add('hidden');
+      DOM.desktopEmojiTrigger.classList.remove('text-brand-500', 'bg-brand-50');
+    }
+  });
+}
 
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.share-container')) {
