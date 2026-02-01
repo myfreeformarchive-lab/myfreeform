@@ -1267,3 +1267,54 @@ function runMigration() {
   localStorage.setItem('freeform_v2', JSON.stringify(newStore));
   localStorage.setItem('freeform_migrated_v3', 'true');
 }
+
+/**
+ * SUPPRESS KEYBOARD LOGIC
+ */
+const handleCommentSubmission = async () => {
+    const commentText = DOM.commentInput.value.trim();
+    if (!commentText) return;
+
+    // 1. Force the keyboard to close (The "Hard Blur" method)
+    DOM.commentInput.blur(); 
+    DOM.commentInput.disabled = true; // Temporarily disable to force OS to drop keyboard
+
+    if ('virtualKeyboard' in navigator) {
+        navigator.virtualKeyboard.hide();
+    }
+
+    // 2. UI Loading State
+    DOM.sendComment.disabled = true;
+    const originalText = DOM.sendComment.innerText;
+    DOM.sendComment.innerText = '...';
+
+    try {
+        // --- YOUR FIREBASE LOGIC HERE ---
+        // Example: await addDoc(collection(db, "comments"), { text: commentText });
+
+        DOM.commentInput.value = '';
+        
+        // 3. Success feedback
+        DOM.commentList.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+
+    } catch (error) {
+        console.error("Post failed", error);
+    } finally {
+        // 4. Re-enable after delay to ensure keyboard stays closed
+        setTimeout(() => {
+            DOM.commentInput.disabled = false;
+            DOM.sendComment.disabled = false;
+            DOM.sendComment.innerText = originalText;
+        }, 300);
+    }
+};
+
+// Listeners
+DOM.sendComment.addEventListener('click', handleCommentSubmission);
+
+DOM.commentInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleCommentSubmission();
+    }
+});
