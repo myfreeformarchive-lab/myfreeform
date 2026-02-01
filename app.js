@@ -367,6 +367,10 @@ function renderListItems(items) {
     const time = getRelativeTime(item.createdAt);
     const fontClass = item.font || 'font-sans'; 
     const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
+	
+	const tagDisplay = item.uniqueTag 
+      ? `<span class="text-brand-500 font-bold text-[11px] bg-brand-50 px-2 py-0.5 rounded-full">${item.uniqueTag}</span>`
+      : `<span class="text-slate-400 font-medium text-[11px] bg-slate-50 px-2 py-0.5 rounded-full">#draft</span>`;
     
     // ============================================================
     // LOGIC: Likes & Comments
@@ -448,11 +452,6 @@ function renderListItems(items) {
       </div>
     `;
 
-    // ADDED: Logic for the faint uniqueTag
-    const tagDisplay = item.uniqueTag 
-      ? `<span class="absolute bottom-1 right-2 text-[7px] text-slate-200 pointer-events-none select-none uppercase tracking-tighter">${item.uniqueTag}</span>` 
-      : '';
-
     el.innerHTML = `
       <div class="flex justify-between items-start mb-2">
         <div class="flex items-center gap-2">
@@ -464,7 +463,6 @@ function renderListItems(items) {
       </div>
       <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] pointer-events-none ${fontClass}">${cleanText(item.content)}</p>
       ${footerHtml}
-      ${tagDisplay}
     `;
 
     if (!item.isFirebase || isMyGlobalPost) {
@@ -478,8 +476,9 @@ function renderListItems(items) {
       el.appendChild(delBtn);
     }
 
-    // ✅ CLICK HANDLER
+    // ✅ FIXED CLICK HANDLER HERE
     el.onclick = (e) => {
+      // If we clicked a button, the share menu, OR the new like trigger... IGNORE IT.
       if (e.target.closest('button') || 
           e.target.closest('.share-container') || 
           e.target.closest('.like-trigger')) return;
