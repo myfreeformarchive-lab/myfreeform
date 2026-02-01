@@ -895,6 +895,10 @@ async function deleteComment(postId, commentId) {
 // 6. MODAL LOGIC
 // ==========================================
 function openModal(post) {
+  if (window.history.state?.modal !== 'open') {
+    history.pushState({ modal: 'open' }, '');
+  }
+	
   if (DOM.input) {
     DOM.input.disabled = true;
   }
@@ -990,6 +994,10 @@ function openModal(post) {
 }
 
 function closeModal() {
+	if (window.history.state?.modal === 'open') {
+    window.history.back();
+  }
+	
   DOM.modal.classList.add('hidden');
   document.body.style.overflow = ''; 
   activePostId = null;
@@ -1273,3 +1281,21 @@ function runMigration() {
   localStorage.setItem('freeform_v2', JSON.stringify(newStore));
   localStorage.setItem('freeform_migrated_v3', 'true');
 }
+
+/**
+ * BACK BUTTON INTERCEPTOR
+ * Intercepts hardware back button/gestures to close the modal instead of exiting the site
+ */
+window.addEventListener('popstate', (event) => {
+  // If the modal is visible, close it
+  if (!DOM.modal.classList.contains('hidden')) {
+    // We update UI directly here. 
+    // Do NOT call closeModal() here because closeModal calls history.back(), 
+    // which would cause an infinite loop or double-back.
+    DOM.modal.classList.add('hidden');
+    document.body.style.overflow = '';
+    activePostId = null;
+    if (commentsUnsubscribe) { commentsUnsubscribe(); commentsUnsubscribe = null; }
+    if (DOM.input) DOM.input.disabled = false;
+  }
+});
