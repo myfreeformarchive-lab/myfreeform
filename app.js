@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebas
 import { 
   getFirestore, collection, addDoc, deleteDoc, doc, updateDoc,
   query, orderBy, limit, serverTimestamp, onSnapshot,
-  writeBatch, getDocs, increment, setDoc, getDoc, runTransaction
+  writeBatch, getDocs, increment, setDoc, getDoc, runTransaction, where
 } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -211,22 +211,49 @@ function updateToggleUI() {
 }
 
 function loadFeed() {
-  
   if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
 
   if (currentTab === 'private') {
+    // 1. Immediate load from LocalStorage for speed
     allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
     renderPrivateBatch();
+    
+    // 2. Start real-time background sync for counts
+    subscribeArchiveSync();
   } else {
+    // Standard Global Tab logic
     subscribePublicFeed();
   }
 }
 
 function renderPrivateBatch() {
+  // Re-fetch to ensure we have the counts updated by the background sync
+  allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
+  
   const visible = allPrivatePosts.slice(0, currentLimit);
   DOM.list.innerHTML = ''; 
   renderListItems(visible);
   DOM.loadTrigger.style.display = (currentLimit >= allPrivatePosts.length) ? 'none' : 'flex';
+}
+
+function subscribeArchiveSync() {
+  if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
+
+  // Query only Global posts where you are the author
+  const q = query(
+    collection(db, "globalPosts"), 
+    where("authorId", "==", MY_USER_ID)
+  );
+
+  publicUnsubscribe = onSnapshot(q, (snapshot) => {
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      // Update the local storage and rerender the UI automatically
+      updateLocalPostWithServerData(doc.id, data.commentCount || 0, data.likeCount || 0);
+    });
+  }, (error) => {
+    console.error("Archive sync failed:", error);
+  });
 }
 
 function subscribePublicFeed() {
