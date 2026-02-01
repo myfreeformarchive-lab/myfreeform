@@ -1,6 +1,3 @@
-// design.js
-import { DOM } from './app.js';
-
 const handleCommentSubmission = async () => {
     const commentText = DOM.commentInput.value.trim();
     if (!commentText) return;
