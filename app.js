@@ -183,120 +183,31 @@ function renderPrivateBatch() {
   DOM.loadTrigger.style.display = (currentLimit >= allPrivatePosts.length) ? 'none' : 'flex';
 }
 
-/**
- * ==========================================
- * 8. THE REGISTRY ENGINE (V6 - UNIQUE TAGS)
- * ==========================================
- */
-let postWaitlist = [];
-let meteringTimer = null;
-let isMeteringActive = false;
-let isFirstLoadFinished = false;
-
-// We use this to track every unique tag currently on screen
-function getOnScreenTags() {
-  return new Set([...document.querySelectorAll('.feed-item')].map(el => el.getAttribute('data-tag')));
-}
-
-function stopMeteringEngine() {
-  if (meteringTimer) clearTimeout(meteringTimer);
-  meteringTimer = null;
-  isMeteringActive = false;
-  postWaitlist = [];
-  isFirstLoadFinished = false;
-}
-
-function processWaitlist() {
-  if (isMeteringActive || postWaitlist.length === 0) return;
-  isMeteringActive = true;
-
-  // 30 to 300 second calm interval
-  const interval = (Math.floor(Math.random() * (300 - 30 + 1)) + 30) * 1000;
-  
-  meteringTimer = setTimeout(() => {
-    try {
-      const nextPost = postWaitlist.shift();
-      if (nextPost && currentTab === 'public') {
-        injectSinglePost(nextPost);
-      }
-    } finally {
-      isMeteringActive = false;
-      if (postWaitlist.length > 0) processWaitlist();
-    }
-  }, interval);
-}
-
-function injectSinglePost(item) {
-  const sandbox = document.createElement('div');
-  const originalList = DOM.list;
-  DOM.list = sandbox; 
-  renderListItems([item]);
-  DOM.list = originalList;
-  
-  const element = sandbox.firstChild;
-  if (element) {
-    // Add the specific Tag ID to the HTML element
-    element.setAttribute('data-tag', item.uniqueTag); 
-    element.classList.add('animate-drip');
-    DOM.list.prepend(element);
-  }
-}
-
-// --- THE FIREWALL LISTENER ---
-
 function subscribePublicFeed() {
   if (publicUnsubscribe) publicUnsubscribe();
-  
   const q = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(currentLimit));
-  
+  DOM.loadTrigger.style.display = 'flex'; 
+
   publicUnsubscribe = onSnapshot(q, (snapshot) => {
-    const incoming = snapshot.docs.map(doc => ({ 
-      id: doc.id, 
-      ...doc.data(), 
-      // Fallback if bot hasn't been updated yet:
-      uniqueTag: doc.data().uniqueTag || `legacy_${doc.id}` 
-    }));
+    const posts = snapshot.docs.map(doc => {
+      const data = doc.data();
+      const id = doc.id;
 
-    // 1. INITIAL LOAD (Instant)
-    if (!isFirstLoadFinished && incoming.length > 0) {
-      DOM.list.innerHTML = '';
-      renderListItems(incoming);
-      
-      // Manually tag them for the registry
-      document.querySelectorAll('.feed-item').forEach((el, i) => {
-        el.setAttribute('data-tag', incoming[i].uniqueTag);
-      });
+      // ✅ SYNC: If this post is in our local archive, update its count to match the server
+      updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
 
-      isFirstLoadFinished = true;
-      console.log("[Engine] First load complete. Tags indexed.");
-    } 
-    // 2. BACKGROUND METERING (The Drip)
-    else {
-      const currentTags = getOnScreenTags();
-      
-      incoming.forEach(post => {
-        // If the TAG isn't on screen AND isn't already in the waitlist...
-        const isQueued = postWaitlist.some(p => p.uniqueTag === post.uniqueTag);
-        
-        if (!currentTags.has(post.uniqueTag) && !isQueued) {
-          console.log(`[Engine] New tag detected: ${post.uniqueTag}. Queueing...`);
-          postWaitlist.push(post);
-          processWaitlist();
-        } else {
-          // If tag is already there, just update counts (Likes/Comments)
-          updateLiveCountsByTag(post.uniqueTag, post.commentCount || 0, post.likeCount || 0);
-        }
-      });
-    }
+      return { id, ...data, isFirebase: true };
+    });
+
+    DOM.list.innerHTML = '';
+    renderListItems(posts);
+    isLoadingMore = false;
+    DOM.loadTrigger.style.opacity = '0';
+  }, (error) => {
+    console.error("Snapshot error:", error);
+    // If it fails, clear skeletons and show error
+    DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Unable to load feed.</div>`;
   });
-}
-
-function updateLiveCountsByTag(tag, comments, likes) {
-  const el = document.querySelector(`[data-tag="${tag}"]`);
-  if (!el) return;
-  const spans = el.querySelectorAll('span.font-semibold');
-  if (spans[0]) spans[0].textContent = likes;
-  if (spans[1]) spans[1].textContent = comments;
 }
 
 // ==========================================
@@ -420,7 +331,6 @@ function renderListItems(items) {
 
   items.forEach(item => {
     const el = document.createElement('div');
-	el.setAttribute('data-tag', item.uniqueTag || `legacy_${item.id}`);
     el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative";
     const time = getRelativeTime(item.createdAt);
     const fontClass = item.font || 'font-sans'; 
