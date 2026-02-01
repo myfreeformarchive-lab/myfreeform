@@ -54,6 +54,11 @@ let publicUnsubscribe = null;
 let commentsUnsubscribe = null;
 let activePostId = null; 
 
+// Waterfall / Drip State
+let dripQueue = [];        
+let nextDripTimeout = null; 
+let isInitialLoad = true;  
+
 // ==========================================
 // 2. INITIALIZATION
 // ==========================================
@@ -168,11 +173,25 @@ function applyFontPreference(font) {
 
 function switchTab(tab) {
   if (currentTab === tab) return;
+
+  // 1. 🛑 WATERFALL CLEANUP
+  // Stop the timer immediately so no posts "drip" into the wrong tab
+  clearTimeout(nextDripTimeout); 
+  
+  // Empty the queue so old public posts don't haunt the memory
+  dripQueue = []; 
+  
+  // Reset the initial load flag so the next time we go Public, 
+  // we get a fresh instant batch before the waterfall starts.
+  isInitialLoad = true; 
+
+  // 2. STANDARD TAB LOGIC
   currentTab = tab;
   localStorage.setItem('freeform_tab_pref', tab);
   currentLimit = BATCH_SIZE;
+  
   updateTabClasses();
-  loadFeed();
+  loadFeed(); // This will trigger subscribePublicFeed() if the new tab is public
 }
 
 function updateTabClasses() {
@@ -217,29 +236,74 @@ function renderPrivateBatch() {
 
 function subscribePublicFeed() {
   if (publicUnsubscribe) publicUnsubscribe();
+  
+  // Reset for a fresh start
+  isInitialLoad = true;
+  dripQueue = [];
+  clearTimeout(nextDripTimeout);
+  DOM.list.innerHTML = ''; 
+
   const q = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(currentLimit));
-  DOM.loadTrigger.style.display = 'flex'; 
 
   publicUnsubscribe = onSnapshot(q, (snapshot) => {
-    const posts = snapshot.docs.map(doc => {
-      const data = doc.data();
-      const id = doc.id;
+    snapshot.docChanges().forEach((change) => {
+      const data = change.doc.data();
+      const id = change.doc.id;
+      const postObj = { id, ...data, isFirebase: true };
 
-      // ✅ SYNC: If this post is in our local archive, update its count to match the server
-      updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
+      if (change.type === "added") {
+        if (isInitialLoad) {
+          // 1. Initial items go straight to screen
+          renderListItems([postObj], "append");
+        } else {
+          // 2. 💧 Waterfall: New post goes to queue
+          if (!dripQueue.some(p => p.id === id)) {
+            dripQueue.push(postObj);
+          }
+        }
+      }
 
-      return { id, ...data, isFirebase: true };
+      if (change.type === "modified") {
+        // 3. ❤️ Live Sync: Update counts immediately (don't wait for waterfall)
+        updatePostUI(id, data.commentCount || 0, data.likeCount || 0);
+        updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
+      }
     });
 
-    DOM.list.innerHTML = '';
-    renderListItems(posts);
-    isLoadingMore = false;
-    DOM.loadTrigger.style.opacity = '0';
-  }, (error) => {
-    console.error("Snapshot error:", error);
-    // If it fails, clear skeletons and show error
-    DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Unable to load feed.</div>`;
+    // Once the first snapshot is processed
+    if (isInitialLoad) {
+      isInitialLoad = false;
+      isLoadingMore = false;
+      DOM.loadTrigger.style.opacity = '0';
+      startDripLoop(); // Start the 15-60s random timer
+    }
   });
+}
+
+function startDripLoop() {
+  // Guard Clause: If we aren't on the public tab, stop everything.
+  if (currentTab !== 'public') {
+    clearTimeout(nextDripTimeout);
+    return;
+  }
+
+  const randomSeconds = Math.floor(Math.random() * (60 - 15 + 1) + 15);
+  
+  nextDripTimeout = setTimeout(() => {
+    // ... existing logic ...
+    startDripLoop(); 
+  }, randomSeconds * 1000);
+}
+
+function updatePostUI(postId, commentCount, likeCount) {
+  const postEl = document.querySelector(`[data-post-id="${postId}"]`);
+  if (!postEl) return;
+
+  const likeSpan = postEl.querySelector(`.count-like-${postId}`);
+  if (likeSpan) likeSpan.textContent = likeCount;
+
+  const commentSpan = postEl.querySelector(`.count-comment-${postId}`);
+  if (commentSpan) commentSpan.textContent = commentCount;
 }
 
 // ==========================================
@@ -355,32 +419,33 @@ async function sharePost(text, platform) {
   }
 }
 
-function renderListItems(items) {
-  if (items.length === 0) {
+function renderListItems(items, mode = "append") {
+  if (items.length === 0 && mode === "append") {
     DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl"><p class="text-slate-500">No thoughts here yet.</p></div>`;
     return;
   }
 
   items.forEach(item => {
-    const el = document.createElement('div');
-    el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative";
+    // 1. Variable Setup
+    const realId = item.isFirebase ? item.id : item.firebaseId;
     const time = getRelativeTime(item.createdAt);
     const fontClass = item.font || 'font-sans'; 
     const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
-	
-	const tagDisplay = item.uniqueTag 
-      ? `<span class="text-brand-500 font-bold text-[11px] bg-brand-50 px-2 py-0.5 rounded-full">${item.uniqueTag}</span>`
-      : `<span class="text-slate-400 font-medium text-[11px] bg-slate-50 px-2 py-0.5 rounded-full">#draft</span>`;
-    
-    // ============================================================
-    // LOGIC: Likes & Comments
-    // ============================================================
     const hasCommentsAccess = item.isFirebase || item.firebaseId;
-    const realId = item.isFirebase ? item.id : item.firebaseId;
     
+    // 2. Setup the faint uniqueTag (Bottom Right)
+    const faintTag = item.uniqueTag 
+      ? `<span class="absolute bottom-1 right-2 text-[7px] text-slate-200 pointer-events-none select-none uppercase tracking-tighter">${item.uniqueTag}</span>` 
+      : '';
+
+    // 3. Element Creation & Sync Attribute
+    const el = document.createElement('div');
+    el.setAttribute('data-post-id', realId); 
+    el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative";
+    
+    // 4. Like/Comment Logic with Sync Classes
     const commentCount = item.commentCount || 0; 
     const likeCount = item.likeCount || 0;
-    
     const myLikes = JSON.parse(localStorage.getItem('my_likes_cache')) || {};
     const isLiked = !!myLikes[realId];
 
@@ -389,9 +454,7 @@ function renderListItems(items) {
 
     const interactiveButtonsHtml = `
       <div class="flex items-center gap-5">
-        
-        <div class="like-trigger group flex items-center gap-1.5 cursor-pointer transition-colors"
-             onclick="toggleLike(event, '${realId}')">
+        <div class="like-trigger group flex items-center gap-1.5 cursor-pointer transition-colors" onclick="toggleLike(event, '${realId}')">
           <div class="hover:scale-110 transition-transform duration-200">
              <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-heart ${heartFill}" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
@@ -408,50 +471,30 @@ function renderListItems(items) {
                <path d="M3 20l1.3 -3.9a9 8 0 1 1 3.4 2.9l-4.7 1"></path>
             </svg>
           </div>
-          <span class="text-sm font-semibold">${commentCount}</span>
+          <span class="text-sm font-semibold count-comment-${realId}">${commentCount}</span>
         </div>
-
       </div>
     `;
 
-    const actionArea = hasCommentsAccess 
-      ? interactiveButtonsHtml 
-      : `<span class="text-xs text-slate-400 font-medium italic">Private Draft</span>`;
+    const actionArea = hasCommentsAccess ? interactiveButtonsHtml : `<span class="text-xs text-slate-400 font-medium italic">Private Draft</span>`;
     
-    // ============================================================
-    
+    // 5. Share Component
     const allowedPlatforms = getSmartShareButtons(item.content);
     let menuHtml = '';
     allowedPlatforms.forEach(p => {
-      menuHtml += `
-        <button class="share-icon-btn ${p.classes}" 
-          data-platform="${p.id}" 
-          title="Share on ${p.name}">
-          ${p.icon}
-        </button>
-      `;
+      menuHtml += `<button class="share-icon-btn ${p.classes}" data-platform="${p.id}" title="Share on ${p.name}">${p.icon}</button>`;
     });
 
     const shareComponent = `
       <div class="share-container relative z-20">
-        <div class="share-menu" id="menu-${item.id}">
-          ${menuHtml}
-        </div>
+        <div class="share-menu" id="menu-${item.id}">${menuHtml}</div>
         <button class="share-trigger-btn" onclick="toggleShare(event, 'menu-${item.id}')" title="Share Options">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>
         </button>
       </div>
     `;
 
-    const footerHtml = `
-      <div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
-        ${actionArea}
-        ${shareComponent}
-      </div>
-    `;
-
+    // 6. Assembly
     el.innerHTML = `
       <div class="flex justify-between items-start mb-2">
         <div class="flex items-center gap-2">
@@ -462,9 +505,11 @@ function renderListItems(items) {
         </div>
       </div>
       <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] pointer-events-none ${fontClass}">${cleanText(item.content)}</p>
-      ${footerHtml}
+      <div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>
+      ${faintTag}
     `;
 
+    // 7. Delete Logic
     if (!item.isFirebase || isMyGlobalPost) {
       const delBtn = document.createElement('button');
       delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
@@ -476,13 +521,9 @@ function renderListItems(items) {
       el.appendChild(delBtn);
     }
 
-    // ✅ FIXED CLICK HANDLER HERE
+    // 8. Event Handlers
     el.onclick = (e) => {
-      // If we clicked a button, the share menu, OR the new like trigger... IGNORE IT.
-      if (e.target.closest('button') || 
-          e.target.closest('.share-container') || 
-          e.target.closest('.like-trigger')) return;
-      
+      if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) return;
       openModal(item);
     };
 
@@ -493,6 +534,7 @@ function renderListItems(items) {
         const platform = btn.getAttribute('data-platform');
         sharePost(item.content, platform);
         
+        // --- ✅ CLEANUP LOGIC INCLUDED HERE ---
         const menu = el.querySelector('.share-menu');
         const trigger = el.querySelector('.share-trigger-btn');
         if (menu) menu.classList.remove('active');
@@ -500,7 +542,12 @@ function renderListItems(items) {
       };
     });
     
-    DOM.list.appendChild(el);
+    // 9. Waterfall/Drip Insertion
+    if (mode === "prepend") {
+      DOM.list.insertBefore(el, DOM.list.firstChild);
+    } else {
+      DOM.list.appendChild(el);
+    }
   });
 }
 
