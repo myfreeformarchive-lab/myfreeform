@@ -220,21 +220,10 @@ textarea::-webkit-scrollbar { display: none; }
   }
 }
 
-/* 2. The Subtle Pulse (Only for the loading bars) */
-@keyframes skeletonPulse {
-  0%, 100% { background-color: var(--color-slate-100); }
-  50% { background-color: var(--color-slate-200); }
-}
-
 /* Applying the slide to the container */
 .animate-pulse-in {
   animation: slideIn 0.6s cubic-bezier(0.2, 1, 0.3, 1) forwards;
   overflow: hidden;
-}
-
-/* Applying the pulse ONLY to the inner grey bars */
-.animate-pulse-in .skeleton-bar {
-  animation: skeletonPulse 2s infinite ease-in-out;
 }
 
 /* Stagger delays for a premium feel */
