@@ -54,6 +54,12 @@ let publicUnsubscribe = null;
 let commentsUnsubscribe = null;
 let activePostId = null; 
 
+// --- METERING ENGINE STATE ---
+let postWaitlist = [];
+let meteringTimer = null;
+let isMeteringActive = false;
+let isInitialSnapshot = true;
+
 // ==========================================
 // 2. INITIALIZATION
 // ==========================================
@@ -140,6 +146,12 @@ function switchTab(tab) {
   localStorage.setItem('freeform_tab_pref', tab);
   currentLimit = BATCH_SIZE;
   updateTabClasses();
+  
+  // Clear UI and Reset Engine
+  DOM.list.innerHTML = ''; 
+  stopMeteringEngine();
+  isInitialSnapshot = true; // Set gate for VIP load
+  
   loadFeed();
 }
 
@@ -189,24 +201,37 @@ function subscribePublicFeed() {
   DOM.loadTrigger.style.display = 'flex'; 
 
   publicUnsubscribe = onSnapshot(q, (snapshot) => {
-    const posts = snapshot.docs.map(doc => {
+    const incomingPosts = snapshot.docs.map(doc => {
       const data = doc.data();
       const id = doc.id;
-
-      // ✅ SYNC: If this post is in our local archive, update its count to match the server
       updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
-
       return { id, ...data, isFirebase: true };
     });
 
-    DOM.list.innerHTML = '';
-    renderListItems(posts);
+    // 🟢 VIP Initial Load
+    if (isInitialSnapshot && incomingPosts.length > 0) {
+      stopMeteringEngine();
+      DOM.list.innerHTML = '';
+      renderListItems(incomingPosts);
+      isInitialSnapshot = false; 
+      console.log("[Engine] Initial VIP Load Complete.");
+    } 
+    // 🟡 Drip Mode
+    else {
+      const onScreenIds = new Set([...document.querySelectorAll('.feed-item')].map(el => el.getAttribute('data-id')));
+      const newDiscoveries = incomingPosts.filter(p => 
+        !onScreenIds.has(p.id) && 
+        !postWaitlist.find(queued => queued.id === p.id)
+      );
+
+      if (newDiscoveries.length > 0) {
+        postWaitlist.push(...newDiscoveries.reverse());
+        processWaitlist();
+      }
+    }
+
     isLoadingMore = false;
     DOM.loadTrigger.style.opacity = '0';
-  }, (error) => {
-    console.error("Snapshot error:", error);
-    // If it fails, clear skeletons and show error
-    DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Unable to load feed.</div>`;
   });
 }
 
@@ -1217,4 +1242,57 @@ function runMigration() {
   });
   localStorage.setItem('freeform_v2', JSON.stringify(newStore));
   localStorage.setItem('freeform_migrated_v3', 'true');
+}
+
+// ==========================================
+// 8. THE METERING ENGINE (V3 CIRCUIT BREAKER)
+// ==========================================
+
+function stopMeteringEngine() {
+  if (meteringTimer) clearTimeout(meteringTimer);
+  meteringTimer = null;
+  isMeteringActive = false;
+  postWaitlist = [];
+}
+
+function processWaitlist() {
+  if (postWaitlist.length === 0 || isMeteringActive) return;
+
+  isMeteringActive = true;
+  const interval = (Math.floor(Math.random() * (300 - 30 + 1)) + 30) * 1000;
+  
+  console.log(`[Engine] Pulse scheduled in ${interval/1000}s. Queue: ${postWaitlist.length}`);
+
+  meteringTimer = setTimeout(() => {
+    try {
+      const nextPost = postWaitlist.shift();
+      if (nextPost && currentTab === 'public') {
+        injectSinglePost(nextPost);
+      }
+    } catch (e) {
+      console.error("[Engine] Drip Error:", e);
+    } finally {
+      isMeteringActive = false;
+      if (postWaitlist.length > 0) processWaitlist();
+    }
+  }, interval);
+}
+
+function injectSinglePost(item) {
+  const sandbox = document.createElement('div');
+  const originalList = DOM.list;
+  DOM.list = sandbox;
+  
+  renderListItems([item]);
+  
+  DOM.list = originalList;
+  const elementToInject = sandbox.firstChild;
+  
+  if (elementToInject) {
+    elementToInject.classList.add('animate-drip');
+    DOM.list.prepend(elementToInject);
+    
+    const emptyMsg = DOM.list.querySelector('.border-dashed');
+    if (emptyMsg) emptyMsg.remove();
+  }
 }
