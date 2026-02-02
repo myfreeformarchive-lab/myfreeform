@@ -265,14 +265,13 @@ function updateUISurgically(id, data) {
   }
 }
 
-async function refillBufferRandomly(count = 1) {
+async function refillBufferRandomly(count = 1, silent = false) {
   const counterRef = doc(db, "metadata", "postCounter");
   const counterSnap = await getDoc(counterRef);
   
   if (!counterSnap.exists()) return;
 
   const maxId = counterSnap.data().count;
-  // We sample from the last 2,000 posts for a "fresh" feel
   const minId = Math.max(1, maxId - 2000); 
 
   const randomTags = [];
@@ -282,7 +281,6 @@ async function refillBufferRandomly(count = 1) {
     if (!randomTags.includes(tag)) randomTags.push(tag);
   }
 
-  // Fetch only these specific random posts
   const q = query(collection(db, "globalPosts"), where("uniqueTag", "in", randomTags));
   const querySnapshot = await getDocs(q);
   
@@ -294,7 +292,10 @@ async function refillBufferRandomly(count = 1) {
     }
   });
 
-  updateBufferUI();
+  // 🚀 THE FIX: Only update UI if we aren't in 'silent' mode
+  if (!silent) {
+    updateBufferUI();
+  }
 }
 
 function injectSinglePost(item, position = 'top') {
@@ -476,14 +477,14 @@ async function subscribePublicFeed() {
     
     // PHASE A: INITIAL SEED
     // Grab 15 random posts to fill the screen immediately
-    await refillBufferRandomly(15);
+    await refillBufferRandomly(15, true);
     visiblePosts = [...postBuffer];
     postBuffer = []; 
     renderListItems(visiblePosts);
-  }
-
-  // 3. Start Heartbeat
+	
+	// 3. Start Heartbeat
   startDripFeed();
+  }
 
   // 4. THE EGO-LISTENER (Minimal impact)
   const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
@@ -809,7 +810,7 @@ function loadMoreData() {
   } else {
     // 🚀 NEW DISCOVERY LOGIC:
     // Just grab 10 more random posts and append them
-    refillBufferRandomly(10).then(() => {
+    refillBufferRandomly(10, true).then(() => {
       while(postBuffer.length > 0) {
         const p = postBuffer.shift();
         visiblePosts.push(p);
