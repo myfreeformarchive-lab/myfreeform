@@ -615,27 +615,28 @@ function createPostNode(item) {
 
   const interactiveButtonsHtml = `
     <div class="flex items-center gap-5">
-      <div class="like-trigger group flex items-center gap-1.5 cursor-pointer transition-colors"
-           onclick="toggleLike(event, '${realId}')">
-        <div class="hover:scale-110 transition-transform duration-200">
-           <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-heart ${heartFill}" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-             <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path>
-           </svg>
+        <div class="like-trigger group flex items-center gap-1.5 cursor-pointer transition-colors"
+             onclick="toggleLike(event, '${realId}')">
+          <div class="hover:scale-110 transition-transform duration-200">
+             <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-heart ${heartFill}" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+               <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+               <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path>
+             </svg>
+          </div>
+          <span class="text-sm font-semibold ${countColor} count-like-${realId}">${likeCount}</span>
         </div>
-        <span class="text-sm font-semibold ${countColor} count-like-${realId}">${likeCount}</span>
-      </div>
-      <div class="group flex items-center gap-1.5 relative cursor-pointer text-brand-500 hover:text-brand-700 transition-colors">
-        <div class="hover:scale-110 transition-transform duration-200">
-          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-message-circle-2" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-             <path d="M3 20l1.3 -3.9a9 8 0 1 1 3.4 2.9l-4.7 1"></path>
-          </svg>
+
+        <div class="group flex items-center gap-1.5 relative cursor-pointer text-brand-500 hover:text-brand-700 transition-colors">
+          <div class="hover:scale-110 transition-transform duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-message-circle-2" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+               <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+               <path d="M3 20l1.3 -3.9a9 8 0 1 1 3.4 2.9l-4.7 1"></path>
+            </svg>
+          </div>
+          <span class="text-sm font-semibold count-comment-${realId}">${commentCount}</span>
         </div>
-        <span class="text-sm font-semibold">${commentCount}</span>
-      </div>
     </div>
-  `;
+`;
 
   const actionArea = hasCommentsAccess ? interactiveButtonsHtml : `<span class="text-xs text-slate-400 font-medium italic">Private Draft</span>`;
 
