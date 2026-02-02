@@ -242,7 +242,7 @@ function startDripFeed() {
       }
     }
     
-    // 5. CONSTANT DELAY: Exactly 10 seconds
+    // 5. CONSTANT DELAY: Exactly 20 seconds
     const delay = 20000; 
 
     // 6. Schedule the next check
