@@ -228,20 +228,39 @@ function startDripFeed() {
     if (postBuffer.length > 0) {
       const nextPost = postBuffer.shift();
       
+      // 1. Check if it's already there
       if (!visiblePosts.some(p => p.id === nextPost.id)) {
         visiblePosts.unshift(nextPost);
-        // Clean up bottom of feed to keep performance high
-        if (visiblePosts.length > 50) visiblePosts.pop(); 
-        renderListItems(visiblePosts);
+
+        // 2. INJECT ONLY ONE ITEM (No full re-render!)
+        injectSinglePost(nextPost, 'top');
+
+        // 3. Keep the feed size manageable
+        if (visiblePosts.length > 100) {
+          visiblePosts.pop();
+          if (DOM.list.lastElementChild) DOM.list.lastElementChild.remove();
+        }
       }
     }
     
-    // Constant 20 seconds
-    dripTimeout = setTimeout(drip, 20000);
+    dripTimeout = setTimeout(drip, 20000); // 20-second drip
     updateBufferUI();
   }
   
   drip();
+}
+
+function injectSinglePost(item, position = 'top') {
+  const postNode = createPostNode(item); 
+  
+  // Only add animations to "injected" posts, not the ones loaded at start
+  postNode.classList.add('animate-in', 'fade-in', 'slide-in-from-top-4', 'duration-500');
+
+  if (position === 'top') {
+    DOM.list.prepend(postNode);
+  } else {
+    DOM.list.appendChild(postNode);
+  }
 }
 
 function updateBufferUI() {
@@ -361,17 +380,17 @@ function subscribeArchiveSync() {
 }
 
 // ==========================================
-// 3. THE SUBSCRIBER
+// 3. THE SUBSCRIBER (Fixed Syntax)
 // ==========================================
 async function subscribePublicFeed() {
   if (publicUnsubscribe) publicUnsubscribe();
-  
+
   // 1. Reset State
   visiblePosts = [];
   postBuffer = [];
   processedIds.clear();
   if (dripTimeout) clearTimeout(dripTimeout);
-  
+
   DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium">Connecting...</div>';
 
   try {
@@ -379,11 +398,11 @@ async function subscribePublicFeed() {
 
     // --- PHASE A: STABLE INITIAL LOAD ---
     const initialSnapshot = await getDocs(q);
-    
+
     initialSnapshot.forEach(doc => {
       const post = { id: doc.id, ...doc.data(), isFirebase: true };
       visiblePosts.push(post);
-      processedIds.add(doc.id); 
+      processedIds.add(doc.id);
     });
 
     renderListItems(visiblePosts);
@@ -393,8 +412,6 @@ async function subscribePublicFeed() {
 
     // --- PHASE B: LIVE WATCHER ---
     publicUnsubscribe = onSnapshot(q, (snapshot) => {
-      let needsRender = false;
-
       snapshot.docChanges().forEach((change) => {
         const data = change.doc.data();
         const id = change.doc.id;
@@ -405,9 +422,11 @@ async function subscribePublicFeed() {
             processedIds.add(id);
 
             if (data.authorId === MY_USER_ID) {
+              // Priority: User's own post bypasses the buffer
               visiblePosts.unshift(postObj);
-              needsRender = true;
+              injectSinglePost(postObj, 'top');
             } else {
+              // Everyone else goes to the waiting room
               postBuffer.push(postObj);
               updateBufferUI();
             }
@@ -419,25 +438,35 @@ async function subscribePublicFeed() {
           if (idx !== -1) {
             visiblePosts[idx] = postObj;
             updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
-            needsRender = true;
+
+            // Surgical Update: Only change the numbers
+            const postEl = document.querySelector(`[data-id="${id}"]`);
+            if (postEl) {
+              const likeSpan = postEl.querySelector(`.count-like-${id}`);
+              if (likeSpan) likeSpan.textContent = data.likeCount || 0;
+
+              const commentSpan = postEl.querySelector(`.count-comment-${id}`);
+              if (commentSpan) commentSpan.textContent = data.commentCount || 0;
+            }
           }
         }
 
         if (change.type === "removed") {
-          // 🛡️ THE BLANK SCREEN FIX:
-          // We check if the document actually stopped existing in the database.
-          // If it still exists but just fell out of the "Top 15" limit, we IGNORE the removal.
-          // This keeps your current screen full while the new posts wait in the buffer.
-          if (!snapshot.docs.find(d => d.id === id)) {
+          const stillInLimit = snapshot.docs.some(doc => doc.id === id);
+          if (!stillInLimit) {
+            // Anti-Vanish: It just fell out of the Top 15, keep it!
+            return;
+          } else {
+            // Real removal from DB
             visiblePosts = visiblePosts.filter(p => p.id !== id);
-            processedIds.delete(id);
-            needsRender = true;
+            const elToRemove = document.querySelector(`[data-id="${id}"]`);
+            if (elToRemove) elToRemove.remove();
           }
         }
-      });
-
-      if (needsRender) renderListItems(visiblePosts);
-    });
+      }); // End of docChanges().forEach
+    }, (error) => {
+      console.error("Snapshot error:", error);
+    }); // End of onSnapshot
 
   } catch (err) {
     console.error("Feed failed:", err);
@@ -558,154 +587,141 @@ async function sharePost(text, platform) {
   }
 }
 
+function createPostNode(item) {
+  // 1. Create the base container
+  const el = document.createElement('div');
+  el.setAttribute('data-id', item.id);
+  el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative";
+
+  // 2. Logic: Time, Fonts, and Tags
+  const time = getRelativeTime(item.createdAt);
+  const fontClass = item.font || 'font-sans'; 
+  const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
+  
+  const tagDisplay = item.uniqueTag 
+    ? `<span class="text-brand-500 font-bold text-[11px] bg-brand-50 px-2 py-0.5 rounded-full">${item.uniqueTag}</span>`
+    : `<span class="text-slate-400 font-medium text-[11px] bg-slate-50 px-2 py-0.5 rounded-full">#draft</span>`;
+
+  // 3. Logic: Likes & Comments
+  const hasCommentsAccess = item.isFirebase || item.firebaseId;
+  const realId = item.isFirebase ? item.id : item.firebaseId;
+  const commentCount = item.commentCount || 0; 
+  const likeCount = item.likeCount || 0;
+  
+  const myLikes = JSON.parse(localStorage.getItem('my_likes_cache')) || {};
+  const isLiked = !!myLikes[realId];
+  const heartFill = isLiked ? 'fill-red-500 text-red-500' : 'fill-none text-slate-400 group-hover:text-red-500';
+  const countColor = isLiked ? 'text-red-600' : 'text-slate-500';
+
+  const interactiveButtonsHtml = `
+    <div class="flex items-center gap-5">
+      <div class="like-trigger group flex items-center gap-1.5 cursor-pointer transition-colors"
+           onclick="toggleLike(event, '${realId}')">
+        <div class="hover:scale-110 transition-transform duration-200">
+           <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-heart ${heartFill}" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+             <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path>
+           </svg>
+        </div>
+        <span class="text-sm font-semibold ${countColor} count-like-${realId}">${likeCount}</span>
+      </div>
+      <div class="group flex items-center gap-1.5 relative cursor-pointer text-brand-500 hover:text-brand-700 transition-colors">
+        <div class="hover:scale-110 transition-transform duration-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-message-circle-2" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+             <path d="M3 20l1.3 -3.9a9 8 0 1 1 3.4 2.9l-4.7 1"></path>
+          </svg>
+        </div>
+        <span class="text-sm font-semibold">${commentCount}</span>
+      </div>
+    </div>
+  `;
+
+  const actionArea = hasCommentsAccess ? interactiveButtonsHtml : `<span class="text-xs text-slate-400 font-medium italic">Private Draft</span>`;
+
+  // 4. Logic: Share Menu
+  const allowedPlatforms = getSmartShareButtons(item.content);
+  let menuHtml = '';
+  allowedPlatforms.forEach(p => {
+    menuHtml += `<button class="share-icon-btn ${p.classes}" data-platform="${p.id}" title="Share on ${p.name}">${p.icon}</button>`;
+  });
+
+  const shareComponent = `
+    <div class="share-container relative z-20">
+      <div class="share-menu" id="menu-${item.id}">${menuHtml}</div>
+      <button class="share-trigger-btn" onclick="toggleShare(event, 'menu-${item.id}')" title="Share Options">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
+        </svg>
+      </button>
+    </div>
+  `;
+
+  const footerHtml = `<div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
+
+  // 5. Inject HTML
+  el.innerHTML = `
+    <div class="flex justify-between items-start mb-2">
+      <div class="flex items-center gap-2">
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
+          ${item.isFirebase ? 'Global' : 'Local'}
+        </span>
+        <span class="text-xs text-slate-500 font-medium">${time}</span>
+      </div>
+    </div>
+    <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] pointer-events-none ${fontClass}">${cleanText(item.content)}</p>
+    ${footerHtml}
+  `;
+
+  // 6. Delete Button (Manual Node Creation)
+  if (!item.isFirebase || isMyGlobalPost) {
+    const delBtn = document.createElement('button');
+    delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
+    delBtn.innerHTML = "✕";
+    delBtn.onclick = (e) => { 
+      e.stopPropagation(); 
+      item.isFirebase ? deleteGlobal(item.id) : deleteLocal(item.id); 
+    };
+    el.appendChild(delBtn);
+  }
+
+  // 7. Click Handler for Modal
+  el.onclick = (e) => {
+    if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) return;
+    openModal(item);
+  };
+
+  // 8. Share Button Handlers
+  const platformBtns = el.querySelectorAll('.share-icon-btn');
+  platformBtns.forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const platform = btn.getAttribute('data-platform');
+      sharePost(item.content, platform);
+      const menu = el.querySelector('.share-menu');
+      if (menu) menu.classList.remove('active');
+    };
+  });
+
+  return el;
+}
+
 function renderListItems(items) {
-	DOM.list.innerHTML = ''; 
-	
+  // Clear the list only on full re-renders
+  DOM.list.innerHTML = ''; 
+  
   if (items.length === 0) {
-    DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl"><p class="text-slate-500">No thoughts here yet.</p></div>`;
+    DOM.list.innerHTML = `
+      <div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl">
+        <p class="text-slate-500">No thoughts here yet.</p>
+      </div>`;
     return;
   }
 
+  // Use the new builder for each item
   items.forEach(item => {
-    const el = document.createElement('div');
-    el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative";
-    const time = getRelativeTime(item.createdAt);
-    const fontClass = item.font || 'font-sans'; 
-    const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
-	
-	const tagDisplay = item.uniqueTag 
-      ? `<span class="text-brand-500 font-bold text-[11px] bg-brand-50 px-2 py-0.5 rounded-full">${item.uniqueTag}</span>`
-      : `<span class="text-slate-400 font-medium text-[11px] bg-slate-50 px-2 py-0.5 rounded-full">#draft</span>`;
-    
-    // ============================================================
-    // LOGIC: Likes & Comments
-    // ============================================================
-    const hasCommentsAccess = item.isFirebase || item.firebaseId;
-    const realId = item.isFirebase ? item.id : item.firebaseId;
-    
-    const commentCount = item.commentCount || 0; 
-    const likeCount = item.likeCount || 0;
-    
-    const myLikes = JSON.parse(localStorage.getItem('my_likes_cache')) || {};
-    const isLiked = !!myLikes[realId];
-
-    const heartFill = isLiked ? 'fill-red-500 text-red-500' : 'fill-none text-slate-400 group-hover:text-red-500';
-    const countColor = isLiked ? 'text-red-600' : 'text-slate-500';
-
-    const interactiveButtonsHtml = `
-      <div class="flex items-center gap-5">
-        
-        <div class="like-trigger group flex items-center gap-1.5 cursor-pointer transition-colors"
-             onclick="toggleLike(event, '${realId}')">
-          <div class="hover:scale-110 transition-transform duration-200">
-             <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-heart ${heartFill}" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-               <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-               <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path>
-             </svg>
-          </div>
-          <span class="text-sm font-semibold ${countColor} count-like-${realId}">${likeCount}</span>
-        </div>
-
-        <div class="group flex items-center gap-1.5 relative cursor-pointer text-brand-500 hover:text-brand-700 transition-colors">
-          <div class="hover:scale-110 transition-transform duration-200">
-            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-message-circle-2" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-               <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-               <path d="M3 20l1.3 -3.9a9 8 0 1 1 3.4 2.9l-4.7 1"></path>
-            </svg>
-          </div>
-          <span class="text-sm font-semibold">${commentCount}</span>
-        </div>
-
-      </div>
-    `;
-
-    const actionArea = hasCommentsAccess 
-      ? interactiveButtonsHtml 
-      : `<span class="text-xs text-slate-400 font-medium italic">Private Draft</span>`;
-    
-    // ============================================================
-    
-    const allowedPlatforms = getSmartShareButtons(item.content);
-    let menuHtml = '';
-    allowedPlatforms.forEach(p => {
-      menuHtml += `
-        <button class="share-icon-btn ${p.classes}" 
-          data-platform="${p.id}" 
-          title="Share on ${p.name}">
-          ${p.icon}
-        </button>
-      `;
-    });
-
-    const shareComponent = `
-      <div class="share-container relative z-20">
-        <div class="share-menu" id="menu-${item.id}">
-          ${menuHtml}
-        </div>
-        <button class="share-trigger-btn" onclick="toggleShare(event, 'menu-${item.id}')" title="Share Options">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
-          </svg>
-        </button>
-      </div>
-    `;
-
-    const footerHtml = `
-      <div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
-        ${actionArea}
-        ${shareComponent}
-      </div>
-    `;
-
-    el.innerHTML = `
-      <div class="flex justify-between items-start mb-2">
-        <div class="flex items-center gap-2">
-          <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
-            ${item.isFirebase ? 'Global' : 'Local'}
-          </span>
-          <span class="text-xs text-slate-500 font-medium">${time}</span>
-        </div>
-      </div>
-      <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] pointer-events-none ${fontClass}">${cleanText(item.content)}</p>
-      ${footerHtml}
-    `;
-
-    if (!item.isFirebase || isMyGlobalPost) {
-      const delBtn = document.createElement('button');
-      delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
-      delBtn.innerHTML = "✕";
-      delBtn.onclick = (e) => { 
-        e.stopPropagation(); 
-        item.isFirebase ? deleteGlobal(item.id) : deleteLocal(item.id); 
-      };
-      el.appendChild(delBtn);
-    }
-
-    // ✅ FIXED CLICK HANDLER HERE
-    el.onclick = (e) => {
-      // If we clicked a button, the share menu, OR the new like trigger... IGNORE IT.
-      if (e.target.closest('button') || 
-          e.target.closest('.share-container') || 
-          e.target.closest('.like-trigger')) return;
-      
-      openModal(item);
-    };
-
-    const platformBtns = el.querySelectorAll('.share-icon-btn');
-    platformBtns.forEach(btn => {
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        const platform = btn.getAttribute('data-platform');
-        sharePost(item.content, platform);
-        
-        const menu = el.querySelector('.share-menu');
-        const trigger = el.querySelector('.share-trigger-btn');
-        if (menu) menu.classList.remove('active');
-        if (trigger) trigger.classList.remove('active');
-      };
-    });
-    
-    DOM.list.appendChild(el);
+    const postNode = createPostNode(item);
+    DOM.list.appendChild(postNode);
   });
 }
 
