@@ -221,26 +221,42 @@ async function getNextUniqueTag() {
 // Drip Feed
 // ==========================================
 
+// ==========================================
+// DRIP FEED (CONSTANT SPEED)
+// ==========================================
 function startDripFeed() {
+  // Clear any existing timer to prevent double-firing
   if (dripTimeout) clearTimeout(dripTimeout);
 
   function drip() {
     if (postBuffer.length > 0) {
+      // 1. Extract the oldest post from the buffer
       const nextPost = postBuffer.shift();
       
-      // Ensure no duplicates
+      // 2. Security Check: Only add if it's not already on the screen
       if (!visiblePosts.some(p => p.id === nextPost.id)) {
+        // Add to the top of the visible array
         visiblePosts.unshift(nextPost);
-        renderListItems(visiblePosts); // Redraw the UI
+        
+        // 3. Keep the feed size manageable (limit to 100 posts)
+        if (visiblePosts.length > 100) visiblePosts.pop();
+
+        // 4. Update the actual UI
+        renderListItems(visiblePosts);
       }
     }
     
-    // Slow down for live traffic (7s), or go fast (200ms) if there's a backlog
-    const delay = postBuffer.length > 25 ? 7000 : 21000;
+    // 5. CONSTANT DELAY: Exactly 10 seconds
+    const delay = 20000; 
+
+    // 6. Schedule the next check
     dripTimeout = setTimeout(drip, delay);
+    
+    // 7. Refresh the "New Posts" Pill count
     updateBufferUI();
   }
   
+  // Initialize the first drip cycle
   drip();
 }
 
