@@ -220,10 +220,6 @@ async function getNextUniqueTag() {
 // ==========================================
 // Drip Feed
 // ==========================================
-
-// ==========================================
-// DRIP FEED (CONSTANT SPEED)
-// ==========================================
 function startDripFeed() {
   // Clear any existing timer to prevent double-firing
   if (dripTimeout) clearTimeout(dripTimeout);
