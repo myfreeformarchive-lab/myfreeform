@@ -393,7 +393,9 @@ async function subscribePublicFeed() {
   processedIds.clear();
   if (dripTimeout) clearTimeout(dripTimeout);
 
-  DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium">Connecting...</div>';
+  if (!isAppending) {
+    DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Connecting...</div>';
+  }
 
   try {
     const q = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(currentLimit));
