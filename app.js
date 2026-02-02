@@ -1,9 +1,37 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
 import { 
-  getFirestore, collection, addDoc, deleteDoc, doc, updateDoc,
+  getFirestore, 
+  collection as firestoreCol, // Renamed
+  doc as firestoreDoc,        // Renamed
+  addDoc, deleteDoc, updateDoc,
   query, orderBy, limit, serverTimestamp, onSnapshot,
   writeBatch, getDocs, increment, setDoc, getDoc, runTransaction, where
 } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
+
+// ==========================================
+// 🛠 SENIOR DEBUGGER (Place this right here)
+// ==========================================
+const doc = (...args) => {
+  // Check if any part of the path is missing
+  if (args.some(arg => arg === undefined || arg === null || arg === "")) {
+    console.group("%c ❌ ILLEGAL DOC PATH DETECTED", "color: white; background: red; padding: 4px;");
+    console.error("Arguments passed to doc():", args);
+    console.trace("Check the stack trace below to find the exact function calling this:");
+    console.groupEnd();
+  }
+  return firestoreDoc(...args);
+};
+
+const collection = (...args) => {
+  if (args.some(arg => arg === undefined || arg === null || arg === "")) {
+    console.group("%c ❌ ILLEGAL COLLECTION PATH DETECTED", "color: white; background: red; padding: 4px;");
+    console.error("Arguments passed to collection():", args);
+    console.trace("Check the stack trace below to find the exact function calling this:");
+    console.groupEnd();
+  }
+  return firestoreCol(...args);
+};
+// ==========================================
 
 const firebaseConfig = {
   apiKey: "AIzaSyBD-8hcoAuTFaAhgSy-WIyQX_iI37uokTw",
