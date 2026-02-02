@@ -42,7 +42,8 @@ const DOM = {
   sendComment: document.getElementById('sendCommentBtn'),
   emojiButtons: document.querySelectorAll('.emoji-btn'),
   desktopEmojiTrigger: document.getElementById('desktopEmojiTrigger'),
-  desktopEmojiPopup: document.getElementById('desktopEmojiPopup')
+  desktopEmojiPopup: document.getElementById('desktopEmojiPopup'),
+  bufferPill: document.getElementById('bufferPill')
 };
 
 let currentTab = localStorage.getItem('freeform_tab_pref') || 'private';
@@ -55,6 +56,12 @@ let selectedFont = localStorage.getItem('freeform_font_pref') || 'font-sans';
 let publicUnsubscribe = null;
 let commentsUnsubscribe = null;
 let activePostId = null; 
+
+// Add these to your existing variables
+let visiblePosts = [];   // What the user currently sees
+let postBuffer = [];     // New posts waiting to "drip" in
+let dripInterval = null; // The timer
+let isInitialLoad = true; // To handle the very first connection
 
 // ==========================================
 // 2. INITIALIZATION
@@ -212,6 +219,57 @@ async function getNextUniqueTag() {
 }
 
 // ==========================================
+// Drip Feed
+// ==========================================
+
+function startDripFeed() {
+  if (dripInterval) clearInterval(dripInterval);
+
+  dripInterval = setInterval(() => {
+    // Only drip if there is something in the buffer
+    if (postBuffer.length > 0) {
+      
+      // 1. Move oldest waiting post to visible list
+      const nextPost = postBuffer.shift(); 
+      visiblePosts.unshift(nextPost);
+
+      // 2. Cap the feed size to prevent memory leaks (keep max 100)
+      if (visiblePosts.length > 100) visiblePosts.pop();
+
+      // 3. Render gracefully
+      // We only re-render the list, but we keep the scroll position or animate
+      renderListItems(visiblePosts);
+      
+      // 4. Update the "New Posts" UI Pill
+      updateBufferUI();
+    }
+  }, 7000); // 7 Seconds Heartbeat
+}
+
+function updateBufferUI() {
+  if (postBuffer.length > 0) {
+    DOM.bufferPill.classList.remove('translate-y-20', 'opacity-0');
+    DOM.bufferPill.innerHTML = `
+      <span class="font-bold">${postBuffer.length}</span> new posts pending
+      <span class="ml-2 text-[10px] opacity-70">(Click to show all)</span>
+    `;
+  } else {
+    DOM.bufferPill.classList.add('translate-y-20', 'opacity-0');
+  }
+}
+
+// Allow user to manually flush the buffer if they are impatient
+function flushBuffer() {
+  if (postBuffer.length === 0) return;
+  visiblePosts = [...postBuffer, ...visiblePosts];
+  postBuffer = [];
+  renderListItems(visiblePosts);
+  updateBufferUI();
+}
+
+window.flushBuffer = flushBuffer;
+
+// ==========================================
 // 3. CORE FUNCTIONS (Feed & Tabs)
 // ==========================================
 
@@ -306,27 +364,99 @@ function subscribeArchiveSync() {
 
 function subscribePublicFeed() {
   if (publicUnsubscribe) publicUnsubscribe();
+  
+  // Reset State
+  isInitialLoad = true;
+  visiblePosts = [];
+  postBuffer = [];
+  
+  // Clear any existing drip timer
+  if (dripInterval) clearInterval(dripInterval);
+  
+  // Start the Drip Feed Loop (Defined below)
+  startDripFeed();
+
   const q = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(currentLimit));
   DOM.loadTrigger.style.display = 'flex'; 
 
   publicUnsubscribe = onSnapshot(q, (snapshot) => {
-    const posts = snapshot.docs.map(doc => {
-      const data = doc.data();
-      const id = doc.id;
+    let needsRender = false;
 
-      // ✅ SYNC: If this post is in our local archive, update its count to match the server
-      updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
+    snapshot.docChanges().forEach((change) => {
+      const data = change.doc.data();
+      const id = change.doc.id;
+      const postObj = { id, ...data, isFirebase: true };
 
-      return { id, ...data, isFirebase: true };
+      // ====================================================
+      // CASE 1: NEW POST ADDED
+      // ====================================================
+      if (change.type === "added") {
+        
+        // A. If it's the very first load, show everything instantly
+        if (isInitialLoad) {
+          visiblePosts.push(postObj);
+          // (We don't set needsRender here, we do it after the loop for initial load)
+        } 
+        // B. If it's MY post, show instantly (Instant Gratification)
+        else if (data.authorId === MY_USER_ID) {
+           visiblePosts.unshift(postObj);
+           needsRender = true;
+        } 
+        // C. If it's someone else's new post, put it in the Waiting Room (Buffer)
+        else {
+           // Prevent duplicates
+           const alreadyVisible = visiblePosts.find(p => p.id === id);
+           const alreadyBuffered = postBuffer.find(p => p.id === id);
+           
+           if (!alreadyVisible && !alreadyBuffered) {
+             postBuffer.push(postObj);
+             updateBufferUI(); // Update the "1 new post" pill
+           }
+        }
+      }
+
+      // ====================================================
+      // CASE 2: LIVE UPDATES (Likes/Comments) - KEEP INSTANT
+      // ====================================================
+      if (change.type === "modified") {
+        // ✅ 1. SYNC LOCAL ARCHIVE (Your original logic)
+        updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
+
+        // ✅ 2. UPDATE VISIBLE FEED INSTANTLY
+        // Find the post in our current visible list
+        const index = visiblePosts.findIndex(p => p.id === id);
+        
+        if (index !== -1) {
+          // Update the specific post data in our array
+          visiblePosts[index] = postObj;
+          needsRender = true; // Trigger a re-render to show the new count
+        }
+      }
+
+      // ====================================================
+      // CASE 3: POST DELETED
+      // ====================================================
+      if (change.type === "removed") {
+        visiblePosts = visiblePosts.filter(p => p.id !== id);
+        postBuffer = postBuffer.filter(p => p.id !== id);
+        needsRender = true;
+      }
     });
 
-    DOM.list.innerHTML = '';
-    renderListItems(posts);
-    isLoadingMore = false;
-    DOM.loadTrigger.style.opacity = '0';
+    // Final Render Trigger
+    if (isInitialLoad) {
+      // Sort first load to be safe (descending)
+      visiblePosts.sort((a, b) => b.createdAt - a.createdAt);
+      renderListItems(visiblePosts);
+      isInitialLoad = false;
+      isLoadingMore = false;
+      DOM.loadTrigger.style.opacity = '0';
+    } else if (needsRender) {
+      renderListItems(visiblePosts);
+    }
+
   }, (error) => {
     console.error("Snapshot error:", error);
-    // If it fails, clear skeletons and show error
     DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Unable to load feed.</div>`;
   });
 }
