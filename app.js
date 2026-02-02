@@ -226,30 +226,75 @@ async function getNextUniqueTag() {
 function startDripFeed() {
   if (dripTimeout) clearTimeout(dripTimeout);
 
-  function drip() {
+  async function drip() {
+    // 1. If buffer is empty, refill it
+    if (postBuffer.length === 0) {
+      await refillBufferRandomly(1);
+    }
+
+    // 2. Drip the next item
     if (postBuffer.length > 0) {
       const nextPost = postBuffer.shift();
-      
-      // 1. Check if it's already there
-      if (!visiblePosts.some(p => p.id === nextPost.id)) {
-        visiblePosts.unshift(nextPost);
+      visiblePosts.unshift(nextPost);
+      injectSinglePost(nextPost, 'top');
 
-        // 2. INJECT ONLY ONE ITEM (No full re-render!)
-        injectSinglePost(nextPost, 'top');
-
-        // 3. Keep the feed size manageable
-        if (visiblePosts.length > 100) {
-          visiblePosts.pop();
-          if (DOM.list.lastElementChild) DOM.list.lastElementChild.remove();
-        }
+      if (visiblePosts.length > 50) {
+        visiblePosts.pop();
+        if (DOM.list.lastElementChild) DOM.list.lastElementChild.remove();
       }
     }
     
-    dripTimeout = setTimeout(drip, 20000); // 20-second drip
     updateBufferUI();
+    // 15 seconds is a nice "slow" pace for discovery
+    dripTimeout = setTimeout(drip, 15000); 
   }
-  
+
   drip();
+}
+
+function updateUISurgically(id, data) {
+  updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
+  
+  const postEl = document.querySelector(`[data-id="${id}"]`);
+  if (postEl) {
+    const likeSpan = postEl.querySelector(`.count-like-${id}`);
+    if (likeSpan) likeSpan.textContent = data.likeCount || 0;
+
+    const commentSpan = postEl.querySelector(`.count-comment-${id}`);
+    if (commentSpan) commentSpan.textContent = data.commentCount || 0;
+  }
+}
+
+async function refillBufferRandomly(count = 1) {
+  const counterRef = doc(db, "metadata", "postCounter");
+  const counterSnap = await getDoc(counterRef);
+  
+  if (!counterSnap.exists()) return;
+
+  const maxId = counterSnap.data().count;
+  // We sample from the last 2,000 posts for a "fresh" feel
+  const minId = Math.max(1, maxId - 2000); 
+
+  const randomTags = [];
+  while(randomTags.length < count) {
+    const rand = Math.floor(Math.random() * (maxId - minId + 1) + minId);
+    const tag = `UID:${rand}`;
+    if (!randomTags.includes(tag)) randomTags.push(tag);
+  }
+
+  // Fetch only these specific random posts
+  const q = query(collection(db, "globalPosts"), where("uniqueTag", "in", randomTags));
+  const querySnapshot = await getDocs(q);
+  
+  querySnapshot.forEach((doc) => {
+    const post = { id: doc.id, ...doc.data(), isFirebase: true };
+    if (!processedIds.has(post.id)) {
+      postBuffer.push(post);
+      processedIds.add(post.id);
+    }
+  });
+
+  updateBufferUI();
 }
 
 function injectSinglePost(item, position = 'top') {
@@ -383,7 +428,6 @@ function renderPrivateBatch() {
 function subscribeArchiveSync() {
   if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
 
-  // Query only Global posts where you are the author
   const q = query(
     collection(db, "globalPosts"), 
     where("authorId", "==", MY_USER_ID)
@@ -392,8 +436,20 @@ function subscribeArchiveSync() {
   publicUnsubscribe = onSnapshot(q, (snapshot) => {
     snapshot.docs.forEach(doc => {
       const data = doc.data();
-      // Update the local storage and rerender the UI automatically
-      updateLocalPostWithServerData(doc.id, data.commentCount || 0, data.likeCount || 0);
+      const id = doc.id;
+      
+      // 1. Update background storage
+      updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
+
+      // 2. ✅ THE FIX: Update the screen live in the Private Tab
+      const postEl = document.querySelector(`[data-id="${id}"]`);
+      if (postEl) {
+        const likeSpan = postEl.querySelector(`.count-like-${id}`);
+        if (likeSpan) likeSpan.textContent = data.likeCount || 0;
+
+        const commentSpan = postEl.querySelector(`.count-comment-${id}`);
+        if (commentSpan) commentSpan.textContent = data.commentCount || 0;
+      }
     });
   }, (error) => {
     console.error("Archive sync failed:", error);
@@ -413,104 +469,49 @@ async function subscribePublicFeed() {
   if (dripTimeout) clearTimeout(dripTimeout);
 
   if (!isAppending) {
-    DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Connecting...</div>';
+    DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Discovering thoughts...</div>';
   }
 
   try {
-    const q = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(currentLimit));
-
-    // --- PHASE A: STABLE INITIAL LOAD ---
-    const initialSnapshot = await getDocs(q);
-
-    initialSnapshot.forEach(doc => {
-      const post = { id: doc.id, ...doc.data(), isFirebase: true };
-      visiblePosts.push(post);
-      processedIds.add(doc.id);
-    });
-
+    // --- PHASE A: INITIAL RANDOM SEED ---
+    // Instead of newest 15, let's grab 15 random ones to start the session
+    await refillBufferRandomly(15); 
+    
+    // Move from buffer to visible immediately for the first load
+    visiblePosts = [...postBuffer];
+    postBuffer = []; 
     renderListItems(visiblePosts);
+    
     DOM.loadTrigger.style.opacity = '0';
 
+    // Start the periodic "Drip & Refill" loop
     startDripFeed();
 
-    // --- PHASE B: LIVE WATCHER ---
-    publicUnsubscribe = onSnapshot(q, (snapshot) => {
+    // --- PHASE B: THE EGO-LISTENER ---
+    // We only watch for YOUR posts live. This costs almost nothing in performance.
+    const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
+    
+    publicUnsubscribe = onSnapshot(myPostsQuery, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
-        const data = change.doc.data();
         const id = change.doc.id;
-        const postObj = { id, ...data, isFirebase: true };
+        const postObj = { id, ...change.doc.data(), isFirebase: true };
 
-        if (change.type === "added") {
-  if (!processedIds.has(id)) {
-    processedIds.add(id);
-
-    if (isAppending) {
-      // 🚀 FIX: If we are scrolling for more, just put them at the BOTTOM
-      // No drip, no buffer. These are old posts.
-      visiblePosts.push(postObj); 
-      injectSinglePost(postObj, 'bottom'); 
-    } else {
-      // Normal live behavior
-      if (data.authorId === MY_USER_ID) {
-        visiblePosts.unshift(postObj);
-        injectSinglePost(postObj, 'top'); 
-      } else {
-        postBuffer.push(postObj);
-        updateBufferUI();
-      }
-    }
-  }
-}
-
-       if (change.type === "modified") {
-  // 1. Always update your background storage (LocalStorage)
-  updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
-
-  // 2. Update the BUFFER (The Waiting Room)
-  // If the post is waiting to drip, we update the data so it's fresh when it arrives.
-  const bufferIdx = postBuffer.findIndex(p => p.id === id);
-  if (bufferIdx !== -1) {
-    postBuffer[bufferIdx] = postObj;
-    console.log("Buffered post updated in background.");
-  }
-
-  // 3. Update the VISIBLE FEED (The Screen)
-  const visibleIdx = visiblePosts.findIndex(p => p.id === id);
-  if (visibleIdx !== -1) {
-    visiblePosts[visibleIdx] = postObj;
-
-    // Surgical DOM Update: No flickering, just change the numbers
-    const postEl = document.querySelector(`[data-id="${id}"]`);
-    if (postEl) {
-      const likeSpan = postEl.querySelector(`.count-like-${id}`);
-      if (likeSpan) likeSpan.textContent = data.likeCount || 0;
-
-      const commentSpan = postEl.querySelector(`.count-comment-${id}`);
-      if (commentSpan) commentSpan.textContent = data.commentCount || 0;
-    }
-  }
-}
-
-        if (change.type === "removed") {
-          const stillInLimit = snapshot.docs.some(doc => doc.id === id);
-          if (!stillInLimit) {
-            // Anti-Vanish: It just fell out of the Top 15, keep it!
-            return;
-          } else {
-            // Real removal from DB
-            visiblePosts = visiblePosts.filter(p => p.id !== id);
-            const elToRemove = document.querySelector(`[data-id="${id}"]`);
-            if (elToRemove) elToRemove.remove();
-          }
+        if (change.type === "added" && !processedIds.has(id)) {
+          processedIds.add(id);
+          visiblePosts.unshift(postObj);
+          injectSinglePost(postObj, 'top'); // Show your post instantly
         }
-      }); // End of docChanges().forEach
-    }, (error) => {
-      console.error("Snapshot error:", error);
-    }); // End of onSnapshot
+        
+        // Handle likes/comments on YOUR posts specifically
+        if (change.type === "modified") {
+          updateUISurgically(id, change.doc.data());
+        }
+      });
+    });
 
   } catch (err) {
-    console.error("Feed failed:", err);
-    DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Error loading feed.</div>`;
+    console.error("Discovery failed:", err);
+    DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Error loading discovery feed.</div>`;
   }
 }
 
