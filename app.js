@@ -325,9 +325,11 @@ function updateBufferUI() {
 // Allow user to manually flush the buffer if they are impatient
 function flushBuffer() {
   if (postBuffer.length === 0) return;
-  visiblePosts = [...postBuffer, ...visiblePosts];
-  postBuffer = [];
-  renderListItems(visiblePosts);
+  while(postBuffer.length > 0) {
+    const next = postBuffer.shift();
+    visiblePosts.unshift(next);
+    injectSinglePost(next, 'top');
+  }
   updateBufferUI();
 }
 
@@ -468,51 +470,38 @@ async function subscribePublicFeed() {
   processedIds.clear();
   if (dripTimeout) clearTimeout(dripTimeout);
 
+  // 2. Initial UI (Only if not scrolling)
   if (!isAppending) {
     DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Discovering thoughts...</div>';
-  }
-
-  try {
-    // --- PHASE A: INITIAL RANDOM SEED ---
-    // Instead of newest 15, let's grab 15 random ones to start the session
-    await refillBufferRandomly(15); 
     
-    // Move from buffer to visible immediately for the first load
+    // PHASE A: INITIAL SEED
+    // Grab 15 random posts to fill the screen immediately
+    await refillBufferRandomly(15);
     visiblePosts = [...postBuffer];
     postBuffer = []; 
     renderListItems(visiblePosts);
-    
-    DOM.loadTrigger.style.opacity = '0';
-
-    // Start the periodic "Drip & Refill" loop
-    startDripFeed();
-
-    // --- PHASE B: THE EGO-LISTENER ---
-    // We only watch for YOUR posts live. This costs almost nothing in performance.
-    const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
-    
-    publicUnsubscribe = onSnapshot(myPostsQuery, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        const id = change.doc.id;
-        const postObj = { id, ...change.doc.data(), isFirebase: true };
-
-        if (change.type === "added" && !processedIds.has(id)) {
-          processedIds.add(id);
-          visiblePosts.unshift(postObj);
-          injectSinglePost(postObj, 'top'); // Show your post instantly
-        }
-        
-        // Handle likes/comments on YOUR posts specifically
-        if (change.type === "modified") {
-          updateUISurgically(id, change.doc.data());
-        }
-      });
-    });
-
-  } catch (err) {
-    console.error("Discovery failed:", err);
-    DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Error loading discovery feed.</div>`;
   }
+
+  // 3. Start Heartbeat
+  startDripFeed();
+
+  // 4. THE EGO-LISTENER (Minimal impact)
+  const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
+  publicUnsubscribe = onSnapshot(myPostsQuery, (snapshot) => {
+    snapshot.docChanges().forEach((change) => {
+      const id = change.doc.id;
+      const data = change.doc.data();
+      if (change.type === "added" && !processedIds.has(id)) {
+        processedIds.add(id);
+        const postObj = { id, ...data, isFirebase: true };
+        visiblePosts.unshift(postObj);
+        injectSinglePost(postObj, 'top');
+      }
+      if (change.type === "modified") {
+        updateUISurgically(id, data);
+      }
+    });
+  });
 }
 
 // ==========================================
@@ -812,23 +801,24 @@ function loadMoreData() {
   DOM.loadTrigger.style.visibility = 'visible';
   DOM.loadTrigger.style.opacity = '1';
 
-  setTimeout(() => {
+  if (currentTab === 'private') {
     currentLimit += BATCH_SIZE;
-    
-    if (currentTab === 'private') {
-      renderPrivateBatch();
+    renderPrivateBatch();
+    isLoadingMore = false;
+    DOM.loadTrigger.style.visibility = 'hidden';
+  } else {
+    // 🚀 NEW DISCOVERY LOGIC:
+    // Just grab 10 more random posts and append them
+    refillBufferRandomly(10).then(() => {
+      while(postBuffer.length > 0) {
+        const p = postBuffer.shift();
+        visiblePosts.push(p);
+        injectSinglePost(p, 'bottom');
+      }
       isLoadingMore = false;
       DOM.loadTrigger.style.visibility = 'hidden';
-    } else {
-      // 🚀 THE FIX: Set the flag BEFORE calling the feed
-      isAppending = true; 
-      subscribePublicFeed().then(() => {
-        isLoadingMore = false;
-        isAppending = false; // Reset it
-        DOM.loadTrigger.style.visibility = 'hidden';
-      });
-    }
-  }, 500);
+    });
+  }
 }
 
 async function handlePost() {
