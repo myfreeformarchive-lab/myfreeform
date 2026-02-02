@@ -7,7 +7,7 @@ import {
 
 const firebaseConfig = {
   apiKey: "AIzaSyBD-8hcoAuTFaAhgSy-WIyQX_iI37uokTw",
-  authDomain: "myfreeformarchive-8a786.firebaseapp.com",
+  authDomain: "myfreeform.page",
   projectId: "myfreeformarchive-8a786",
   storageBucket: "myfreeformarchive-8a786.appspot.com",
   messagingSenderId: "16237442482",
