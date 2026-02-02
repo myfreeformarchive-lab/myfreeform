@@ -57,9 +57,10 @@ let publicUnsubscribe = null;
 let commentsUnsubscribe = null;
 let activePostId = null; 
 
+// At the top of your script
 let visiblePosts = [];   
 let postBuffer = [];     
-let processedIds = new Set(); // 🛡️ Your duplicate insurance
+let processedIds = new Set(); 
 let dripTimeout = null;
 
 // ==========================================
@@ -221,38 +222,31 @@ async function getNextUniqueTag() {
 // Drip Feed
 // ==========================================
 function startDripFeed() {
-  // Clear any existing timer to prevent double-firing
   if (dripTimeout) clearTimeout(dripTimeout);
 
   function drip() {
     if (postBuffer.length > 0) {
-      // 1. Extract the oldest post from the buffer
       const nextPost = postBuffer.shift();
       
-      // 2. Security Check: Only add if it's not already on the screen
       if (!visiblePosts.some(p => p.id === nextPost.id)) {
-        // Add to the top of the visible array
         visiblePosts.unshift(nextPost);
         
-        // 3. Keep the feed size manageable (limit to 100 posts)
-        if (visiblePosts.length > 100) visiblePosts.pop();
-
-        // 4. Update the actual UI
+        // Cap visible posts at 50 to keep the mobile browser fast
+        if (visiblePosts.length > 50) visiblePosts.pop();
+        
         renderListItems(visiblePosts);
       }
     }
-    
-    // 5. CONSTANT DELAY: Exactly 20 seconds
-    const delay = 20000; 
 
-    // 6. Schedule the next check
+    // 🧠 SMART DELAY:
+    // If buffer > 10 posts: Drip every 2 seconds (Catch up)
+    // If buffer < 10 posts: Drip every 20 seconds (Zen mode)
+    const delay = postBuffer.length > 10 ? 2000 : 20000;
+
     dripTimeout = setTimeout(drip, delay);
-    
-    // 7. Refresh the "New Posts" Pill count
     updateBufferUI();
   }
   
-  // Initialize the first drip cycle
   drip();
 }
 
@@ -378,83 +372,78 @@ function subscribeArchiveSync() {
 async function subscribePublicFeed() {
   if (publicUnsubscribe) publicUnsubscribe();
   
-  // 1. Reset State
-  visiblePosts = [];
-  postBuffer = [];
-  processedIds.clear();
-  if (dripTimeout) clearTimeout(dripTimeout);
+  // 1. Only reset completely if the user is truly switching tabs
+  // We DON'T reset visiblePosts here if we are just updating the feed
+  // to prevent the "Blank Screen" flickering.
   
-  // Show a clean loader
-  DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium">Connecting to Global...</div>';
+  const q = query(
+    collection(db, "globalPosts"), 
+    orderBy("createdAt", "desc"), 
+    limit(currentLimit)
+  );
 
-  try {
-    const q = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(currentLimit));
+  publicUnsubscribe = onSnapshot(q, (snapshot) => {
+    let needsRender = false;
 
-    // --- PHASE A: STABLE INITIAL LOAD ---
-    // We get the first 15 posts once. This is 100% stable.
-    const initialSnapshot = await getDocs(q);
-    
-    initialSnapshot.forEach(doc => {
-      const post = { id: doc.id, ...doc.data(), isFirebase: true };
-      visiblePosts.push(post);
-      processedIds.add(doc.id); // Mark these as "already seen"
-    });
+    snapshot.docChanges().forEach((change) => {
+      const data = change.doc.data();
+      const id = change.doc.id;
+      const postObj = { id, ...data, isFirebase: true };
 
-    renderListItems(visiblePosts);
-    DOM.loadTrigger.style.opacity = '0';
+      // --- ADDED: NEW POSTS ---
+      if (change.type === "added") {
+        if (!processedIds.has(id)) {
+          processedIds.add(id);
 
-    // Start the Drip Engine
-    startDripFeed();
-
-    // --- PHASE B: LIVE WATCHER ---
-    // Now we listen for NEW posts only.
-    publicUnsubscribe = onSnapshot(q, (snapshot) => {
-      let needsRender = false;
-
-      snapshot.docChanges().forEach((change) => {
-        const data = change.doc.data();
-        const id = change.doc.id;
-        const postObj = { id, ...data, isFirebase: true };
-
-        if (change.type === "added") {
-          // Guard: Only process if we haven't seen this ID in Phase A
-          if (!processedIds.has(id)) {
-            processedIds.add(id);
-
-            if (data.authorId === MY_USER_ID) {
-              visiblePosts.unshift(postObj);
-              needsRender = true;
-            } else {
-              postBuffer.push(postObj);
-              updateBufferUI();
-            }
-          }
-        }
-
-        if (change.type === "modified") {
-          // Instant updates for Likes/Comments
-          const idx = visiblePosts.findIndex(p => p.id === id);
-          if (idx !== -1) {
-            visiblePosts[idx] = postObj;
-            updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
+          // If it's the first time we connect, or it's MY post: Instant
+          if (visiblePosts.length < 5 || data.authorId === MY_USER_ID) {
+            visiblePosts.push(postObj);
             needsRender = true;
+          } else {
+            // Everyone else goes to the waiting room
+            postBuffer.push(postObj);
           }
         }
+      }
 
-        if (change.type === "removed") {
-          visiblePosts = visiblePosts.filter(p => p.id !== id);
-          processedIds.delete(id);
+      // --- MODIFIED: LIKES/COMMENTS ---
+      if (change.type === "modified") {
+        const vIdx = visiblePosts.findIndex(p => p.id === id);
+        if (vIdx !== -1) {
+          visiblePosts[vIdx] = postObj;
           needsRender = true;
         }
-      });
+      }
 
-      if (needsRender) renderListItems(visiblePosts);
+      // --- REMOVED: ONLY IF DELETED ---
+      // We only remove from the screen if the post is actually GONE from Database
+      // We ignore "removal" from the Top 15 list to keep the UI stable
+      if (change.type === "removed") {
+        const metadata = change.doc.metadata;
+        // If it's not in the cache/sync anymore, it's likely a real deletion
+        if (!snapshot.docs.find(d => d.id === id)) {
+           // Only delete if it's a real database deletion, not just a window shift
+           visiblePosts = visiblePosts.filter(p => p.id !== id);
+           needsRender = true;
+        }
+      }
     });
 
-  } catch (err) {
-    console.error("Feed failed:", err);
-    DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Unable to reach the global feed.</div>`;
-  }
+    if (needsRender) {
+      // Keep everything strictly sorted by time so the UI makes sense
+      visiblePosts.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : Date.now();
+        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : Date.now();
+        return timeB - timeA;
+      });
+      renderListItems(visiblePosts);
+    }
+    
+    updateBufferUI();
+  });
+
+  // Ensure the drip engine is running
+  if (!dripTimeout) startDripFeed();
 }
 
 // ==========================================
