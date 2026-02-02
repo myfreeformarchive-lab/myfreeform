@@ -1,79 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
 import { 
-  getFirestore, 
-  collection as firestoreCol, 
-  doc as firestoreDoc,
-  onSnapshot as firestoreSnapshot, // 1. Added this rename
-  addDoc, deleteDoc, updateDoc,
-  query, orderBy, limit, serverTimestamp,
+  getFirestore, collection, addDoc, deleteDoc, doc, updateDoc,
+  query, orderBy, limit, serverTimestamp, onSnapshot,
   writeBatch, getDocs, increment, setDoc, getDoc, runTransaction, where
 } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
-
-// ==========================================
-// 🛠 SENIOR DEBUGGER SUITE
-// ==========================================
-
-// --- Path Debugger ---
-const doc = (...args) => {
-  if (args.some(arg => arg === undefined || arg === null || arg === "")) {
-    console.group("%c ❌ ILLEGAL DOC PATH DETECTED", "color: white; background: #e11d48; padding: 4px;");
-    console.error("Arguments passed to doc():", args);
-    console.trace("Stack Trace:");
-    console.groupEnd();
-  }
-  return firestoreDoc(...args);
-};
-
-const collection = (...args) => {
-  if (args.some(arg => arg === undefined || arg === null || arg === "")) {
-    console.group("%c ❌ ILLEGAL COLLECTION PATH DETECTED", "color: white; background: #e11d48; padding: 4px;");
-    console.error("Arguments passed to collection():", args);
-    console.trace("Stack Trace:");
-    console.groupEnd();
-  }
-  return firestoreCol(...args);
-};
-
-// --- Listener Debugger (The 400 Error Hunter) ---
-const onSnapshot = (...args) => {
-  const queryObj = args[0];
-  
-  // We extract the original error callback if it exists
-  // Firestore onSnapshot signature: (ref, onNext, onError) OR (ref, observerObj)
-  let originalError = null;
-  if (typeof args[2] === 'function') {
-    originalError = args[2];
-  } else if (args[1] && typeof args[1].error === 'function') {
-    originalError = args[1].error;
-  }
-
-  // Create our super-logger for the error
-  const debugError = (err) => {
-    console.group("%c 🔥 FIRESTORE LISTENER REJECTED (400)", "color: white; background: #f59e0b; padding: 4px;");
-    console.error("Error Code:", err.code);
-    console.error("Message:", err.message);
-    console.log("Query Details:", queryObj);
-    
-    if (err.message.includes("index")) {
-      console.warn("ADVICE: This is a missing index. Look for a link in the error message or the Network tab to create it.");
-    }
-    
-    console.trace("Listener was created here:");
-    console.groupEnd();
-
-    if (originalError) originalError(err);
-  };
-
-  // Replace the error callback in the arguments
-  if (typeof args[1] === 'function') {
-    // Standard signature: onSnapshot(q, next, error)
-    return firestoreSnapshot(args[0], args[1], debugError);
-  } else {
-    // Observer signature: onSnapshot(q, {next, error})
-    return firestoreSnapshot(args[0], { ...args[1], error: debugError });
-  }
-};
-// ==========================================
 
 const firebaseConfig = {
   apiKey: "AIzaSyBD-8hcoAuTFaAhgSy-WIyQX_iI37uokTw",
