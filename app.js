@@ -230,20 +230,14 @@ function startDripFeed() {
       
       if (!visiblePosts.some(p => p.id === nextPost.id)) {
         visiblePosts.unshift(nextPost);
-        
-        // Cap visible posts at 50 to keep the mobile browser fast
-        if (visiblePosts.length > 50) visiblePosts.pop();
-        
+        // Clean up bottom of feed to keep performance high
+        if (visiblePosts.length > 50) visiblePosts.pop(); 
         renderListItems(visiblePosts);
       }
     }
-
-    // 🧠 SMART DELAY:
-    // If buffer > 10 posts: Drip every 2 seconds (Catch up)
-    // If buffer < 10 posts: Drip every 20 seconds (Zen mode)
-    const delay = postBuffer.length > 10 ? 2000 : 20000;
-
-    dripTimeout = setTimeout(drip, delay);
+    
+    // Constant 20 seconds
+    dripTimeout = setTimeout(drip, 20000);
     updateBufferUI();
   }
   
@@ -372,78 +366,83 @@ function subscribeArchiveSync() {
 async function subscribePublicFeed() {
   if (publicUnsubscribe) publicUnsubscribe();
   
-  // 1. Only reset completely if the user is truly switching tabs
-  // We DON'T reset visiblePosts here if we are just updating the feed
-  // to prevent the "Blank Screen" flickering.
+  // 1. Reset State
+  visiblePosts = [];
+  postBuffer = [];
+  processedIds.clear();
+  if (dripTimeout) clearTimeout(dripTimeout);
   
-  const q = query(
-    collection(db, "globalPosts"), 
-    orderBy("createdAt", "desc"), 
-    limit(currentLimit)
-  );
+  DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium">Connecting...</div>';
 
-  publicUnsubscribe = onSnapshot(q, (snapshot) => {
-    let needsRender = false;
+  try {
+    const q = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(currentLimit));
 
-    snapshot.docChanges().forEach((change) => {
-      const data = change.doc.data();
-      const id = change.doc.id;
-      const postObj = { id, ...data, isFirebase: true };
-
-      // --- ADDED: NEW POSTS ---
-      if (change.type === "added") {
-        if (!processedIds.has(id)) {
-          processedIds.add(id);
-
-          // If it's the first time we connect, or it's MY post: Instant
-          if (visiblePosts.length < 5 || data.authorId === MY_USER_ID) {
-            visiblePosts.push(postObj);
-            needsRender = true;
-          } else {
-            // Everyone else goes to the waiting room
-            postBuffer.push(postObj);
-          }
-        }
-      }
-
-      // --- MODIFIED: LIKES/COMMENTS ---
-      if (change.type === "modified") {
-        const vIdx = visiblePosts.findIndex(p => p.id === id);
-        if (vIdx !== -1) {
-          visiblePosts[vIdx] = postObj;
-          needsRender = true;
-        }
-      }
-
-      // --- REMOVED: ONLY IF DELETED ---
-      // We only remove from the screen if the post is actually GONE from Database
-      // We ignore "removal" from the Top 15 list to keep the UI stable
-      if (change.type === "removed") {
-        const metadata = change.doc.metadata;
-        // If it's not in the cache/sync anymore, it's likely a real deletion
-        if (!snapshot.docs.find(d => d.id === id)) {
-           // Only delete if it's a real database deletion, not just a window shift
-           visiblePosts = visiblePosts.filter(p => p.id !== id);
-           needsRender = true;
-        }
-      }
+    // --- PHASE A: STABLE INITIAL LOAD ---
+    const initialSnapshot = await getDocs(q);
+    
+    initialSnapshot.forEach(doc => {
+      const post = { id: doc.id, ...doc.data(), isFirebase: true };
+      visiblePosts.push(post);
+      processedIds.add(doc.id); 
     });
 
-    if (needsRender) {
-      // Keep everything strictly sorted by time so the UI makes sense
-      visiblePosts.sort((a, b) => {
-        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : Date.now();
-        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : Date.now();
-        return timeB - timeA;
-      });
-      renderListItems(visiblePosts);
-    }
-    
-    updateBufferUI();
-  });
+    renderListItems(visiblePosts);
+    DOM.loadTrigger.style.opacity = '0';
 
-  // Ensure the drip engine is running
-  if (!dripTimeout) startDripFeed();
+    startDripFeed();
+
+    // --- PHASE B: LIVE WATCHER ---
+    publicUnsubscribe = onSnapshot(q, (snapshot) => {
+      let needsRender = false;
+
+      snapshot.docChanges().forEach((change) => {
+        const data = change.doc.data();
+        const id = change.doc.id;
+        const postObj = { id, ...data, isFirebase: true };
+
+        if (change.type === "added") {
+          if (!processedIds.has(id)) {
+            processedIds.add(id);
+
+            if (data.authorId === MY_USER_ID) {
+              visiblePosts.unshift(postObj);
+              needsRender = true;
+            } else {
+              postBuffer.push(postObj);
+              updateBufferUI();
+            }
+          }
+        }
+
+        if (change.type === "modified") {
+          const idx = visiblePosts.findIndex(p => p.id === id);
+          if (idx !== -1) {
+            visiblePosts[idx] = postObj;
+            updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
+            needsRender = true;
+          }
+        }
+
+        if (change.type === "removed") {
+          // 🛡️ THE BLANK SCREEN FIX:
+          // We check if the document actually stopped existing in the database.
+          // If it still exists but just fell out of the "Top 15" limit, we IGNORE the removal.
+          // This keeps your current screen full while the new posts wait in the buffer.
+          if (!snapshot.docs.find(d => d.id === id)) {
+            visiblePosts = visiblePosts.filter(p => p.id !== id);
+            processedIds.delete(id);
+            needsRender = true;
+          }
+        }
+      });
+
+      if (needsRender) renderListItems(visiblePosts);
+    });
+
+  } catch (err) {
+    console.error("Feed failed:", err);
+    DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Error loading feed.</div>`;
+  }
 }
 
 // ==========================================
