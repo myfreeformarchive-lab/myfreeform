@@ -236,7 +236,7 @@ function startDripFeed() {
     }
     
     // Slow down for live traffic (7s), or go fast (200ms) if there's a backlog
-    const delay = postBuffer.length > 5 ? 200 : 7000;
+    const delay = postBuffer.length > 25 ? 7000 : 21000;
     dripTimeout = setTimeout(drip, delay);
     updateBufferUI();
   }
