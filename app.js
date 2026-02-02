@@ -63,6 +63,8 @@ let postBuffer = [];
 let processedIds = new Set(); 
 let dripTimeout = null;
 
+let isAppending = false;
+
 // ==========================================
 // 2. INITIALIZATION
 // ==========================================
@@ -418,20 +420,26 @@ async function subscribePublicFeed() {
         const postObj = { id, ...data, isFirebase: true };
 
         if (change.type === "added") {
-          if (!processedIds.has(id)) {
-            processedIds.add(id);
+  if (!processedIds.has(id)) {
+    processedIds.add(id);
 
-            if (data.authorId === MY_USER_ID) {
-              // Priority: User's own post bypasses the buffer
-              visiblePosts.unshift(postObj);
-              injectSinglePost(postObj, 'top');
-            } else {
-              // Everyone else goes to the waiting room
-              postBuffer.push(postObj);
-              updateBufferUI();
-            }
-          }
-        }
+    if (isAppending) {
+      // 🚀 FIX: If we are scrolling for more, just put them at the BOTTOM
+      // No drip, no buffer. These are old posts.
+      visiblePosts.push(postObj); 
+      injectSinglePost(postObj, 'bottom'); 
+    } else {
+      // Normal live behavior
+      if (data.authorId === MY_USER_ID) {
+        visiblePosts.unshift(postObj);
+        injectSinglePost(postObj, 'top'); 
+      } else {
+        postBuffer.push(postObj);
+        updateBufferUI();
+      }
+    }
+  }
+}
 
        if (change.type === "modified") {
   // 1. Always update your background storage (LocalStorage)
@@ -776,26 +784,25 @@ function setupInfiniteScroll() {
 }
 
 function loadMoreData() {
-  if (isLoadingMore) return; 
+  if (isLoadingMore) return;
   isLoadingMore = true;
 
-  // Show the loader (using visibility so it keeps its physical space)
   DOM.loadTrigger.style.visibility = 'visible';
   DOM.loadTrigger.style.opacity = '1';
 
   setTimeout(() => {
     currentLimit += BATCH_SIZE;
-
+    
     if (currentTab === 'private') {
       renderPrivateBatch();
-      // Reset lock
       isLoadingMore = false;
       DOM.loadTrigger.style.visibility = 'hidden';
     } else {
-      // Re-subscribe with the new higher limit
+      // 🚀 THE FIX: Set the flag BEFORE calling the feed
+      isAppending = true; 
       subscribePublicFeed().then(() => {
-        // Reset lock after the new data is fetched
         isLoadingMore = false;
+        isAppending = false; // Reset it
         DOM.loadTrigger.style.visibility = 'hidden';
       });
     }
