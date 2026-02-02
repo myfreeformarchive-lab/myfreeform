@@ -58,10 +58,11 @@ let commentsUnsubscribe = null;
 let activePostId = null; 
 
 // Add these to your existing variables
-let visiblePosts = [];   // What the user currently sees
-let postBuffer = [];     // New posts waiting to "drip" in
-let dripInterval = null; // The timer
-let isInitialLoad = true; // To handle the very first connection
+let visiblePosts = [];   
+let postBuffer = [];     
+let dripInterval = null; 
+// ⏱️ The Anchor Point: Anything older than this is "History". Anything newer is "Live".
+const pageLoadTime = new Date();
 
 // ==========================================
 // 2. INITIALIZATION
@@ -365,11 +366,9 @@ function subscribeArchiveSync() {
 function subscribePublicFeed() {
   if (publicUnsubscribe) publicUnsubscribe();
 
-  // Reset Everything
-  isInitialLoad = true;
+  // Reset local state (but keep pageLoadTime constant!)
   visiblePosts = [];
   postBuffer = [];
-  
   if (dripInterval) clearInterval(dripInterval);
   startDripFeed();
 
@@ -378,84 +377,93 @@ function subscribePublicFeed() {
 
   publicUnsubscribe = onSnapshot(q, (snapshot) => {
     
-    // ====================================================
-    // 🚀 PHASE 1: INITIAL LOAD (The "Dump")
-    // ====================================================
-    // If this is the very first time we get data, take it ALL at once.
-    // Do not check for "added" events. Just paint the screen.
-    if (isInitialLoad) {
-      
-      visiblePosts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        isFirebase: true
-      }));
-
-      renderListItems(visiblePosts);
-      
-      // Mark initialization as done. 
-      // Next time this function triggers, it will go to Phase 2.
-      isInitialLoad = false; 
-      isLoadingMore = false;
-      DOM.loadTrigger.style.opacity = '0';
-      return; // 🛑 STOP HERE. Do not run the loop below.
-    }
-
-    // ====================================================
-    // 👁️ PHASE 2: LIVE WATCH (The "Drip")
-    // ====================================================
-    // This only runs for updates AFTER the screen is loaded.
     let needsRender = false;
 
-    snapshot.docChanges().forEach((change) => {
-      const data = change.doc.data();
-      const id = change.doc.id;
-      const postObj = { id, ...data, isFirebase: true };
+    // We iterate over ALL documents currently in the query.
+    // This is safer than .docChanges() because we check the "Source of Truth" every time.
+    snapshot.docs.forEach((doc) => {
+      const data = doc.data();
+      const id = doc.id;
+      
+      // 1. Convert Firestore Timestamp to JS Date object
+      const createdAt = data.createdAt ? data.createdAt.toDate() : new Date();
+      
+      const postObj = { 
+        id, 
+        ...data, 
+        isFirebase: true,
+        // Helper to keep sorted locally
+        timestamp: createdAt.getTime() 
+      };
 
-      if (change.type === "added") {
-        // 🛡️ DOUBLE CHECK: Ensure we don't already have this ID visible
-        // (This stops the ghost pending items)
-        if (visiblePosts.some(p => p.id === id)) return; 
-        if (postBuffer.some(p => p.id === id)) return;
+      // =========================================================
+      // CHECK 1: DO WE ALREADY HAVE THIS POST ON SCREEN?
+      // =========================================================
+      const visibleIndex = visiblePosts.findIndex(p => p.id === id);
 
-        // A. If it's MY post, show immediately
-        if (data.authorId === MY_USER_ID) {
-           visiblePosts.unshift(postObj);
+      if (visibleIndex !== -1) {
+        // We have it. Check if counts changed (Optimization)
+        const currentPost = visiblePosts[visibleIndex];
+        
+        if (currentPost.likeCount !== data.likeCount || currentPost.commentCount !== data.commentCount) {
+           // ✅ UPDATE: Sync counts immediately
+           visiblePosts[visibleIndex] = postObj;
+           updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
            needsRender = true;
-        } 
-        // B. If it's someone else's, buffer it
-        else {
-           postBuffer.push(postObj);
-           updateBufferUI();
         }
+        return; // Stop here, we processed this item.
       }
 
-      if (change.type === "modified") {
-        updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
-
-        // Update Visible Feed
-        const vIndex = visiblePosts.findIndex(p => p.id === id);
-        if (vIndex !== -1) {
-          visiblePosts[vIndex] = postObj;
-          needsRender = true;
-        }
+      // =========================================================
+      // CHECK 2: IS IT IN THE BUFFER WAITING?
+      // =========================================================
+      const bufferIndex = postBuffer.findIndex(p => p.id === id);
+      if (bufferIndex !== -1) {
+         // It's waiting. Update the data inside the buffer just in case (e.g. likes increased while waiting)
+         postBuffer[bufferIndex] = postObj;
+         return; // Stop here.
       }
 
-      if (change.type === "removed") {
-        visiblePosts = visiblePosts.filter(p => p.id !== id);
-        postBuffer = postBuffer.filter(p => p.id !== id);
+      // =========================================================
+      // CHECK 3: IT IS NEW TO US. WHERE DOES IT GO?
+      // =========================================================
+      
+      // A. IT IS MY POST (Always Instant)
+      if (data.authorId === MY_USER_ID) {
+        visiblePosts.unshift(postObj);
         needsRender = true;
+      }
+      
+      // B. IT IS "HISTORY" (Older than when we opened the app)
+      // We assume anything loaded in the first batch that is older than pageLoadTime 
+      // is just the initial feed.
+      else if (createdAt < pageLoadTime) {
+        visiblePosts.push(postObj);
+        needsRender = true;
+      }
+      
+      // C. IT IS "FUTURE" (Newer than when we opened the app)
+      // This is a truly new post from someone else. Drip it.
+      else {
+        postBuffer.push(postObj);
         updateBufferUI();
       }
     });
 
+    // Sort to ensure history is correct (descending)
+    visiblePosts.sort((a, b) => b.timestamp - a.timestamp);
+
     if (needsRender) {
       renderListItems(visiblePosts);
+      
+      // If we have content, hide the loader
+      if (visiblePosts.length > 0) {
+        DOM.loadTrigger.style.opacity = '0';
+      }
     }
 
   }, (error) => {
     console.error("Snapshot error:", error);
-    DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Unable to load feed.</div>`;
   });
 }
 
