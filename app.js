@@ -364,13 +364,12 @@ function subscribeArchiveSync() {
 
 function subscribePublicFeed() {
   if (publicUnsubscribe) publicUnsubscribe();
-  
-  // 1. HARD RESET
+
+  // Reset Everything
   isInitialLoad = true;
-  visiblePosts = []; // Clear the screen array
-  postBuffer = [];   // Clear the waiting room
+  visiblePosts = [];
+  postBuffer = [];
   
-  // Stop any running drip timer to prevent interference
   if (dripInterval) clearInterval(dripInterval);
   startDripFeed();
 
@@ -378,6 +377,34 @@ function subscribePublicFeed() {
   DOM.loadTrigger.style.display = 'flex'; 
 
   publicUnsubscribe = onSnapshot(q, (snapshot) => {
+    
+    // ====================================================
+    // 🚀 PHASE 1: INITIAL LOAD (The "Dump")
+    // ====================================================
+    // If this is the very first time we get data, take it ALL at once.
+    // Do not check for "added" events. Just paint the screen.
+    if (isInitialLoad) {
+      
+      visiblePosts = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        isFirebase: true
+      }));
+
+      renderListItems(visiblePosts);
+      
+      // Mark initialization as done. 
+      // Next time this function triggers, it will go to Phase 2.
+      isInitialLoad = false; 
+      isLoadingMore = false;
+      DOM.loadTrigger.style.opacity = '0';
+      return; // 🛑 STOP HERE. Do not run the loop below.
+    }
+
+    // ====================================================
+    // 👁️ PHASE 2: LIVE WATCH (The "Drip")
+    // ====================================================
+    // This only runs for updates AFTER the screen is loaded.
     let needsRender = false;
 
     snapshot.docChanges().forEach((change) => {
@@ -385,90 +412,44 @@ function subscribePublicFeed() {
       const id = change.doc.id;
       const postObj = { id, ...data, isFirebase: true };
 
-      // ====================================================
-      // CASE 1: NEW POST ADDED
-      // ====================================================
       if (change.type === "added") {
-        
-        // 🛡️ SECURITY GUARD: Check if we already have this ID anywhere
-        const inVisible = visiblePosts.some(p => p.id === id);
-        const inBuffer = postBuffer.some(p => p.id === id);
-        
-        // If it exists, STOP. Do not add it again.
-        if (inVisible || inBuffer) return; 
+        // 🛡️ DOUBLE CHECK: Ensure we don't already have this ID visible
+        // (This stops the ghost pending items)
+        if (visiblePosts.some(p => p.id === id)) return; 
+        if (postBuffer.some(p => p.id === id)) return;
 
-        // --- Logic branches ---
-        
-        // A. Initial Load (Dump everything instantly)
-        if (isInitialLoad) {
-          visiblePosts.push(postObj);
-        } 
-        // B. My Post (Instant Gratification)
-        else if (data.authorId === MY_USER_ID) {
+        // A. If it's MY post, show immediately
+        if (data.authorId === MY_USER_ID) {
            visiblePosts.unshift(postObj);
            needsRender = true;
         } 
-        // C. Others' Post (Send to Buffer)
+        // B. If it's someone else's, buffer it
         else {
            postBuffer.push(postObj);
            updateBufferUI();
         }
       }
 
-      // ====================================================
-      // CASE 2: LIVE UPDATES (Likes/Comments)
-      // ====================================================
       if (change.type === "modified") {
         updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
 
-        // Update in Visible Array
+        // Update Visible Feed
         const vIndex = visiblePosts.findIndex(p => p.id === id);
         if (vIndex !== -1) {
           visiblePosts[vIndex] = postObj;
           needsRender = true;
         }
-        
-        // Update in Buffer (if it's still waiting there)
-        const bIndex = postBuffer.findIndex(p => p.id === id);
-        if (bIndex !== -1) {
-          postBuffer[bIndex] = postObj;
-        }
       }
 
-      // ====================================================
-      // CASE 3: POST DELETED
-      // ====================================================
       if (change.type === "removed") {
-        // Remove from both arrays
-        const initialLen = visiblePosts.length;
         visiblePosts = visiblePosts.filter(p => p.id !== id);
         postBuffer = postBuffer.filter(p => p.id !== id);
-        
-        // Only render if we actually removed something visible
-        if (visiblePosts.length !== initialLen) {
-            needsRender = true;
-        }
+        needsRender = true;
         updateBufferUI();
       }
     });
 
-    // ====================================================
-    // FINAL RENDER CHECK
-    // ====================================================
-    if (isInitialLoad) {
-      // Sort strictly by date to ensure order is correct
-      visiblePosts.sort((a, b) => {
-          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-          return tB - tA;
-      });
-      
-      renderListItems(visiblePosts);
-      isInitialLoad = false;
-      isLoadingMore = false;
-      DOM.loadTrigger.style.opacity = '0';
-      
-    } else if (needsRender) {
+    if (needsRender) {
       renderListItems(visiblePosts);
     }
 
