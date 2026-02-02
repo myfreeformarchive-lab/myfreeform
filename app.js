@@ -433,23 +433,34 @@ async function subscribePublicFeed() {
           }
         }
 
-        if (change.type === "modified") {
-          const idx = visiblePosts.findIndex(p => p.id === id);
-          if (idx !== -1) {
-            visiblePosts[idx] = postObj;
-            updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
+       if (change.type === "modified") {
+  // 1. Always update your background storage (LocalStorage)
+  updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
 
-            // Surgical Update: Only change the numbers
-            const postEl = document.querySelector(`[data-id="${id}"]`);
-            if (postEl) {
-              const likeSpan = postEl.querySelector(`.count-like-${id}`);
-              if (likeSpan) likeSpan.textContent = data.likeCount || 0;
+  // 2. Update the BUFFER (The Waiting Room)
+  // If the post is waiting to drip, we update the data so it's fresh when it arrives.
+  const bufferIdx = postBuffer.findIndex(p => p.id === id);
+  if (bufferIdx !== -1) {
+    postBuffer[bufferIdx] = postObj;
+    console.log("Buffered post updated in background.");
+  }
 
-              const commentSpan = postEl.querySelector(`.count-comment-${id}`);
-              if (commentSpan) commentSpan.textContent = data.commentCount || 0;
-            }
-          }
-        }
+  // 3. Update the VISIBLE FEED (The Screen)
+  const visibleIdx = visiblePosts.findIndex(p => p.id === id);
+  if (visibleIdx !== -1) {
+    visiblePosts[visibleIdx] = postObj;
+
+    // Surgical DOM Update: No flickering, just change the numbers
+    const postEl = document.querySelector(`[data-id="${id}"]`);
+    if (postEl) {
+      const likeSpan = postEl.querySelector(`.count-like-${id}`);
+      if (likeSpan) likeSpan.textContent = data.likeCount || 0;
+
+      const commentSpan = postEl.querySelector(`.count-comment-${id}`);
+      if (commentSpan) commentSpan.textContent = data.commentCount || 0;
+    }
+  }
+}
 
         if (change.type === "removed") {
           const stillInLimit = snapshot.docs.some(doc => doc.id === id);
@@ -751,22 +762,42 @@ window.toggleShare = function(event, menuId) {
 // ==========================================
 function setupInfiniteScroll() {
   const observer = new IntersectionObserver((entries) => {
-    if (entries[0].isIntersecting && !isLoadingMore) loadMoreData();
-  }, { root: null, threshold: 0.1 });
+    // 0.1 threshold means 10% of the trigger must be visible
+    if (entries[0].isIntersecting && !isLoadingMore) {
+      loadMoreData();
+    }
+  }, { 
+    root: null, 
+    threshold: 0.1,
+    rootMargin: '100px' // 🔥 Pro-tip: Start loading 100px BEFORE the user hits the bottom
+  });
+  
   observer.observe(DOM.loadTrigger);
 }
 
 function loadMoreData() {
+  if (isLoadingMore) return; 
   isLoadingMore = true;
-  DOM.loadTrigger.style.opacity = '1'; 
+
+  // Show the loader (using visibility so it keeps its physical space)
+  DOM.loadTrigger.style.visibility = 'visible';
+  DOM.loadTrigger.style.opacity = '1';
+
   setTimeout(() => {
     currentLimit += BATCH_SIZE;
+
     if (currentTab === 'private') {
       renderPrivateBatch();
+      // Reset lock
       isLoadingMore = false;
-      DOM.loadTrigger.style.opacity = '0';
+      DOM.loadTrigger.style.visibility = 'hidden';
     } else {
-      subscribePublicFeed(); 
+      // Re-subscribe with the new higher limit
+      subscribePublicFeed().then(() => {
+        // Reset lock after the new data is fetched
+        isLoadingMore = false;
+        DOM.loadTrigger.style.visibility = 'hidden';
+      });
     }
   }, 500);
 }
