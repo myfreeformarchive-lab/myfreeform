@@ -336,17 +336,36 @@ function updateToggleUI() {
 }
 
 function loadFeed() {
-  if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
+  // 1. KILL THE GLOBAL HEARTBEAT
+  // This stops the 20-second drip from running in the background
+  if (dripTimeout) {
+    clearTimeout(dripTimeout);
+    dripTimeout = null;
+  }
 
+  // 2. RESET THE LISTENER
+  // This kills the Firebase connection for whichever tab you just left
+  if (publicUnsubscribe) { 
+    publicUnsubscribe(); 
+    publicUnsubscribe = null; 
+  }
+
+  // 3. HIDE THE BUFFER UI
+  // Ensure the "New posts pending" pill disappears when entering Private mode
+  if (DOM.bufferPill) {
+    DOM.bufferPill.classList.add('translate-y-20', 'opacity-0');
+  }
+
+  // 4. ROUTE TO CORRECT TAB
   if (currentTab === 'private') {
-    // 1. Immediate load from LocalStorage for speed
+    // Immediate load from LocalStorage
     allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
     renderPrivateBatch();
     
-    // 2. Start real-time background sync for counts
+    // Start background sync (updates counts for your global posts in the private list)
     subscribeArchiveSync();
   } else {
-    // Standard Global Tab logic
+    // Start the Global Drip system and listener
     subscribePublicFeed();
   }
 }
