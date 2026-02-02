@@ -365,15 +365,13 @@ function subscribeArchiveSync() {
 function subscribePublicFeed() {
   if (publicUnsubscribe) publicUnsubscribe();
   
-  // Reset State
+  // 1. HARD RESET
   isInitialLoad = true;
-  visiblePosts = [];
-  postBuffer = [];
+  visiblePosts = []; // Clear the screen array
+  postBuffer = [];   // Clear the waiting room
   
-  // Clear any existing drip timer
+  // Stop any running drip timer to prevent interference
   if (dripInterval) clearInterval(dripInterval);
-  
-  // Start the Drip Feed Loop (Defined below)
   startDripFeed();
 
   const q = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(currentLimit));
@@ -392,44 +390,48 @@ function subscribePublicFeed() {
       // ====================================================
       if (change.type === "added") {
         
-        // A. If it's the very first load, show everything instantly
+        // 🛡️ SECURITY GUARD: Check if we already have this ID anywhere
+        const inVisible = visiblePosts.some(p => p.id === id);
+        const inBuffer = postBuffer.some(p => p.id === id);
+        
+        // If it exists, STOP. Do not add it again.
+        if (inVisible || inBuffer) return; 
+
+        // --- Logic branches ---
+        
+        // A. Initial Load (Dump everything instantly)
         if (isInitialLoad) {
           visiblePosts.push(postObj);
-          // (We don't set needsRender here, we do it after the loop for initial load)
         } 
-        // B. If it's MY post, show instantly (Instant Gratification)
+        // B. My Post (Instant Gratification)
         else if (data.authorId === MY_USER_ID) {
            visiblePosts.unshift(postObj);
            needsRender = true;
         } 
-        // C. If it's someone else's new post, put it in the Waiting Room (Buffer)
+        // C. Others' Post (Send to Buffer)
         else {
-           // Prevent duplicates
-           const alreadyVisible = visiblePosts.find(p => p.id === id);
-           const alreadyBuffered = postBuffer.find(p => p.id === id);
-           
-           if (!alreadyVisible && !alreadyBuffered) {
-             postBuffer.push(postObj);
-             updateBufferUI(); // Update the "1 new post" pill
-           }
+           postBuffer.push(postObj);
+           updateBufferUI();
         }
       }
 
       // ====================================================
-      // CASE 2: LIVE UPDATES (Likes/Comments) - KEEP INSTANT
+      // CASE 2: LIVE UPDATES (Likes/Comments)
       // ====================================================
       if (change.type === "modified") {
-        // ✅ 1. SYNC LOCAL ARCHIVE (Your original logic)
         updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
 
-        // ✅ 2. UPDATE VISIBLE FEED INSTANTLY
-        // Find the post in our current visible list
-        const index = visiblePosts.findIndex(p => p.id === id);
+        // Update in Visible Array
+        const vIndex = visiblePosts.findIndex(p => p.id === id);
+        if (vIndex !== -1) {
+          visiblePosts[vIndex] = postObj;
+          needsRender = true;
+        }
         
-        if (index !== -1) {
-          // Update the specific post data in our array
-          visiblePosts[index] = postObj;
-          needsRender = true; // Trigger a re-render to show the new count
+        // Update in Buffer (if it's still waiting there)
+        const bIndex = postBuffer.findIndex(p => p.id === id);
+        if (bIndex !== -1) {
+          postBuffer[bIndex] = postObj;
         }
       }
 
@@ -437,20 +439,35 @@ function subscribePublicFeed() {
       // CASE 3: POST DELETED
       // ====================================================
       if (change.type === "removed") {
+        // Remove from both arrays
+        const initialLen = visiblePosts.length;
         visiblePosts = visiblePosts.filter(p => p.id !== id);
         postBuffer = postBuffer.filter(p => p.id !== id);
-        needsRender = true;
+        
+        // Only render if we actually removed something visible
+        if (visiblePosts.length !== initialLen) {
+            needsRender = true;
+        }
+        updateBufferUI();
       }
     });
 
-    // Final Render Trigger
+    // ====================================================
+    // FINAL RENDER CHECK
+    // ====================================================
     if (isInitialLoad) {
-      // Sort first load to be safe (descending)
-      visiblePosts.sort((a, b) => b.createdAt - a.createdAt);
+      // Sort strictly by date to ensure order is correct
+      visiblePosts.sort((a, b) => {
+          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return tB - tA;
+      });
+      
       renderListItems(visiblePosts);
       isInitialLoad = false;
       isLoadingMore = false;
       DOM.loadTrigger.style.opacity = '0';
+      
     } else if (needsRender) {
       renderListItems(visiblePosts);
     }
