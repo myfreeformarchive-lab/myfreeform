@@ -785,7 +785,7 @@ function createPostNode(item) {
   // 1. Create the base container
   const el = document.createElement('div');
   el.setAttribute('data-id', item.id);
-  // Added 'select-none'
+  // 'select-none' prevents text highlighting on double tap
   el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative select-none";
 
   // 2. Logic: Time, Fonts, and Tags
@@ -814,6 +814,7 @@ function createPostNode(item) {
                <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path>
              </svg>
           </div>
+          <!-- ⚡ IMPORTANT: The class 'count-like-ID' is ONLY here. -->
           <span class="text-sm font-semibold ${countColor} count-like-${realId}">${likeCount}</span>
         </div>
 
@@ -856,6 +857,7 @@ function createPostNode(item) {
     <div class="animation-container absolute inset-0 pointer-events-none z-0 flex items-center justify-center overflow-hidden"></div>
     <div class="flex justify-between items-start mb-2 relative z-10">
       <div class="flex items-center gap-2">
+        <!-- ⚡ IMPORTANT: No 'count-like' class here. Just pure text logic. -->
         <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
           ${item.isFirebase ? 'Global' : 'Local'}
         </span>
@@ -866,18 +868,14 @@ function createPostNode(item) {
     ${footerHtml}
   `;
 
-  // 6. Delete Button FIX
+  // 6. Delete Button (Protected with Z-Index 50)
   if (!item.isFirebase || isMyGlobalPost) {
     const delBtn = document.createElement('button');
-    
-    // FIX 1: Added 'z-50', 'pointer-events-auto', and a specific class 'delete-btn'
     delBtn.className = "delete-btn absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-50 p-2 pointer-events-auto";
     delBtn.innerHTML = "✕";
-    
     delBtn.onclick = (e) => { 
-      // Stop the click from bubbling up to the card
-      e.stopPropagation();
-      e.preventDefault(); // Extra safety
+      e.stopPropagation(); 
+      e.preventDefault();
       item.isFirebase ? deleteGlobal(item.id) : deleteLocal(item.id); 
     };
     el.appendChild(delBtn);
@@ -890,7 +888,7 @@ function createPostNode(item) {
   el.onclick = (e) => {
     if (activeShareMenuId) return;
 
-    // FIX 2: Added explicit check for '.delete-btn'
+    // IGNORE clicks on Delete Button, Share, or Likes
     if (e.target.closest('button') || 
         e.target.closest('.delete-btn') || 
         e.target.closest('.share-container') || 
@@ -913,7 +911,7 @@ function createPostNode(item) {
       clickTimeout = null;
     }
     
-    // FIX 3: Safety check here too
+    // IGNORE double clicks on Delete Button or Share
     if (e.target.closest('button') || e.target.closest('.delete-btn') || e.target.closest('.share-container')) return;
 
     toggleLike(e, realId);
