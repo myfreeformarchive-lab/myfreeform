@@ -1674,16 +1674,28 @@ function showToast(message, type = "success") {
 }
 
 function showDialog(title, message, confirmText, onConfirm) {
+  console.log("🔵 showDialog called:", { title, message, confirmText });
+  
   const overlay = document.getElementById('custom-dialog');
   const titleEl = document.getElementById('dialog-title');
   const msgEl = document.getElementById('dialog-msg');
   const confirmBtn = document.getElementById('dialog-confirm-btn');
 
+  // Check if elements exist
+  if (!overlay || !titleEl || !msgEl || !confirmBtn) {
+    console.error("❌ Dialog elements missing:", {
+      overlay: !!overlay,
+      titleEl: !!titleEl,
+      msgEl: !!msgEl,
+      confirmBtn: !!confirmBtn
+    });
+    return;
+  }
+
   // 1. Set Content
   titleEl.textContent = title;
   msgEl.textContent = message;
   confirmBtn.textContent = confirmText || "Confirm";
-  console.log("✅ Dialog content set") ;
 
   // 2. VIBE CHECK (Text Colors)
   const isDestructive = confirmText && confirmText.toLowerCase().includes('delete');
@@ -1694,38 +1706,42 @@ function showDialog(title, message, confirmText, onConfirm) {
   if (isDestructive) {
     // 🚨 RED TEXT (Delete)
     confirmBtn.classList.add('text-red-500');
-	console.log("🔴 Applied destructive styling");
   } else if (confirmText === "Okay" || confirmText === "Understood") {
     // ⚫️ SLATE TEXT (Info / Spam)
     confirmBtn.classList.add('text-slate-700');
-	console.log("⚫ Applied info/spam styling");
   } else {
     // 🔵 BRAND BLUE TEXT (Publish)
     confirmBtn.classList.add('text-brand-600');
-	console.log("🔵 Applied brand styling");
   }
 
   // 3. Show
-  console.log("📂 Current overlay classes before show:", overlay.className);
   overlay.classList.remove('hidden');
-  console.log("👁️ Removed 'hidden' class");
   requestAnimationFrame(() => {
     overlay.classList.add('dialog-open');
-	console.log("✨ Added 'dialog-open' class in next frame");
-    console.log("📂 Final overlay classes:", overlay.className);
   });
 
-  // 4. Setup Button
+  // 4. Setup Button - FIX HERE
   const newBtn = confirmBtn.cloneNode(true);
   confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
-  console.log("🔄 Button cloned and replaced");
   
   newBtn.onclick = () => {
-	  console.log("🖱️ Confirm button clicked");
-    onConfirm(); 
-    closeDialog();
+    console.log("🖱️ Confirm button clicked");
+    
+    // Store current dialog state
+    const wasOpen = !overlay.classList.contains('hidden');
+    
+    // Run the callback
+    onConfirm();
+    
+    // Only close if no new dialog was opened
+    // Check with a small delay to let any new dialog setup
+    setTimeout(() => {
+      // If the dialog is still the same one (not replaced by a new dialog)
+      if (wasOpen && overlay.querySelector('#dialog-confirm-btn') === newBtn) {
+        closeDialog();
+      }
+    }, 10);
   };
-  console.log("✅ Dialog setup complete");
 }
 
 function closeDialog() {
