@@ -416,6 +416,9 @@ async function refillBufferRandomly(count = 1, silent = false) {
 }
 
 function injectSinglePost(item, position = 'top') {
+  // Debug: Log every injection attempt
+  console.log(`injectSinglePost called: tab=${currentTab}, isFirebase=${item.isFirebase}, content=${item.content}`);
+
   // 🚀 THE FIX: If we are in Private mode, DO NOT inject global posts into the list
   if (currentTab === 'private' && item.isFirebase) {
     console.warn(`injectSinglePost: Blocking global post in private tab: ${item.content}`);
