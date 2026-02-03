@@ -42,8 +42,7 @@ const DOM = {
   sendComment: document.getElementById('sendCommentBtn'),
   emojiButtons: document.querySelectorAll('.emoji-btn'),
   desktopEmojiTrigger: document.getElementById('desktopEmojiTrigger'),
-  desktopEmojiPopup: document.getElementById('desktopEmojiPopup'),
-  bufferPill: document.getElementById('bufferPill')
+  desktopEmojiPopup: document.getElementById('desktopEmojiPopup')
 };
 
 let currentTab = localStorage.getItem('freeform_tab_pref') || 'private';
@@ -246,7 +245,6 @@ function startDripFeed() {
       }
     }
     
-    updateBufferUI();
     // Your 20 second loop
     dripTimeout = setTimeout(drip, 20000); 
   }
@@ -316,7 +314,7 @@ async function refillBufferRandomly(count = 1, silent = false) {
         }
       }
     }
-    if (!silent) updateBufferUI();
+ 
   } catch (err) {
     console.error("Sampler failed:", err);
   }
@@ -336,31 +334,6 @@ function injectSinglePost(item, position = 'top') {
   // 🚀 THE FIX: Start a live listener for this specific post's numbers
   watchPostCounts(item.id);
 }
-
-function updateBufferUI() {
-  if (postBuffer.length > 0) {
-    DOM.bufferPill.classList.remove('translate-y-20', 'opacity-0');
-    DOM.bufferPill.innerHTML = `
-      <span class="font-bold">${postBuffer.length}</span> new posts pending
-      <span class="ml-2 text-[10px] opacity-70">(Click to show all)</span>
-    `;
-  } else {
-    DOM.bufferPill.classList.add('translate-y-20', 'opacity-0');
-  }
-}
-
-// Allow user to manually flush the buffer if they are impatient
-function flushBuffer() {
-  if (postBuffer.length === 0) return;
-  while(postBuffer.length > 0) {
-    const next = postBuffer.shift();
-    visiblePosts.unshift(next);
-    injectSinglePost(next, 'top');
-  }
-  updateBufferUI();
-}
-
-window.flushBuffer = flushBuffer;
 
 // ==========================================
 // 3. CORE FUNCTIONS (Feed & Tabs)
@@ -428,11 +401,6 @@ function loadFeed() {
     activePostListeners.forEach((unsubscribe) => unsubscribe());
     activePostListeners.clear();
     console.log("Cleanup: All individual post listeners closed.");
-  }
-
-  // 4. HIDE THE BUFFER UI
-  if (DOM.bufferPill) {
-    DOM.bufferPill.classList.add('translate-y-20', 'opacity-0');
   }
 
   // 5. ROUTE TO CORRECT TAB
