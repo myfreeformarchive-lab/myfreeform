@@ -267,9 +267,6 @@ function updateUISurgically(id, data) {
   }
 }
 
-// A Map to keep track of active listeners so we don't create duplicates
-const activePostListeners = new Map();
-
 function watchPostCounts(postId) {
   // If we're already watching this post, don't start a new listener
   if (activePostListeners.has(postId)) return;
