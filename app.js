@@ -785,7 +785,7 @@ function createPostNode(item) {
   // 1. Create the base container
   const el = document.createElement('div');
   el.setAttribute('data-id', item.id);
-  // 'select-none' prevents text highlighting on double tap
+  // Added 'select-none' so double tapping doesn't highlight the text
   el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative select-none";
 
   // 2. Logic: Time, Fonts, and Tags
@@ -814,7 +814,6 @@ function createPostNode(item) {
                <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path>
              </svg>
           </div>
-          <!-- ⚡ IMPORTANT: The class 'count-like-ID' is ONLY here. -->
           <span class="text-sm font-semibold ${countColor} count-like-${realId}">${likeCount}</span>
         </div>
 
@@ -852,12 +851,11 @@ function createPostNode(item) {
 
   const footerHtml = `<div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
 
-  // 5. Inject HTML
+  // 5. Inject HTML (Exact Original Structure + Animation Container)
   el.innerHTML = `
     <div class="animation-container absolute inset-0 pointer-events-none z-0 flex items-center justify-center overflow-hidden"></div>
     <div class="flex justify-between items-start mb-2 relative z-10">
       <div class="flex items-center gap-2">
-        <!-- ⚡ IMPORTANT: No 'count-like' class here. Just pure text logic. -->
         <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
           ${item.isFirebase ? 'Global' : 'Local'}
         </span>
@@ -868,14 +866,15 @@ function createPostNode(item) {
     ${footerHtml}
   `;
 
-  // 6. Delete Button (Protected with Z-Index 50)
+  // 6. Delete Button (With Z-Index FIX)
   if (!item.isFirebase || isMyGlobalPost) {
     const delBtn = document.createElement('button');
+    // Added 'delete-btn' class, z-50, and pointer-events-auto
     delBtn.className = "delete-btn absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-50 p-2 pointer-events-auto";
     delBtn.innerHTML = "✕";
     delBtn.onclick = (e) => { 
-      e.stopPropagation(); 
-      e.preventDefault();
+      e.stopPropagation();
+      e.preventDefault(); 
       item.isFirebase ? deleteGlobal(item.id) : deleteLocal(item.id); 
     };
     el.appendChild(delBtn);
@@ -888,7 +887,7 @@ function createPostNode(item) {
   el.onclick = (e) => {
     if (activeShareMenuId) return;
 
-    // IGNORE clicks on Delete Button, Share, or Likes
+    // Check for delete button class explicitly
     if (e.target.closest('button') || 
         e.target.closest('.delete-btn') || 
         e.target.closest('.share-container') || 
@@ -898,6 +897,7 @@ function createPostNode(item) {
 
     if (clickTimeout) return;
 
+    // Wait 250ms to see if it's a double tap
     clickTimeout = setTimeout(() => {
       openModal(item);
       clickTimeout = null;
@@ -910,8 +910,7 @@ function createPostNode(item) {
       clearTimeout(clickTimeout);
       clickTimeout = null;
     }
-    
-    // IGNORE double clicks on Delete Button or Share
+
     if (e.target.closest('button') || e.target.closest('.delete-btn') || e.target.closest('.share-container')) return;
 
     toggleLike(e, realId);
@@ -933,7 +932,9 @@ function createPostNode(item) {
   return el;
 }
 
-// Keep this helper function for the visual pop
+// ----------------------------------------------------
+// Helper Function for the Heart Animation
+// (You can place this anywhere in your file)
 function showHeartAnimation(container) {
   const animContainer = container.querySelector('.animation-container');
   if (!animContainer) return;
