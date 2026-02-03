@@ -78,6 +78,8 @@ function getThoughtBubbleSVG(className = "w-12 h-12") {
     </svg>`;
 }
 
+window.getThoughtBubbleSVG = getThoughtBubbleSVG;
+
 // ==========================================
 // 2. INITIALIZATION
 // ==========================================
