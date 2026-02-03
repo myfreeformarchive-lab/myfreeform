@@ -278,7 +278,6 @@ function watchPostCounts(postId) {
     } 
     // 🚀 CASE B: THE FIX - The post was deleted by someone else!
     else {
-      console.log(`Post ${postId} was deleted remotely. Removing from UI.`);
       
       // 1. Remove from local state array
       visiblePosts = visiblePosts.filter(p => p.id !== postId && p.firebaseId !== postId);
@@ -1323,7 +1322,7 @@ function openModal(post) {
       else {
         modalAutoUnsubscribe(); // Stop listening
         closeModal();           // Kick user out of the modal
-        showToast("This post has been removed.", "neutral");
+		showToast("Note no longer available", "neutral");
         
         // Also remove it from the background feed so it's not there when the modal closes
         const el = document.querySelector(`[data-id="${realFirestoreId}"]`);
