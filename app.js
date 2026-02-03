@@ -785,7 +785,7 @@ function createPostNode(item) {
   // 1. Create the base container
   const el = document.createElement('div');
   el.setAttribute('data-id', item.id);
-  // Added 'select-none' to prevent text highlighting on fast tapping
+  // Added 'select-none' to prevent highlighting text while tapping fast
   el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative select-none";
 
   // 2. Logic: Time, Fonts, and Tags
@@ -793,10 +793,6 @@ function createPostNode(item) {
   const fontClass = item.font || 'font-sans'; 
   const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
   
-  const tagDisplay = item.uniqueTag 
-    ? `<span class="text-brand-500 font-bold text-[11px] bg-brand-50 px-2 py-0.5 rounded-full">${item.uniqueTag}</span>`
-    : `<span class="text-slate-400 font-medium text-[11px] bg-slate-50 px-2 py-0.5 rounded-full">#draft</span>`;
-
   // 3. Logic: Likes & Comments
   const hasCommentsAccess = item.isFirebase || item.firebaseId;
   const realId = item.isFirebase ? item.id : item.firebaseId;
@@ -856,7 +852,7 @@ function createPostNode(item) {
   const footerHtml = `<div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
 
   // 5. Inject HTML
-  // Added a container for the pop-up heart animation
+  // RESTORED: Your original Top Bar with Global/Local Badge
   el.innerHTML = `
     <div class="animation-container absolute inset-0 pointer-events-none z-0 flex items-center justify-center overflow-hidden"></div>
     <div class="flex justify-between items-start mb-2 relative z-10">
@@ -883,48 +879,46 @@ function createPostNode(item) {
     el.appendChild(delBtn);
   }
 
-  // --- NEW LOGIC START ---
+  // --- DOUBLE TAP LOGIC STARTS HERE ---
   
-  // Variable to store the timer so we can cancel it if a double click happens
   let clickTimeout = null;
 
-  // 7. SINGLE TAP Handler (Delayed)
+  // 7. SINGLE TAP Handler (Delayed for Modal)
   el.onclick = (e) => {
-    // Safety checks
+    // Standard safety checks
     if (activeShareMenuId) return;
     if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) {
       return;
     }
 
-    // If a timer is already running, do nothing (we are waiting for dblclick or timeout)
     if (clickTimeout) return;
 
-    // Wait 250ms to see if the user clicks again
+    // Wait 250ms to see if user clicks again
     clickTimeout = setTimeout(() => {
       openModal(item);
-      clickTimeout = null; // Reset
+      clickTimeout = null;
     }, 250);
   };
 
-  // 8. DOUBLE TAP Handler (Immediate)
+  // 8. DOUBLE TAP Handler (Immediate Like)
   el.ondblclick = (e) => {
-    // 1. Cancel the single tap modal opening
+    // 1. Cancel the modal
     if (clickTimeout) {
       clearTimeout(clickTimeout);
       clickTimeout = null;
     }
-
-    // 2. Safety check (don't like if clicking share buttons)
+    
+    // 2. Safety check
     if (e.target.closest('button') || e.target.closest('.share-container')) return;
 
-    // 3. Trigger the existing Like function
+    // 3. Like logic
     toggleLike(e, realId);
 
-    // 4. Show the visual "Heart Pop" animation
+    // 4. Animation
     showHeartAnimation(el);
   };
   
-  // --- NEW LOGIC END ---
+  // --- DOUBLE TAP LOGIC ENDS HERE ---
 
   // 9. Share Button Handlers
   const platformBtns = el.querySelectorAll('.share-icon-btn');
@@ -941,7 +935,7 @@ function createPostNode(item) {
   return el;
 }
 
-// Helper Function for the Visual Pop Effect
+// Keep this helper function for the visual pop
 function showHeartAnimation(container) {
   const animContainer = container.querySelector('.animation-container');
   if (!animContainer) return;
@@ -953,21 +947,16 @@ function showHeartAnimation(container) {
     </svg>
   `;
   
-  // Initial State
   heart.className = "transform scale-0 opacity-0 transition-all duration-500 ease-out";
   animContainer.appendChild(heart);
 
-  // Trigger Animation
   requestAnimationFrame(() => {
     heart.classList.remove('scale-0', 'opacity-0');
     heart.classList.add('scale-125', 'opacity-100');
     
-    // Fade out
     setTimeout(() => {
       heart.classList.remove('scale-125', 'opacity-100');
       heart.classList.add('scale-150', 'opacity-0');
-      
-      // Cleanup DOM
       setTimeout(() => heart.remove(), 500);
     }, 400);
   });
