@@ -18,7 +18,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ==========================================
-// 1. STATE & DOM
+// 1. STATE & DOM lalaa
 // ==========================================
 const DOM = {
   input: document.getElementById('postInput'),
@@ -42,7 +42,8 @@ const DOM = {
   sendComment: document.getElementById('sendCommentBtn'),
   emojiButtons: document.querySelectorAll('.emoji-btn'),
   desktopEmojiTrigger: document.getElementById('desktopEmojiTrigger'),
-  desktopEmojiPopup: document.getElementById('desktopEmojiPopup')
+  desktopEmojiPopup: document.getElementById('desktopEmojiPopup'),
+  bufferPill: document.getElementById('bufferPill')
 };
 
 let currentTab = localStorage.getItem('freeform_tab_pref') || 'private';
@@ -55,6 +56,14 @@ let selectedFont = localStorage.getItem('freeform_font_pref') || 'font-sans';
 let publicUnsubscribe = null;
 let commentsUnsubscribe = null;
 let activePostId = null; 
+
+// At the top of your script
+let visiblePosts = [];   
+let postBuffer = [];     
+let processedIds = new Set(); 
+let dripTimeout = null;
+
+let isAppending = false;
 
 // ==========================================
 // 2. INITIALIZATION
@@ -212,6 +221,122 @@ async function getNextUniqueTag() {
 }
 
 // ==========================================
+// Drip Feed
+// ==========================================
+function startDripFeed() {
+  if (dripTimeout) clearTimeout(dripTimeout);
+
+  async function drip() {
+    // 1. If buffer is empty, refill it
+    if (postBuffer.length === 0) {
+      await refillBufferRandomly(1);
+    }
+
+    // 2. Drip the next item
+    if (postBuffer.length > 0) {
+      const nextPost = postBuffer.shift();
+      visiblePosts.unshift(nextPost);
+      injectSinglePost(nextPost, 'top');
+
+      if (visiblePosts.length > 50) {
+        visiblePosts.pop();
+        if (DOM.list.lastElementChild) DOM.list.lastElementChild.remove();
+      }
+    }
+    
+    updateBufferUI();
+    // 15 seconds is a nice "slow" pace for discovery
+    dripTimeout = setTimeout(drip, 15000); 
+  }
+
+  drip();
+}
+
+function updateUISurgically(id, data) {
+  updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
+  
+  const postEl = document.querySelector(`[data-id="${id}"]`);
+  if (postEl) {
+    const likeSpan = postEl.querySelector(`.count-like-${id}`);
+    if (likeSpan) likeSpan.textContent = data.likeCount || 0;
+
+    const commentSpan = postEl.querySelector(`.count-comment-${id}`);
+    if (commentSpan) commentSpan.textContent = data.commentCount || 0;
+  }
+}
+
+async function refillBufferRandomly(count = 1, silent = false) {
+  const counterRef = doc(db, "metadata", "postCounter");
+  const counterSnap = await getDoc(counterRef);
+  
+  if (!counterSnap.exists()) return;
+
+  const maxId = counterSnap.data().count;
+  const minId = Math.max(1, maxId - 2000); 
+
+  const randomTags = [];
+  while(randomTags.length < count) {
+    const rand = Math.floor(Math.random() * (maxId - minId + 1) + minId);
+    const tag = `UID:${rand}`;
+    if (!randomTags.includes(tag)) randomTags.push(tag);
+  }
+
+  const q = query(collection(db, "globalPosts"), where("uniqueTag", "in", randomTags));
+  const querySnapshot = await getDocs(q);
+  
+  querySnapshot.forEach((doc) => {
+    const post = { id: doc.id, ...doc.data(), isFirebase: true };
+    if (!processedIds.has(post.id)) {
+      postBuffer.push(post);
+      processedIds.add(post.id);
+    }
+  });
+
+  // 🚀 THE FIX: Only update UI if we aren't in 'silent' mode
+  if (!silent) {
+    updateBufferUI();
+  }
+}
+
+function injectSinglePost(item, position = 'top') {
+  const postNode = createPostNode(item); 
+  
+  // Only add animations to "injected" posts, not the ones loaded at start
+  postNode.classList.add('animate-in', 'fade-in', 'slide-in-from-top-4', 'duration-500');
+
+  if (position === 'top') {
+    DOM.list.prepend(postNode);
+  } else {
+    DOM.list.appendChild(postNode);
+  }
+}
+
+function updateBufferUI() {
+  if (postBuffer.length > 0) {
+    DOM.bufferPill.classList.remove('translate-y-20', 'opacity-0');
+    DOM.bufferPill.innerHTML = `
+      <span class="font-bold">${postBuffer.length}</span> new posts pending
+      <span class="ml-2 text-[10px] opacity-70">(Click to show all)</span>
+    `;
+  } else {
+    DOM.bufferPill.classList.add('translate-y-20', 'opacity-0');
+  }
+}
+
+// Allow user to manually flush the buffer if they are impatient
+function flushBuffer() {
+  if (postBuffer.length === 0) return;
+  while(postBuffer.length > 0) {
+    const next = postBuffer.shift();
+    visiblePosts.unshift(next);
+    injectSinglePost(next, 'top');
+  }
+  updateBufferUI();
+}
+
+window.flushBuffer = flushBuffer;
+
+// ==========================================
 // 3. CORE FUNCTIONS (Feed & Tabs)
 // ==========================================
 
@@ -259,17 +384,36 @@ function updateToggleUI() {
 }
 
 function loadFeed() {
-  if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
+  // 1. KILL THE GLOBAL HEARTBEAT
+  // This stops the 20-second drip from running in the background
+  if (dripTimeout) {
+    clearTimeout(dripTimeout);
+    dripTimeout = null;
+  }
 
+  // 2. RESET THE LISTENER
+  // This kills the Firebase connection for whichever tab you just left
+  if (publicUnsubscribe) { 
+    publicUnsubscribe(); 
+    publicUnsubscribe = null; 
+  }
+
+  // 3. HIDE THE BUFFER UI
+  // Ensure the "New posts pending" pill disappears when entering Private mode
+  if (DOM.bufferPill) {
+    DOM.bufferPill.classList.add('translate-y-20', 'opacity-0');
+  }
+
+  // 4. ROUTE TO CORRECT TAB
   if (currentTab === 'private') {
-    // 1. Immediate load from LocalStorage for speed
+    // Immediate load from LocalStorage
     allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
     renderPrivateBatch();
     
-    // 2. Start real-time background sync for counts
+    // Start background sync (updates counts for your global posts in the private list)
     subscribeArchiveSync();
   } else {
-    // Standard Global Tab logic
+    // Start the Global Drip system and listener
     subscribePublicFeed();
   }
 }
@@ -287,7 +431,6 @@ function renderPrivateBatch() {
 function subscribeArchiveSync() {
   if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
 
-  // Query only Global posts where you are the author
   const q = query(
     collection(db, "globalPosts"), 
     where("authorId", "==", MY_USER_ID)
@@ -296,38 +439,69 @@ function subscribeArchiveSync() {
   publicUnsubscribe = onSnapshot(q, (snapshot) => {
     snapshot.docs.forEach(doc => {
       const data = doc.data();
-      // Update the local storage and rerender the UI automatically
-      updateLocalPostWithServerData(doc.id, data.commentCount || 0, data.likeCount || 0);
+      const id = doc.id;
+      
+      // 1. Update background storage
+      updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
+
+      // 2. ✅ THE FIX: Update the screen live in the Private Tab
+      const postEl = document.querySelector(`[data-id="${id}"]`);
+      if (postEl) {
+        const likeSpan = postEl.querySelector(`.count-like-${id}`);
+        if (likeSpan) likeSpan.textContent = data.likeCount || 0;
+
+        const commentSpan = postEl.querySelector(`.count-comment-${id}`);
+        if (commentSpan) commentSpan.textContent = data.commentCount || 0;
+      }
     });
   }, (error) => {
     console.error("Archive sync failed:", error);
   });
 }
 
-function subscribePublicFeed() {
+// ==========================================
+// 3. THE SUBSCRIBER (Fixed Syntax)
+// ==========================================
+async function subscribePublicFeed() {
   if (publicUnsubscribe) publicUnsubscribe();
-  const q = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(currentLimit));
-  DOM.loadTrigger.style.display = 'flex'; 
 
-  publicUnsubscribe = onSnapshot(q, (snapshot) => {
-    const posts = snapshot.docs.map(doc => {
-      const data = doc.data();
-      const id = doc.id;
+  // 1. Reset State
+  visiblePosts = [];
+  postBuffer = [];
+  processedIds.clear();
+  if (dripTimeout) clearTimeout(dripTimeout);
 
-      // ✅ SYNC: If this post is in our local archive, update its count to match the server
-      updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
+  // 2. Initial UI (Only if not scrolling)
+  if (!isAppending) {
+    DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Discovering thoughts...</div>';
+    
+    // PHASE A: INITIAL SEED
+    // Grab 15 random posts to fill the screen immediately
+    await refillBufferRandomly(15, true);
+    visiblePosts = [...postBuffer];
+    postBuffer = []; 
+    renderListItems(visiblePosts);
+	
+	// 3. Start Heartbeat
+  startDripFeed();
+  }
 
-      return { id, ...data, isFirebase: true };
+  // 4. THE EGO-LISTENER (Minimal impact)
+  const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
+  publicUnsubscribe = onSnapshot(myPostsQuery, (snapshot) => {
+    snapshot.docChanges().forEach((change) => {
+      const id = change.doc.id;
+      const data = change.doc.data();
+      if (change.type === "added" && !processedIds.has(id)) {
+        processedIds.add(id);
+        const postObj = { id, ...data, isFirebase: true };
+        visiblePosts.unshift(postObj);
+        injectSinglePost(postObj, 'top');
+      }
+      if (change.type === "modified") {
+        updateUISurgically(id, data);
+      }
     });
-
-    DOM.list.innerHTML = '';
-    renderListItems(posts);
-    isLoadingMore = false;
-    DOM.loadTrigger.style.opacity = '0';
-  }, (error) => {
-    console.error("Snapshot error:", error);
-    // If it fails, clear skeletons and show error
-    DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Unable to load feed.</div>`;
   });
 }
 
@@ -444,41 +618,34 @@ async function sharePost(text, platform) {
   }
 }
 
-function renderListItems(items) {
-  if (items.length === 0) {
-    DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl"><p class="text-slate-500">No thoughts here yet.</p></div>`;
-    return;
-  }
+function createPostNode(item) {
+  // 1. Create the base container
+  const el = document.createElement('div');
+  el.setAttribute('data-id', item.id);
+  el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative";
 
-  items.forEach(item => {
-    const el = document.createElement('div');
-    el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative";
-    const time = getRelativeTime(item.createdAt);
-    const fontClass = item.font || 'font-sans'; 
-    const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
-	
-	const tagDisplay = item.uniqueTag 
-      ? `<span class="text-brand-500 font-bold text-[11px] bg-brand-50 px-2 py-0.5 rounded-full">${item.uniqueTag}</span>`
-      : `<span class="text-slate-400 font-medium text-[11px] bg-slate-50 px-2 py-0.5 rounded-full">#draft</span>`;
-    
-    // ============================================================
-    // LOGIC: Likes & Comments
-    // ============================================================
-    const hasCommentsAccess = item.isFirebase || item.firebaseId;
-    const realId = item.isFirebase ? item.id : item.firebaseId;
-    
-    const commentCount = item.commentCount || 0; 
-    const likeCount = item.likeCount || 0;
-    
-    const myLikes = JSON.parse(localStorage.getItem('my_likes_cache')) || {};
-    const isLiked = !!myLikes[realId];
+  // 2. Logic: Time, Fonts, and Tags
+  const time = getRelativeTime(item.createdAt);
+  const fontClass = item.font || 'font-sans'; 
+  const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
+  
+  const tagDisplay = item.uniqueTag 
+    ? `<span class="text-brand-500 font-bold text-[11px] bg-brand-50 px-2 py-0.5 rounded-full">${item.uniqueTag}</span>`
+    : `<span class="text-slate-400 font-medium text-[11px] bg-slate-50 px-2 py-0.5 rounded-full">#draft</span>`;
 
-    const heartFill = isLiked ? 'fill-red-500 text-red-500' : 'fill-none text-slate-400 group-hover:text-red-500';
-    const countColor = isLiked ? 'text-red-600' : 'text-slate-500';
+  // 3. Logic: Likes & Comments
+  const hasCommentsAccess = item.isFirebase || item.firebaseId;
+  const realId = item.isFirebase ? item.id : item.firebaseId;
+  const commentCount = item.commentCount || 0; 
+  const likeCount = item.likeCount || 0;
+  
+  const myLikes = JSON.parse(localStorage.getItem('my_likes_cache')) || {};
+  const isLiked = !!myLikes[realId];
+  const heartFill = isLiked ? 'fill-red-500 text-red-500' : 'fill-none text-slate-400 group-hover:text-red-500';
+  const countColor = isLiked ? 'text-red-600' : 'text-slate-500';
 
-    const interactiveButtonsHtml = `
-      <div class="flex items-center gap-5">
-        
+  const interactiveButtonsHtml = `
+    <div class="flex items-center gap-5">
         <div class="like-trigger group flex items-center gap-1.5 cursor-pointer transition-colors"
              onclick="toggleLike(event, '${realId}')">
           <div class="hover:scale-110 transition-transform duration-200">
@@ -497,99 +664,96 @@ function renderListItems(items) {
                <path d="M3 20l1.3 -3.9a9 8 0 1 1 3.4 2.9l-4.7 1"></path>
             </svg>
           </div>
-          <span class="text-sm font-semibold">${commentCount}</span>
+          <span class="text-sm font-semibold count-comment-${realId}">${commentCount}</span>
         </div>
+    </div>
+`;
 
+  const actionArea = hasCommentsAccess ? interactiveButtonsHtml : `<span class="text-xs text-slate-400 font-medium italic">Private Draft</span>`;
+
+  // 4. Logic: Share Menu
+  const allowedPlatforms = getSmartShareButtons(item.content);
+  let menuHtml = '';
+  allowedPlatforms.forEach(p => {
+    menuHtml += `<button class="share-icon-btn ${p.classes}" data-platform="${p.id}" title="Share on ${p.name}">${p.icon}</button>`;
+  });
+
+  const shareComponent = `
+    <div class="share-container relative z-20">
+      <div class="share-menu" id="menu-${item.id}">${menuHtml}</div>
+      <button class="share-trigger-btn" onclick="toggleShare(event, 'menu-${item.id}')" title="Share Options">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+          <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
+        </svg>
+      </button>
+    </div>
+  `;
+
+  const footerHtml = `<div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
+
+  // 5. Inject HTML
+  el.innerHTML = `
+    <div class="flex justify-between items-start mb-2">
+      <div class="flex items-center gap-2">
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
+          ${item.isFirebase ? 'Global' : 'Local'}
+        </span>
+        <span class="text-xs text-slate-500 font-medium">${time}</span>
       </div>
-    `;
+    </div>
+    <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] pointer-events-none ${fontClass}">${cleanText(item.content)}</p>
+    ${footerHtml}
+  `;
 
-    const actionArea = hasCommentsAccess 
-      ? interactiveButtonsHtml 
-      : `<span class="text-xs text-slate-400 font-medium italic">Private Draft</span>`;
-    
-    // ============================================================
-    
-    const allowedPlatforms = getSmartShareButtons(item.content);
-    let menuHtml = '';
-    allowedPlatforms.forEach(p => {
-      menuHtml += `
-        <button class="share-icon-btn ${p.classes}" 
-          data-platform="${p.id}" 
-          title="Share on ${p.name}">
-          ${p.icon}
-        </button>
-      `;
-    });
-
-    const shareComponent = `
-      <div class="share-container relative z-20">
-        <div class="share-menu" id="menu-${item.id}">
-          ${menuHtml}
-        </div>
-        <button class="share-trigger-btn" onclick="toggleShare(event, 'menu-${item.id}')" title="Share Options">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
-          </svg>
-        </button>
-      </div>
-    `;
-
-    const footerHtml = `
-      <div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
-        ${actionArea}
-        ${shareComponent}
-      </div>
-    `;
-
-    el.innerHTML = `
-      <div class="flex justify-between items-start mb-2">
-        <div class="flex items-center gap-2">
-          <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
-            ${item.isFirebase ? 'Global' : 'Local'}
-          </span>
-          <span class="text-xs text-slate-500 font-medium">${time}</span>
-        </div>
-      </div>
-      <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] pointer-events-none ${fontClass}">${cleanText(item.content)}</p>
-      ${footerHtml}
-    `;
-
-    if (!item.isFirebase || isMyGlobalPost) {
-      const delBtn = document.createElement('button');
-      delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
-      delBtn.innerHTML = "✕";
-      delBtn.onclick = (e) => { 
-        e.stopPropagation(); 
-        item.isFirebase ? deleteGlobal(item.id) : deleteLocal(item.id); 
-      };
-      el.appendChild(delBtn);
-    }
-
-    // ✅ FIXED CLICK HANDLER HERE
-    el.onclick = (e) => {
-      // If we clicked a button, the share menu, OR the new like trigger... IGNORE IT.
-      if (e.target.closest('button') || 
-          e.target.closest('.share-container') || 
-          e.target.closest('.like-trigger')) return;
-      
-      openModal(item);
+  // 6. Delete Button (Manual Node Creation)
+  if (!item.isFirebase || isMyGlobalPost) {
+    const delBtn = document.createElement('button');
+    delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
+    delBtn.innerHTML = "✕";
+    delBtn.onclick = (e) => { 
+      e.stopPropagation(); 
+      item.isFirebase ? deleteGlobal(item.id) : deleteLocal(item.id); 
     };
+    el.appendChild(delBtn);
+  }
 
-    const platformBtns = el.querySelectorAll('.share-icon-btn');
-    platformBtns.forEach(btn => {
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        const platform = btn.getAttribute('data-platform');
-        sharePost(item.content, platform);
-        
-        const menu = el.querySelector('.share-menu');
-        const trigger = el.querySelector('.share-trigger-btn');
-        if (menu) menu.classList.remove('active');
-        if (trigger) trigger.classList.remove('active');
-      };
-    });
-    
-    DOM.list.appendChild(el);
+  // 7. Click Handler for Modal
+  el.onclick = (e) => {
+    if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) return;
+    openModal(item);
+  };
+
+  // 8. Share Button Handlers
+  const platformBtns = el.querySelectorAll('.share-icon-btn');
+  platformBtns.forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const platform = btn.getAttribute('data-platform');
+      sharePost(item.content, platform);
+      const menu = el.querySelector('.share-menu');
+      if (menu) menu.classList.remove('active');
+    };
+  });
+
+  return el;
+}
+
+function renderListItems(items) {
+  // Clear the list only on full re-renders
+  DOM.list.innerHTML = ''; 
+  
+  if (items.length === 0) {
+    DOM.list.innerHTML = `
+      <div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl">
+        <p class="text-slate-500">No thoughts here yet.</p>
+      </div>`;
+    return;
+  }
+
+  // Use the new builder for each item
+  items.forEach(item => {
+    const postNode = createPostNode(item);
+    DOM.list.appendChild(postNode);
   });
 }
 
@@ -618,24 +782,44 @@ window.toggleShare = function(event, menuId) {
 // ==========================================
 function setupInfiniteScroll() {
   const observer = new IntersectionObserver((entries) => {
-    if (entries[0].isIntersecting && !isLoadingMore) loadMoreData();
-  }, { root: null, threshold: 0.1 });
+    // 0.1 threshold means 10% of the trigger must be visible
+    if (entries[0].isIntersecting && !isLoadingMore) {
+      loadMoreData();
+    }
+  }, { 
+    root: null, 
+    threshold: 0.1,
+    rootMargin: '100px' // 🔥 Pro-tip: Start loading 100px BEFORE the user hits the bottom
+  });
+  
   observer.observe(DOM.loadTrigger);
 }
 
 function loadMoreData() {
+  if (isLoadingMore) return;
   isLoadingMore = true;
-  DOM.loadTrigger.style.opacity = '1'; 
-  setTimeout(() => {
+
+  DOM.loadTrigger.style.visibility = 'visible';
+  DOM.loadTrigger.style.opacity = '1';
+
+  if (currentTab === 'private') {
     currentLimit += BATCH_SIZE;
-    if (currentTab === 'private') {
-      renderPrivateBatch();
+    renderPrivateBatch();
+    isLoadingMore = false;
+    DOM.loadTrigger.style.visibility = 'hidden';
+  } else {
+    // 🚀 NEW DISCOVERY LOGIC:
+    // Just grab 10 more random posts and append them
+    refillBufferRandomly(10, true).then(() => {
+      while(postBuffer.length > 0) {
+        const p = postBuffer.shift();
+        visiblePosts.push(p);
+        injectSinglePost(p, 'bottom');
+      }
       isLoadingMore = false;
-      DOM.loadTrigger.style.opacity = '0';
-    } else {
-      subscribePublicFeed(); 
-    }
-  }, 500);
+      DOM.loadTrigger.style.visibility = 'hidden';
+    });
+  }
 }
 
 async function handlePost() {
