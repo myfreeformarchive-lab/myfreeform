@@ -70,11 +70,10 @@ let isAppending = false;
 
   // SVG Thought Bubble 
 function getThoughtBubbleSVG(className = "w-12 h-12") {
-	console.log("Thought bubble function called!");
     return `<svg class="${className}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <path d="M 32 38 C 28 32, 34 27, 40 30 C 43 25, 52 25, 55 30 C 58 25, 66 28, 68 34 C 73 36, 73 46, 68 48 C 66 54, 58 54, 55 49 C 52 55, 43 55, 40 49 C 34 54, 28 48, 32 40 Z" stroke="#A8B2BC" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="35" cy="59" r="3.5" stroke="#A8B2BC" fill="none" stroke-width="2.5"/>
-        <circle cx="30" cy="69" r="2.5" stroke="#A8B2BC" fill="none" stroke-width="2.5"/>
+        <path d="M 32 38 C 28 32, 34 27, 40 30 C 43 25, 52 25, 55 30 C 58 25, 66 28, 68 34 C 73 36, 73 46, 68 48 C 66 54, 58 54, 55 49 C 52 55, 43 55, 40 49 C 34 54, 28 48, 32 40 Z" stroke="#6B7280" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="35" cy="59" r="3.5" stroke="#6B7280" fill="none" stroke-width="2.5"/>
+        <circle cx="30" cy="69" r="2.5" stroke="#6B7280" fill="none" stroke-width="2.5"/>
     </svg>`;
 }
 
