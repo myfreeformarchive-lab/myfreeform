@@ -253,8 +253,13 @@ function startDripFeed() {
 }
 
 function updateUISurgically(id, data) {
+  // 1. ALWAYS update background storage (Keep the data fresh)
   updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
   
+  // 2. ONLY touch the DOM if we are on the Public Tab
+  // This prevents the Global "Drip" or "Discovery" logic from messing with your Archive view
+  if (currentTab !== 'public') return;
+
   const postEl = document.querySelector(`[data-id="${id}"]`);
   if (postEl) {
     const likeSpan = postEl.querySelector(`.count-like-${id}`);
@@ -271,33 +276,36 @@ function watchPostCounts(postId) {
   const postRef = doc(db, "globalPosts", postId);
   
   const unsubscribe = onSnapshot(postRef, (docSnap) => {
-    // ✅ CASE A: The post exists (Update numbers as usual)
+    // ✅ CASE A: The post exists
     if (docSnap.exists()) {
       const data = docSnap.data();
+      
+      // 🚀 THE FIX: Use updateUISurgically which handles the Tab Guard internally.
+      // It will update LocalStorage but only touch the screen if currentTab === 'public'.
       updateUISurgically(postId, data);
     } 
-    // 🚀 CASE B: THE FIX - The post was deleted by someone else!
+    // 🚀 CASE B: The post was deleted remotely
     else {
-      
-      // 1. Remove from local state array
-      visiblePosts = visiblePosts.filter(p => p.id !== postId && p.firebaseId !== postId);
-
-      // 2. Remove from the screen with a fade
-      const elToRemove = document.querySelector(`[data-id="${postId}"]`);
-      if (elToRemove) {
-        elToRemove.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-500');
-        setTimeout(() => elToRemove.remove(), 500);
-      }
-
-      // 3. Clean up this listener itself
+      // 1. Always cleanup the listener locally
       if (activePostListeners.has(postId)) {
         const unsub = activePostListeners.get(postId);
         if (unsub) unsub();
         activePostListeners.delete(postId);
       }
+
+      // 2. ONLY remove from screen if we are actually looking at the Global feed
+      if (currentTab === 'public') {
+        visiblePosts = visiblePosts.filter(p => p.id !== postId && p.firebaseId !== postId);
+
+        const elToRemove = document.querySelector(`[data-id="${postId}"]`);
+        if (elToRemove) {
+          elToRemove.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-500');
+          setTimeout(() => elToRemove.remove(), 500);
+        }
+      }
     }
   }, (err) => {
-    console.warn("Post watch lost connection (likely deleted):", err);
+    console.warn("Post watch lost connection:", err);
   });
 
   activePostListeners.set(postId, unsubscribe);
@@ -405,32 +413,40 @@ function updateToggleUI() {
 }
 
 function loadFeed() {
-  // 1. KILL THE GLOBAL HEARTBEAT
+  // 1. KILL THE GLOBAL HEARTBEAT (The Discovery Drip)
   if (dripTimeout) {
     clearTimeout(dripTimeout);
     dripTimeout = null;
   }
 
-  // 2. RESET THE GLOBAL LISTENER
+  // 2. RESET THE GLOBAL SNAPSHOT (The Ego-Listener)
   if (publicUnsubscribe) { 
     publicUnsubscribe(); 
     publicUnsubscribe = null; 
   }
 
-  // 🚀 3. NEW: KILL ALL INDIVIDUAL POST WATCHERS
-  // This stops the "Live Count" listeners for every specific post card
-  if (typeof activePostListeners !== 'undefined' && activePostListeners.size > 0) {
+  // 3. KILL ALL INDIVIDUAL POST WATCHERS
+  if (activePostListeners && activePostListeners.size > 0) {
     activePostListeners.forEach((unsubscribe) => unsubscribe());
     activePostListeners.clear();
-    console.log("Cleanup: All individual post listeners closed.");
   }
+
+  // 🚀 4. NEW: WIPE GLOBAL STATE ARRAYS
+  // This prevents the "Discovery" posts from hanging around in memory 
+  // and interfering with your Private Tab logic.
+  visiblePosts = [];
+  postBuffer = [];
+  processedIds.clear();
 
   // 5. ROUTE TO CORRECT TAB
   if (currentTab === 'private') {
+    // Load from LocalStorage
     allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
     renderPrivateBatch();
+    // Only listen for YOUR Global posts updates while in Private
     subscribeArchiveSync();
   } else {
+    // Start Discovery Mode
     subscribePublicFeed();
   }
 }
