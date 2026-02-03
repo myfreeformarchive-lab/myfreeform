@@ -1530,7 +1530,7 @@ function openModal(post) {
       if (snapshot.empty) {
     DOM.commentList.innerHTML = `
       <div class="flex flex-col items-center justify-center py-10 text-center">
-        <div class="mb-1 opacity-30 md:opacity-90">
+        <div class="mb-1 opacity-30">
           ${getThoughtBubbleSVG()}
         </div>
         <div class="text-slate-400 text-sm">No comments yet.<br>Be the first.</div>
