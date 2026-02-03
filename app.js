@@ -1,4 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+// 1. ADD 'getAuth' and 'signInAnonymously' to your imports here:
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
 import { 
   getFirestore, collection, addDoc, deleteDoc, doc, updateDoc,
   query, orderBy, limit, serverTimestamp, onSnapshot,
@@ -7,7 +9,8 @@ import {
 
 const firebaseConfig = {
   apiKey: "AIzaSyBD-8hcoAuTFaAhgSy-WIyQX_iI37uokTw",
-  authDomain: "myfreeform.page",
+  // 2. KEEP this as the firebaseapp address for the handshake to work
+  authDomain: "myfreeformarchive-8a786.firebaseapp.com", 
   projectId: "myfreeformarchive-8a786",
   storageBucket: "myfreeformarchive-8a786.appspot.com",
   messagingSenderId: "16237442482",
@@ -16,6 +19,16 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// 3. ADD these lines to perform the "Silent Login"
+const auth = getAuth(app);
+signInAnonymously(auth)
+  .then(() => {
+    console.log("Logged in anonymously to bypass security rules");
+  })
+  .catch((error) => {
+    console.error("Auth failed. Check if Anonymous Auth is enabled in Firebase Console:", error.message);
+  });
 
 // ==========================================
 // 1. STATE & DOM lalaa
