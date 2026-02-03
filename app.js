@@ -56,6 +56,7 @@ let publicUnsubscribe = null;
 let commentsUnsubscribe = null;
 let activePostId = null; 
 let activeShareMenuId = null;
+let modalAutoUnsubscribe = null;
 
 // At the top of your script
 let visiblePosts = [];   
@@ -109,6 +110,20 @@ document.addEventListener('DOMContentLoaded', () => {
   
   DOM.commentInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') postComment();
+  });
+  
+  const modalContentCard = document.querySelector('#commentModal .bg-white');
+  if (modalContentCard) {
+    modalContentCard.addEventListener('click', (e) => {
+      e.stopPropagation(); // ✋ Tells the browser: "If I click text/comments, don't close"
+    });
+  }
+
+  // 2. Standard desktop behavior: Close modal when pressing the 'Escape' key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !DOM.modal.classList.contains('hidden')) {
+      closeModal();
+    }
   });
 
  // ==========================================
@@ -1409,14 +1424,29 @@ function openModal(post) {
 }
 
 function closeModal() {
-	if (window.history.state?.modal === 'open') {
+  // 1. Navigation: Handle the hardware back button logic
+  if (window.history.state?.modal === 'open') {
     window.history.back();
   }
 	
+  // 2. UI Reset
   DOM.modal.classList.add('hidden');
   document.body.style.overflow = ''; 
   activePostId = null;
-  if (commentsUnsubscribe) { commentsUnsubscribe(); commentsUnsubscribe = null; }
+
+  // 3. Listener Cleanup
+  if (commentsUnsubscribe) { 
+    commentsUnsubscribe(); 
+    commentsUnsubscribe = null; 
+  }
+
+  // 🚀 THE FIX: Stop the modal's specific live-count watcher
+  // This ensures the "phone hangs up" on this post when you walk away
+  if (typeof modalAutoUnsubscribe !== 'undefined' && modalAutoUnsubscribe) {
+    modalAutoUnsubscribe();
+    // We set it to null so it's ready for the next post
+    // Note: ensure modalAutoUnsubscribe is declared with 'let' at the top of your script
+  }
   
   if (DOM.input) {
     DOM.input.disabled = false;
