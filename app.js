@@ -1683,6 +1683,7 @@ function showDialog(title, message, confirmText, onConfirm) {
   titleEl.textContent = title;
   msgEl.textContent = message;
   confirmBtn.textContent = confirmText || "Confirm";
+  console.log("✅ Dialog content set") ;
 
   // 2. VIBE CHECK (Text Colors)
   const isDestructive = confirmText && confirmText.toLowerCase().includes('delete');
@@ -1693,37 +1694,58 @@ function showDialog(title, message, confirmText, onConfirm) {
   if (isDestructive) {
     // 🚨 RED TEXT (Delete)
     confirmBtn.classList.add('text-red-500');
+	console.log("🔴 Applied destructive styling");
   } else if (confirmText === "Okay" || confirmText === "Understood") {
     // ⚫️ SLATE TEXT (Info / Spam)
     confirmBtn.classList.add('text-slate-700');
+	console.log("⚫ Applied info/spam styling");
   } else {
     // 🔵 BRAND BLUE TEXT (Publish)
     confirmBtn.classList.add('text-brand-600');
+	console.log("🔵 Applied brand styling");
   }
 
   // 3. Show
+  console.log("📂 Current overlay classes before show:", overlay.className);
   overlay.classList.remove('hidden');
+  console.log("👁️ Removed 'hidden' class");
   requestAnimationFrame(() => {
     overlay.classList.add('dialog-open');
+	console.log("✨ Added 'dialog-open' class in next frame");
+    console.log("📂 Final overlay classes:", overlay.className);
   });
 
   // 4. Setup Button
   const newBtn = confirmBtn.cloneNode(true);
   confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+  console.log("🔄 Button cloned and replaced");
   
   newBtn.onclick = () => {
+	  console.log("🖱️ Confirm button clicked");
     onConfirm(); 
     closeDialog();
   };
+  console.log("✅ Dialog setup complete");
 }
 
 function closeDialog() {
+  console.log("🔶 closeDialog called");
+  console.trace("📍 Call stack:"); // This will show us WHO is calling closeDialog
+  
   const overlay = document.getElementById('custom-dialog');
+  
+  if (!overlay) {
+    console.error("❌ Can't close - overlay not found");
+    return;
+  }
+  
+  console.log("📂 Closing dialog, current classes:", overlay.className);
   overlay.classList.remove('dialog-open'); 
   
   // Reduced from 200 to 150 to match the CSS speed
   setTimeout(() => {
     overlay.classList.add('hidden');
+    console.log("🔒 Dialog hidden after 150ms delay");
   }, 150); 
 }
 
