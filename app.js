@@ -509,7 +509,7 @@ function loadFeed() {
 
   // 3. KILL ALL INDIVIDUAL POST WATCHERS
   if (activePostListeners && activePostListeners.size > 0) {
-    activePostListeners.forEach((unsubscribe) => unsubscribe());
+    activePostListeners.forEach(unsubscribe => unsubscribe());
     activePostListeners.clear();
   }
 
@@ -522,25 +522,30 @@ function loadFeed() {
 
   // 5. ROUTE TO CORRECT TAB
   if (currentTab === 'private') {
-    // Load from LocalStorage
-    allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
-    renderPrivateBatch();
-    // Only listen for YOUR Global posts updates while in Private
-    subscribeArchiveSync();
+    // Load private posts from LocalStorage and filter to ensure exclusivity
+    allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || [])
+      .filter(post => !post.isFirebase) // Only local posts (where isFirebase is false)
+      .reverse();
+
+    renderPrivateBatch(); // Render private posts
+    subscribeArchiveSync(); // Only listen for YOUR private posts updates
   } else {
-    // Start Discovery Mode
-	DOM.loadTrigger.style.display = 'flex';
-    subscribePublicFeed();
+    // Start Discovery Mode for global posts
+    DOM.loadTrigger.style.display = 'flex';
+    subscribePublicFeed(); // Start fetching global posts
   }
 }
 
 function renderPrivateBatch() {
-  // Re-fetch to ensure we have the counts updated by the background sync
-  allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
-  
+  // Fetch posts stored locally but filter to include only private (local) posts
+  allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || [])
+    .filter(post => !post.isFirebase) // Only local posts (where isFirebase is false)
+    .reverse();
+
   const visible = allPrivatePosts.slice(0, currentLimit);
-  DOM.list.innerHTML = ''; 
-  renderListItems(visible);
+  DOM.list.innerHTML = ''; // Reset list
+  renderListItems(visible); // Render filtered posts
+  
   DOM.loadTrigger.style.display = (currentLimit >= allPrivatePosts.length) ? 'none' : 'flex';
 }
 
@@ -938,17 +943,24 @@ function showHeartAnimation(container) {
 }
 
 function renderListItems(items) {
-  DOM.list.innerHTML = ''; 
+  DOM.list.innerHTML = ''; // Clear the list
   
   if (items.length === 0) {
-    DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl"><p class="text-slate-500">No thoughts here yet.</p></div>`;
+    DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl">
+      <p class="text-slate-500">No thoughts here yet.</p></div>`;
     return;
   }
 
   items.forEach(item => {
+    // Ensure no global posts are rendered in the private tab
+    if (currentTab === 'private' && item.isFirebase) {
+      console.warn(`Skipping global post in private context: ${item.content}`);
+      return;
+    }
+
     const postNode = createPostNode(item);
     DOM.list.appendChild(postNode);
-    
+
     // 🚀 THE FIX: Start watching these initial posts too
     watchPostCounts(item.id);
   });
