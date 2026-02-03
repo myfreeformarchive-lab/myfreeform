@@ -63,7 +63,7 @@ let visiblePosts = [];
 let postBuffer = [];     
 let processedIds = new Set(); 
 let dripTimeout = null;
-
+let activePostListeners = new Map();
 let isAppending = false;
 
 // ==========================================
@@ -267,7 +267,25 @@ function updateUISurgically(id, data) {
   }
 }
 
-// TEMPORARY TEST VERSION
+// A Map to keep track of active listeners so we don't create duplicates
+const activePostListeners = new Map();
+
+function watchPostCounts(postId) {
+  // If we're already watching this post, don't start a new listener
+  if (activePostListeners.has(postId)) return;
+
+  const postRef = doc(db, "globalPosts", postId);
+  const unsubscribe = onSnapshot(postRef, (docSnap) => {
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      // Use our surgical update helper to refresh the UI
+      updateUISurgically(postId, data);
+    }
+  }, (err) => console.error("Post watch failed:", err));
+
+  activePostListeners.set(postId, unsubscribe);
+}
+
 async function refillBufferRandomly(count = 1, silent = false) {
   try {
     const counterRef = doc(db, "metadata", "postCounter");
@@ -315,7 +333,6 @@ async function refillBufferRandomly(count = 1, silent = false) {
 function injectSinglePost(item, position = 'top') {
   const postNode = createPostNode(item); 
   
-  // Only add animations to "injected" posts, not the ones loaded at start
   postNode.classList.add('animate-in', 'fade-in', 'slide-in-from-top-4', 'duration-500');
 
   if (position === 'top') {
@@ -323,6 +340,9 @@ function injectSinglePost(item, position = 'top') {
   } else {
     DOM.list.appendChild(postNode);
   }
+
+  // 🚀 THE FIX: Start a live listener for this specific post's numbers
+  watchPostCounts(item.id);
 }
 
 function updateBufferUI() {
@@ -399,35 +419,36 @@ function updateToggleUI() {
 
 function loadFeed() {
   // 1. KILL THE GLOBAL HEARTBEAT
-  // This stops the 20-second drip from running in the background
   if (dripTimeout) {
     clearTimeout(dripTimeout);
     dripTimeout = null;
   }
 
-  // 2. RESET THE LISTENER
-  // This kills the Firebase connection for whichever tab you just left
+  // 2. RESET THE GLOBAL LISTENER
   if (publicUnsubscribe) { 
     publicUnsubscribe(); 
     publicUnsubscribe = null; 
   }
 
-  // 3. HIDE THE BUFFER UI
-  // Ensure the "New posts pending" pill disappears when entering Private mode
+  // 🚀 3. NEW: KILL ALL INDIVIDUAL POST WATCHERS
+  // This stops the "Live Count" listeners for every specific post card
+  if (typeof activePostListeners !== 'undefined' && activePostListeners.size > 0) {
+    activePostListeners.forEach((unsubscribe) => unsubscribe());
+    activePostListeners.clear();
+    console.log("Cleanup: All individual post listeners closed.");
+  }
+
+  // 4. HIDE THE BUFFER UI
   if (DOM.bufferPill) {
     DOM.bufferPill.classList.add('translate-y-20', 'opacity-0');
   }
 
-  // 4. ROUTE TO CORRECT TAB
+  // 5. ROUTE TO CORRECT TAB
   if (currentTab === 'private') {
-    // Immediate load from LocalStorage
     allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
     renderPrivateBatch();
-    
-    // Start background sync (updates counts for your global posts in the private list)
     subscribeArchiveSync();
   } else {
-    // Start the Global Drip system and listener
     subscribePublicFeed();
   }
 }
@@ -770,21 +791,19 @@ function createPostNode(item) {
 }
 
 function renderListItems(items) {
-  // Clear the list only on full re-renders
   DOM.list.innerHTML = ''; 
   
   if (items.length === 0) {
-    DOM.list.innerHTML = `
-      <div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl">
-        <p class="text-slate-500">No thoughts here yet.</p>
-      </div>`;
+    DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl">...</div>`;
     return;
   }
 
-  // Use the new builder for each item
   items.forEach(item => {
     const postNode = createPostNode(item);
     DOM.list.appendChild(postNode);
+    
+    // 🚀 THE FIX: Start watching these initial posts too
+    watchPostCounts(item.id);
   });
 }
 
