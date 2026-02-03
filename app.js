@@ -1162,16 +1162,22 @@ async function publishDraft(post) {
     "This note will be visible to everyone on the Global Feed.",
     "Publish",
     async () => {
+      // === 🛡️ SPAM GUARD CHECK FIRST ===
+      if (!checkSpamGuard(post.content)) {
+        // User is either in jail or posting duplicate content
+        // checkSpamGuard will show its own dialog
+        return; // Stop here, don't publish
+      }
+      
       // === 🟢 PUBLISH LOGIC STARTS HERE ===
       try {
-		
         const uniqueTag = await getNextUniqueTag();		
-		
+        
         const docRef = await addDoc(collection(db, "globalPosts"), { 
           content: post.content, 
           font: post.font || 'font-sans', 
           authorId: MY_USER_ID,
-		  uniqueTag: uniqueTag,
+          uniqueTag: uniqueTag,
           createdAt: serverTimestamp(),
           commentCount: 0,
           likeCount: 0 
@@ -1183,7 +1189,7 @@ async function publishDraft(post) {
         if (targetIndex !== -1) {
           // Link local post to the new global ID
           posts[targetIndex].firebaseId = docRef.id;
-		  posts[targetIndex].uniqueTag = uniqueTag;
+          posts[targetIndex].uniqueTag = uniqueTag;
           posts[targetIndex].commentCount = 0;
           posts[targetIndex].likeCount = 0;
           localStorage.setItem('freeform_v2', JSON.stringify(posts));
