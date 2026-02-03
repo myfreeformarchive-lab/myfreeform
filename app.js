@@ -828,7 +828,7 @@ onclick="toggleLike(event, '${realId}')">
 
 const actionArea = hasCommentsAccess ? interactiveButtonsHtml : <span class="text-xs text-slate-400 font-medium italic">Private Draft</span>;
 
-/ 4. Logic: Share Menu
+// 4. Logic: Share Menu
 const allowedPlatforms = getSmartShareButtons(item.content);
 let menuHtml = '';
 allowedPlatforms.forEach(p => {
