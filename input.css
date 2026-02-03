@@ -223,3 +223,17 @@ textarea::-webkit-scrollbar { display: none; }
 #custom-dialog.dialog-open .relative {
   transform: scale(1) !important;
 }
+
+/* 🚀 THE STUBBORN LOCK */
+/* Detects if the screen is wider than it is tall (Landscape) */
+@media (orientation: landscape) and (max-device-width: 932px) {
+    #orientation-shield {
+        display: flex !important;
+    }
+    
+    /* This hides the main app container so they can't see the broken layout */
+    /* Replace '#app-container' with the ID of your main wrapper div */
+    #app-container { 
+        display: none !important;
+    }
+}
