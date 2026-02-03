@@ -294,21 +294,16 @@ async function refillBufferRandomly(count = 1, silent = false) {
     if (!counterSnap.exists()) return;
     const maxId = counterSnap.data().count;
 
-    // 1. Dynamic Range: If we have few posts, range is 1 to Max. 
-    // If we have many, we look at the last 500 to keep it fresh.
     const windowSize = maxId < 50 ? maxId : 500;
     const minId = Math.max(1, maxId - windowSize);
 
     let attempts = 0;
-    // Keep trying until we actually get a post (max 10 tries to avoid infinite loops)
-    while (postBuffer.length < count && attempts < 10) {
+    // We try up to 15 times to find 'count' valid posts
+    while (postBuffer.length < count && attempts < 15) {
       attempts++;
-      
-      // Pick one random ID in our range
       const rand = Math.floor(Math.random() * (maxId - minId + 1) + minId);
       const targetTag = `UID:${rand}`;
 
-      // Try to fetch this specific post
       const q = query(collection(db, "globalPosts"), where("uniqueTag", "==", targetTag));
       const snap = await getDocs(q);
 
@@ -316,14 +311,14 @@ async function refillBufferRandomly(count = 1, silent = false) {
         const docData = snap.docs[0];
         const post = { id: docData.id, ...docData.data(), isFirebase: true };
         
-        // Don't add if it's already on the screen
-        if (!processedIds.has(post.id)) {
+        // Ensure it's not already on screen OR already in the buffer
+        const isDuplicate = processedIds.has(post.id) || postBuffer.some(p => p.id === post.id);
+        
+        if (!isDuplicate) {
           postBuffer.push(post);
-          processedIds.add(post.id);
         }
       }
     }
-
     if (!silent) updateBufferUI();
   } catch (err) {
     console.error("Sampler failed:", err);
@@ -500,33 +495,44 @@ function subscribeArchiveSync() {
 async function subscribePublicFeed() {
   if (publicUnsubscribe) publicUnsubscribe();
 
-  visiblePosts = [];
-  postBuffer = []; 
-  processedIds.clear();
-  if (dripTimeout) clearTimeout(dripTimeout);
-
-  DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
+  // 🛡️ THE FIX: Only reset state if we aren't just appending more posts
+  if (!isAppending) {
+    visiblePosts = [];
+    postBuffer = []; 
+    processedIds.clear();
+    if (dripTimeout) clearTimeout(dripTimeout);
+    DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
+  }
 
   try {
-    // 1. Fetch EVERYTHING currently in the DB (since there are only a few)
-    // As the DB grows, 'limit(15)' will ensure this stays fast.
+    // 1. Fetch newest posts for immediate gratification
     const qInitial = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(15));
     const initialSnap = await getDocs(qInitial);
     
+    const newItems = [];
     initialSnap.forEach(doc => {
       const post = { id: doc.id, ...doc.data(), isFirebase: true };
-      visiblePosts.push(post);
-      processedIds.add(doc.id);
+      if (!processedIds.has(post.id)) {
+        newItems.push(post);
+        processedIds.add(doc.id);
+      }
     });
 
-    renderListItems(visiblePosts);
+    // 2. Render logic
+    if (isAppending) {
+        newItems.forEach(p => {
+            visiblePosts.push(p);
+            injectSinglePost(p, 'bottom');
+        });
+    } else {
+        visiblePosts = newItems;
+        renderListItems(visiblePosts);
+        startDripFeed(); // Only start the loop on first load
+    }
+
     DOM.loadTrigger.style.opacity = '0';
 
-    // 2. Start the discovery heartbeat
-    // This will now wait 20s, pick 1 random post, and buffer it.
-    startDripFeed();
-
-    // 3. Keep the ego-listener for instant updates on your own posts
+    // 3. Ego-Listener (Stay open to catch your own new posts)
     const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
     publicUnsubscribe = onSnapshot(myPostsQuery, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
@@ -544,7 +550,7 @@ async function subscribePublicFeed() {
 
   } catch (err) {
     console.error("Critical Load Error:", err);
-    DOM.list.innerHTML = `<div class="text-center py-12">Feed offline.</div>`;
+    if(!isAppending) DOM.list.innerHTML = `<div class="text-center py-12">Feed offline.</div>`;
   }
 }
 
@@ -899,16 +905,26 @@ function loadMoreData() {
     isLoadingMore = false;
     DOM.loadTrigger.style.visibility = 'hidden';
   } else {
-    // 🚀 NEW DISCOVERY LOGIC:
-    // Just grab 10 more random posts and append them
-    refillBufferRandomly(10, true).then(() => {
-      while(postBuffer.length > 0) {
-        const p = postBuffer.shift();
-        visiblePosts.push(p);
-        injectSinglePost(p, 'bottom');
+    // Discovery Mode: Fetch a batch of random posts to append to the bottom
+    refillBufferRandomly(5, true).then(() => {
+      if (postBuffer.length === 0) {
+          // If randomizer found nothing, fallback to chronological
+          isAppending = true;
+          subscribePublicFeed().then(() => {
+              isLoadingMore = false;
+              isAppending = false;
+              DOM.loadTrigger.style.visibility = 'hidden';
+          });
+      } else {
+          // Append the random "discoveries" to the bottom
+          while(postBuffer.length > 0) {
+            const p = postBuffer.shift();
+            visiblePosts.push(p);
+            injectSinglePost(p, 'bottom');
+          }
+          isLoadingMore = false;
+          DOM.loadTrigger.style.visibility = 'hidden';
       }
-      isLoadingMore = false;
-      DOM.loadTrigger.style.visibility = 'hidden';
     });
   }
 }
