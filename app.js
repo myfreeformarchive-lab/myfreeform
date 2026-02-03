@@ -910,6 +910,33 @@ function createPostNode(item) {
   return el;
 }
 
+// Helper Function for the Heart Animation
+function showHeartAnimation(container) {
+  const animContainer = container.querySelector('.animation-container');
+  if (!animContainer) return;
+
+  const heart = document.createElement('div');
+  heart.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-20 h-20 text-red-500 fill-red-500 drop-shadow-lg" viewBox="0 0 24 24" stroke-width="0" stroke="currentColor">
+       <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path>
+    </svg>
+  `;
+  
+  heart.className = "transform scale-0 opacity-0 transition-all duration-500 ease-out";
+  animContainer.appendChild(heart);
+
+  requestAnimationFrame(() => {
+    heart.classList.remove('scale-0', 'opacity-0');
+    heart.classList.add('scale-125', 'opacity-100');
+    
+    setTimeout(() => {
+      heart.classList.remove('scale-125', 'opacity-100');
+      heart.classList.add('scale-150', 'opacity-0');
+      setTimeout(() => heart.remove(), 500);
+    }, 400);
+  });
+}
+
 function renderListItems(items) {
   DOM.list.innerHTML = ''; 
   
