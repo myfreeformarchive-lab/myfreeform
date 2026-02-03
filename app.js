@@ -785,7 +785,8 @@ function createPostNode(item) {
   // 1. Create the base container
   const el = document.createElement('div');
   el.setAttribute('data-id', item.id);
-  el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative";
+  // Added 'select-none' to prevent text highlighting on fast tapping
+  el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative select-none";
 
   // 2. Logic: Time, Fonts, and Tags
   const time = getRelativeTime(item.createdAt);
@@ -855,8 +856,10 @@ function createPostNode(item) {
   const footerHtml = `<div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
 
   // 5. Inject HTML
+  // Added a container for the pop-up heart animation
   el.innerHTML = `
-    <div class="flex justify-between items-start mb-2">
+    <div class="animation-container absolute inset-0 pointer-events-none z-0 flex items-center justify-center overflow-hidden"></div>
+    <div class="flex justify-between items-start mb-2 relative z-10">
       <div class="flex items-center gap-2">
         <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
           ${item.isFirebase ? 'Global' : 'Local'}
@@ -864,14 +867,14 @@ function createPostNode(item) {
         <span class="text-xs text-slate-500 font-medium">${time}</span>
       </div>
     </div>
-    <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] pointer-events-none ${fontClass}">${cleanText(item.content)}</p>
+    <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] pointer-events-none relative z-10 ${fontClass}">${cleanText(item.content)}</p>
     ${footerHtml}
   `;
 
   // 6. Delete Button (Manual Node Creation)
   if (!item.isFirebase || isMyGlobalPost) {
     const delBtn = document.createElement('button');
-    delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
+    delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-30 p-2";
     delBtn.innerHTML = "✕";
     delBtn.onclick = (e) => { 
       e.stopPropagation(); 
@@ -880,22 +883,50 @@ function createPostNode(item) {
     el.appendChild(delBtn);
   }
 
-  // 7. Click Handler for Modal
-  el.onclick = (e) => {
-  // ⚡ NEW: Don't open modal if share menu is currently open
-  if (activeShareMenuId) {
-    return;
-  }
-
-  // Original checks
-  if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) {
-    return;
-  }
+  // --- NEW LOGIC START ---
   
-  openModal(item);
-};
+  // Variable to store the timer so we can cancel it if a double click happens
+  let clickTimeout = null;
 
-  // 8. Share Button Handlers
+  // 7. SINGLE TAP Handler (Delayed)
+  el.onclick = (e) => {
+    // Safety checks
+    if (activeShareMenuId) return;
+    if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) {
+      return;
+    }
+
+    // If a timer is already running, do nothing (we are waiting for dblclick or timeout)
+    if (clickTimeout) return;
+
+    // Wait 250ms to see if the user clicks again
+    clickTimeout = setTimeout(() => {
+      openModal(item);
+      clickTimeout = null; // Reset
+    }, 250);
+  };
+
+  // 8. DOUBLE TAP Handler (Immediate)
+  el.ondblclick = (e) => {
+    // 1. Cancel the single tap modal opening
+    if (clickTimeout) {
+      clearTimeout(clickTimeout);
+      clickTimeout = null;
+    }
+
+    // 2. Safety check (don't like if clicking share buttons)
+    if (e.target.closest('button') || e.target.closest('.share-container')) return;
+
+    // 3. Trigger the existing Like function
+    toggleLike(e, realId);
+
+    // 4. Show the visual "Heart Pop" animation
+    showHeartAnimation(el);
+  };
+  
+  // --- NEW LOGIC END ---
+
+  // 9. Share Button Handlers
   const platformBtns = el.querySelectorAll('.share-icon-btn');
   platformBtns.forEach(btn => {
     btn.onclick = (e) => {
@@ -908,6 +939,38 @@ function createPostNode(item) {
   });
 
   return el;
+}
+
+// Helper Function for the Visual Pop Effect
+function showHeartAnimation(container) {
+  const animContainer = container.querySelector('.animation-container');
+  if (!animContainer) return;
+
+  const heart = document.createElement('div');
+  heart.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-20 h-20 text-red-500 fill-red-500 drop-shadow-lg" viewBox="0 0 24 24" stroke-width="0" stroke="currentColor">
+       <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path>
+    </svg>
+  `;
+  
+  // Initial State
+  heart.className = "transform scale-0 opacity-0 transition-all duration-500 ease-out";
+  animContainer.appendChild(heart);
+
+  // Trigger Animation
+  requestAnimationFrame(() => {
+    heart.classList.remove('scale-0', 'opacity-0');
+    heart.classList.add('scale-125', 'opacity-100');
+    
+    // Fade out
+    setTimeout(() => {
+      heart.classList.remove('scale-125', 'opacity-100');
+      heart.classList.add('scale-150', 'opacity-0');
+      
+      // Cleanup DOM
+      setTimeout(() => heart.remove(), 500);
+    }, 400);
+  });
 }
 
 function renderListItems(items) {
