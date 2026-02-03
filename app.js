@@ -228,17 +228,18 @@ function startDripFeed() {
   if (dripTimeout) clearTimeout(dripTimeout);
 
   async function drip() {
-    // 1. If buffer is empty, refill it
+    // If the buffer is empty, go find ONE random post
     if (postBuffer.length === 0) {
       await refillBufferRandomly(1);
     }
 
-    // 2. Drip the next item
+    // If we successfully found one, show it
     if (postBuffer.length > 0) {
       const nextPost = postBuffer.shift();
       visiblePosts.unshift(nextPost);
       injectSinglePost(nextPost, 'top');
 
+      // Keep the feed length manageable
       if (visiblePosts.length > 50) {
         visiblePosts.pop();
         if (DOM.list.lastElementChild) DOM.list.lastElementChild.remove();
@@ -246,8 +247,8 @@ function startDripFeed() {
     }
     
     updateBufferUI();
-    // 15 seconds is a nice "slow" pace for discovery
-    dripTimeout = setTimeout(drip, 15000); 
+    // Your 20 second loop
+    dripTimeout = setTimeout(drip, 20000); 
   }
 
   drip();
@@ -269,25 +270,45 @@ function updateUISurgically(id, data) {
 // TEMPORARY TEST VERSION
 async function refillBufferRandomly(count = 1, silent = false) {
   try {
-    // Just grab 1 post that isn't yours to test the buffer
-    const q = query(collection(db, "globalPosts"), limit(10));
-    const snap = await getDocs(q);
+    const counterRef = doc(db, "metadata", "postCounter");
+    const counterSnap = await getDoc(counterRef);
     
-    const docs = snap.docs;
-    if (docs.length === 0) return;
+    if (!counterSnap.exists()) return;
+    const maxId = counterSnap.data().count;
 
-    // Pick 1 random one from the 10 we grabbed
-    const randomDoc = docs[Math.floor(Math.random() * docs.length)];
-    const post = { id: randomDoc.id, ...randomDoc.data(), isFirebase: true };
-    
-    if (!processedIds.has(post.id)) {
-      postBuffer.push(post);
-      processedIds.add(post.id);
+    // 1. Dynamic Range: If we have few posts, range is 1 to Max. 
+    // If we have many, we look at the last 500 to keep it fresh.
+    const windowSize = maxId < 50 ? maxId : 500;
+    const minId = Math.max(1, maxId - windowSize);
+
+    let attempts = 0;
+    // Keep trying until we actually get a post (max 10 tries to avoid infinite loops)
+    while (postBuffer.length < count && attempts < 10) {
+      attempts++;
+      
+      // Pick one random ID in our range
+      const rand = Math.floor(Math.random() * (maxId - minId + 1) + minId);
+      const targetTag = `UID:${rand}`;
+
+      // Try to fetch this specific post
+      const q = query(collection(db, "globalPosts"), where("uniqueTag", "==", targetTag));
+      const snap = await getDocs(q);
+
+      if (!snap.empty) {
+        const docData = snap.docs[0];
+        const post = { id: docData.id, ...docData.data(), isFirebase: true };
+        
+        // Don't add if it's already on the screen
+        if (!processedIds.has(post.id)) {
+          postBuffer.push(post);
+          processedIds.add(post.id);
+        }
+      }
     }
 
     if (!silent) updateBufferUI();
-  } catch (e) {
-    console.error("Test Sampler Failed:", e);
+  } catch (err) {
+    console.error("Sampler failed:", err);
   }
 }
 
@@ -458,21 +479,20 @@ function subscribeArchiveSync() {
 async function subscribePublicFeed() {
   if (publicUnsubscribe) publicUnsubscribe();
 
-  // 1. Reset State
   visiblePosts = [];
   postBuffer = []; 
   processedIds.clear();
   if (dripTimeout) clearTimeout(dripTimeout);
 
-  // 2. Clear UI
-  DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Connecting to the feed...</div>';
+  DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
 
   try {
-    // 🚀 STEP 1: Get the 5 newest posts IMMEDIATELY so the screen isn't blank
-    const fastQuery = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(5));
-    const fastSnap = await getDocs(fastQuery);
+    // 1. Fetch EVERYTHING currently in the DB (since there are only a few)
+    // As the DB grows, 'limit(15)' will ensure this stays fast.
+    const qInitial = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(15));
+    const initialSnap = await getDocs(qInitial);
     
-    fastSnap.forEach(doc => {
+    initialSnap.forEach(doc => {
       const post = { id: doc.id, ...doc.data(), isFirebase: true };
       visiblePosts.push(post);
       processedIds.add(doc.id);
@@ -481,32 +501,29 @@ async function subscribePublicFeed() {
     renderListItems(visiblePosts);
     DOM.loadTrigger.style.opacity = '0';
 
-    // 🚀 STEP 2: Kick off the discovery logic in the background
-    // We don't 'await' this, so if it fails, the screen stays as is.
-    refillBufferRandomly(1, true).then(() => {
-        startDripFeed();
-    });
+    // 2. Start the discovery heartbeat
+    // This will now wait 20s, pick 1 random post, and buffer it.
+    startDripFeed();
 
-    // 🚀 STEP 3: Listen for your own posts
+    // 3. Keep the ego-listener for instant updates on your own posts
     const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
     publicUnsubscribe = onSnapshot(myPostsQuery, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
-        const id = change.doc.id;
-        if (change.type === "added" && !processedIds.has(id)) {
-          processedIds.add(id);
-          const postObj = { id, ...change.doc.data(), isFirebase: true };
+        if (change.type === "added" && !processedIds.has(change.doc.id)) {
+          const postObj = { id: change.doc.id, ...change.doc.data(), isFirebase: true };
+          processedIds.add(postObj.id);
           visiblePosts.unshift(postObj);
           injectSinglePost(postObj, 'top');
         }
         if (change.type === "modified") {
-          updateUISurgically(id, change.doc.data());
+          updateUISurgically(change.doc.id, change.doc.data());
         }
       });
     });
 
   } catch (err) {
-    console.error("Feed Critical Failure:", err);
-    DOM.list.innerHTML = `<div class="text-center py-12">Unable to connect. Check console.</div>`;
+    console.error("Critical Load Error:", err);
+    DOM.list.innerHTML = `<div class="text-center py-12">Feed offline.</div>`;
   }
 }
 
