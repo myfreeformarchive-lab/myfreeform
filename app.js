@@ -785,7 +785,8 @@ function createPostNode(item) {
   // 1. Create the base container
   const el = document.createElement('div');
   el.setAttribute('data-id', item.id);
-  el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative";
+  // select-none is added to prevent text selection when tapping fast
+  el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative select-none";
 
   // 2. Logic: Time, Fonts, and Tags
   const time = getRelativeTime(item.createdAt);
@@ -810,7 +811,6 @@ function createPostNode(item) {
 
   const interactiveButtonsHtml = `
     <div class="flex items-center gap-5">
-      <!-- Like Button -->
       <div class="like-trigger group flex items-center gap-1.5 cursor-pointer transition-colors" onclick="toggleLike(event, '${realId}')">
         <div class="hover:scale-110 transition-transform duration-200">
           <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-heart ${heartFill}" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -821,7 +821,6 @@ function createPostNode(item) {
         <span class="text-sm font-semibold ${countColor} count-like-${realId}">${likeCount}</span>
       </div>
 
-      <!-- Comment Button -->
       <div class="group flex items-center gap-1.5 relative cursor-pointer text-brand-500 hover:text-brand-700 transition-colors">
         <div class="hover:scale-110 transition-transform duration-200">
           <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-message-circle-2" width="22" height="22" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -834,9 +833,7 @@ function createPostNode(item) {
     </div>
   `;
 
-  const actionArea = hasCommentsAccess 
-    ? interactiveButtonsHtml 
-    : `<span class="text-xs text-slate-400 font-medium italic">Private Draft</span>`;
+  const actionArea = hasCommentsAccess ? interactiveButtonsHtml : `<span class="text-xs text-slate-400 font-medium italic">Private Draft</span>`;
 
   // 4. Logic: Share Menu
   const allowedPlatforms = getSmartShareButtons(item.content);
@@ -856,14 +853,9 @@ function createPostNode(item) {
     </div>
   `;
 
-  const footerHtml = `
-    <div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">
-      ${actionArea}
-      ${shareComponent}
-    </div>
-  `;
+  const footerHtml = `<div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
 
-  // 5. Inject HTML
+  // 5. Inject HTML (EXACTLY AS PROVIDED BY YOU)
   el.innerHTML = `
     <div class="flex justify-between items-start mb-2"> 
       <div class="flex items-center gap-2"> 
@@ -881,7 +873,8 @@ function createPostNode(item) {
   // 6. Delete Button (Manual Node Creation)
   if (!item.isFirebase || isMyGlobalPost) {
     const delBtn = document.createElement('button');
-    delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
+    // Upped Z-index slightly to ensure it's not blocked by double tap detection
+    delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-30 p-2";
     delBtn.innerHTML = "✕";
     delBtn.onclick = (e) => {
       e.stopPropagation();
@@ -890,20 +883,39 @@ function createPostNode(item) {
     el.appendChild(delBtn);
   }
 
-  // 7. Click Handler for Modal
+  // --- NEW DOUBLE TAP LOGIC ---
+  let clickTimer = null;
+
+  // 7. Click Handler for Modal (Single Tap)
   el.onclick = (e) => {
-    // Don't open modal if share menu is currently open
-    if (typeof activeShareMenuId !== 'undefined' && activeShareMenuId) {
-      return;
+    if (typeof activeShareMenuId !== 'undefined' && activeShareMenuId) return;
+    if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) return;
+
+    if (clickTimer === null) {
+      clickTimer = setTimeout(() => {
+        openModal(item);
+        clickTimer = null;
+      }, 250); // Delay to see if a second click happens
     }
-    // Don't open modal if clicking interactive elements
-    if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) {
-      return;
-    }
-    openModal(item);
   };
 
-  // 8. Share Button Handlers
+  // 8. Double Tap Trigger (Like)
+  el.ondblclick = (e) => {
+    // Kill the timer so the single tap modal doesn't open
+    if (clickTimer) {
+      clearTimeout(clickTimer);
+      clickTimer = null;
+    }
+
+    // Don't like if clicking the delete/share buttons
+    if (e.target.closest('button') || e.target.closest('.share-container')) return;
+
+    // Trigger Like and Animation
+    toggleLike(e, realId);
+    showHeartAnimation(el);
+  };
+
+  // 9. Share Button Handlers
   const platformBtns = el.querySelectorAll('.share-icon-btn');
   platformBtns.forEach(btn => {
     btn.onclick = (e) => {
