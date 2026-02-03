@@ -417,7 +417,8 @@ async function refillBufferRandomly(count = 1, silent = false) {
 
 function injectSinglePost(item, position = 'top') {
   // 🚀 THE FIX: If we are in Private mode, DO NOT inject global posts into the list
-  if (currentTab === 'private' && item.authorId !== MY_USER_ID) {
+  if (currentTab === 'private' && item.isFirebase) {
+    console.warn(`injectSinglePost: Blocking global post in private tab: ${item.content}`);
     return; 
   }
 
@@ -495,64 +496,52 @@ function updateToggleUI() {
 }
 
 function loadFeed() {
-  // 1. Kill the global heartbeat (Discovery Drip)
+  // 1. KILL THE GLOBAL HEARTBEAT (The Discovery Drip)
   if (dripTimeout) {
     clearTimeout(dripTimeout);
     dripTimeout = null;
   }
 
-  // 2. Reset the global snapshot (Ego-Listener)
-  if (publicUnsubscribe) {
-    publicUnsubscribe();
-    publicUnsubscribe = null;
+  // 2. RESET THE GLOBAL SNAPSHOT (The Ego-Listener)
+  if (publicUnsubscribe) { 
+    publicUnsubscribe(); 
+    publicUnsubscribe = null; 
   }
 
-  // 3. Kill all individual post watchers
+  // 3. KILL ALL INDIVIDUAL POST WATCHERS
   if (activePostListeners && activePostListeners.size > 0) {
-    activePostListeners.forEach(unsubscribe => unsubscribe()); // Remove active listeners
+    activePostListeners.forEach((unsubscribe) => unsubscribe());
     activePostListeners.clear();
   }
 
-  // 4. Wipe global state arrays
-  // Prevent "Discovery" posts from hanging around in memory
+  // 🚀 4. NEW: WIPE GLOBAL STATE ARRAYS
+  // This prevents the "Discovery" posts from hanging around in memory 
+  // and interfering with your Private Tab logic.
   visiblePosts = [];
   postBuffer = [];
   processedIds.clear();
 
-  // Debug the current tab being loaded
-  console.log(`Switching to tab: ${currentTab}`);
-
-  // 5. Route to the correct tab
+  // 5. ROUTE TO CORRECT TAB
   if (currentTab === 'private') {
-    // Load private posts and ensure they're filtered
-    allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || [])
-      .filter(post => !post.isFirebase) // Only private posts
-      .reverse(); // Order by newest posts first
-
-    console.log("Filtered Private Posts:", allPrivatePosts); // Debug filtered posts
-
+    // Load from LocalStorage
+    allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
     renderPrivateBatch();
-    subscribeArchiveSync(); // Sync private archive updates
+    // Only listen for YOUR Global posts updates while in Private
+    subscribeArchiveSync();
   } else {
-    // Start discovery mode for global posts
-    DOM.loadTrigger.style.display = 'flex';
-    subscribePublicFeed(); // Start fetching global posts
+    // Start Discovery Mode
+	DOM.loadTrigger.style.display = 'flex';
+    subscribePublicFeed();
   }
 }
 
 function renderPrivateBatch() {
-  // Ensure we have the counts updated by the background sync
-  allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []) // Fetch posts from local storage
-    .filter(post => !post.isFirebase) // Ensure we only include private (local) posts
-    .reverse(); // Reverse for chronological order  
-
-  console.log("Rendering private posts:", allPrivatePosts); // Debug filtered private posts
-
-  const visible = allPrivatePosts.slice(0, currentLimit); // Limit posts to current batch size
-  DOM.list.innerHTML = ''; // Clear feed list
-  renderListItems(visible); // Render private posts
-
-  // Update "load more" trigger visibility
+  // Re-fetch to ensure we have the counts updated by the background sync
+  allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
+  
+  const visible = allPrivatePosts.slice(0, currentLimit);
+  DOM.list.innerHTML = ''; 
+  renderListItems(visible);
   DOM.loadTrigger.style.display = (currentLimit >= allPrivatePosts.length) ? 'none' : 'flex';
 }
 
@@ -950,29 +939,18 @@ function showHeartAnimation(container) {
 }
 
 function renderListItems(items) {
-  DOM.list.innerHTML = ''; // Reset feed list
-
+  DOM.list.innerHTML = ''; 
+  
   if (items.length === 0) {
-    DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl">
-      <p class="text-slate-500">No thoughts here yet.</p>
-    </div>`;
-    return; // Exit if no items to render
+    DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl"><p class="text-slate-500">No thoughts here yet.</p></div>`;
+    return;
   }
 
   items.forEach(item => {
-    // Debug each item being processed
-    console.log(`Rendering item: ${item.content}, isFirebase: ${item.isFirebase}`);
-
-    // Skip global posts in private context
-    if (currentTab === 'private' && item.isFirebase) {
-      console.warn(`Skipping global post in private context: ${item.content}`);
-      return; // Do not render global item
-    }
-
-    const postNode = createPostNode(item); // Create post element
-    DOM.list.appendChild(postNode); // Append to feed list
-
-    // Start watching these initial posts for updates
+    const postNode = createPostNode(item);
+    DOM.list.appendChild(postNode);
+    
+    // 🚀 THE FIX: Start watching these initial posts too
     watchPostCounts(item.id);
   });
 }
