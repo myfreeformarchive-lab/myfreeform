@@ -184,7 +184,7 @@ document.addEventListener('touchend', e => {
 
 function handleSwipeGesture() {
     const swipeDistance = touchEndX - touchStartX;
-    const threshold = 75; // Min distance in pixels to trigger a switch
+    const threshold = 70; // Min distance in pixels to trigger a switch
 
     // Check if we are inside a scrollable area (like a modal or comment input)
     // We don't want to switch tabs if the user is just scrolling through comments
