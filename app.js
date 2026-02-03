@@ -266,35 +266,44 @@ function updateUISurgically(id, data) {
 }
 
 async function refillBufferRandomly(count = 1, silent = false) {
-  const counterRef = doc(db, "metadata", "postCounter");
-  const counterSnap = await getDoc(counterRef);
-  
-  if (!counterSnap.exists()) return;
-
-  const maxId = counterSnap.data().count;
-  const minId = Math.max(1, maxId - 2000); 
-
-  const randomTags = [];
-  while(randomTags.length < count) {
-    const rand = Math.floor(Math.random() * (maxId - minId + 1) + minId);
-    const tag = `UID:${rand}`;
-    if (!randomTags.includes(tag)) randomTags.push(tag);
-  }
-
-  const q = query(collection(db, "globalPosts"), where("uniqueTag", "in", randomTags));
-  const querySnapshot = await getDocs(q);
-  
-  querySnapshot.forEach((doc) => {
-    const post = { id: doc.id, ...doc.data(), isFirebase: true };
-    if (!processedIds.has(post.id)) {
-      postBuffer.push(post);
-      processedIds.add(post.id);
+  try {
+    const counterRef = doc(db, "metadata", "postCounter");
+    const counterSnap = await getDoc(counterRef);
+    
+    if (!counterSnap.exists()) {
+      console.error("Metadata/postCounter not found!");
+      return;
     }
-  });
 
-  // 🚀 THE FIX: Only update UI if we aren't in 'silent' mode
-  if (!silent) {
-    updateBufferUI();
+    const maxId = counterSnap.data().count;
+    // SAMPLE WINDOW: Sample from the last 2000 posts
+    const minId = Math.max(1, maxId - 2000); 
+
+    const randomTags = [];
+    while(randomTags.length < count) {
+      const rand = Math.floor(Math.random() * (maxId - minId + 1) + minId);
+      const tag = `UID:${rand}`;
+      if (!randomTags.includes(tag)) randomTags.push(tag);
+    }
+
+    // DEBUG: Check if we are actually generating tags
+    console.log("Fetching tags:", randomTags);
+
+    const q = query(collection(db, "globalPosts"), where("uniqueTag", "in", randomTags));
+    const querySnapshot = await getDocs(q);
+    
+    querySnapshot.forEach((doc) => {
+      const post = { id: doc.id, ...doc.data(), isFirebase: true };
+      if (!processedIds.has(post.id)) {
+        postBuffer.push(post);
+        processedIds.add(post.id);
+      }
+    });
+
+    if (!silent) updateBufferUI();
+    
+  } catch (err) {
+    console.error("Buffer Refill Error:", err);
   }
 }
 
@@ -467,42 +476,51 @@ async function subscribePublicFeed() {
 
   // 1. Reset State
   visiblePosts = [];
-  postBuffer = [];
+  postBuffer = []; 
   processedIds.clear();
   if (dripTimeout) clearTimeout(dripTimeout);
 
-  // 2. Initial UI (Only if not scrolling)
-  if (!isAppending) {
-    DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Discovering thoughts...</div>';
-    
-    // PHASE A: INITIAL SEED
-    // Grab 15 random posts to fill the screen immediately
-    await refillBufferRandomly(15, true);
-    visiblePosts = [...postBuffer];
-    postBuffer = []; 
-    renderListItems(visiblePosts);
-	
-	// 3. Start Heartbeat
-  startDripFeed();
-  }
+  // 2. Clear UI
+  DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Discovering thoughts...</div>';
 
-  // 4. THE EGO-LISTENER (Minimal impact)
-  const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
-  publicUnsubscribe = onSnapshot(myPostsQuery, (snapshot) => {
-    snapshot.docChanges().forEach((change) => {
-      const id = change.doc.id;
-      const data = change.doc.data();
-      if (change.type === "added" && !processedIds.has(id)) {
-        processedIds.add(id);
-        const postObj = { id, ...data, isFirebase: true };
-        visiblePosts.unshift(postObj);
-        injectSinglePost(postObj, 'top');
+  // 3. START THE PROCESS
+  try {
+    // We don't "await" this anymore—we let it run and THEN render
+    refillBufferRandomly(15, true).then(() => {
+      if (postBuffer.length > 0) {
+        visiblePosts = [...postBuffer];
+        postBuffer = []; 
+        renderListItems(visiblePosts);
+      } else {
+        // Fallback: If randomizer fails, show a message
+        DOM.list.innerHTML = '<div class="text-center py-20 opacity-50">The universe is quiet... try refreshing.</div>';
       }
-      if (change.type === "modified") {
-        updateUISurgically(id, data);
-      }
+      
+      DOM.loadTrigger.style.opacity = '0';
+      startDripFeed(); // Start the heartbeat only AFTER initial load
     });
-  });
+
+    // 4. EGO-LISTENER (Still runs in background)
+    const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
+    publicUnsubscribe = onSnapshot(myPostsQuery, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        const id = change.doc.id;
+        if (change.type === "added" && !processedIds.has(id)) {
+          processedIds.add(id);
+          const postObj = { id, ...change.doc.data(), isFirebase: true };
+          visiblePosts.unshift(postObj);
+          injectSinglePost(postObj, 'top');
+        }
+        if (change.type === "modified") {
+          updateUISurgically(id, change.doc.data());
+        }
+      });
+    });
+
+  } catch (err) {
+    console.error("Discovery failed:", err);
+    DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Error loading feed.</div>`;
+  }
 }
 
 // ==========================================
