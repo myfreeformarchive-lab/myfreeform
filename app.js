@@ -1619,13 +1619,19 @@ function showToast(message, type = "success") {
   const container = document.getElementById('toast-container');
   if (!container) return;
 
+  // --- THE FIX ---
+  // If the container already has a toast (even if it's fading out), 
+  // we immediately stop this function. The second toast is ignored.
+  if (container.hasChildNodes()) {
+    return;
+  }
+  // ----------------
+
   const toast = document.createElement('div');
   
-  // Using 'toast-glass' for that bright, high-end feel
-  // Removed icon logic entirely for a pure text look
+  // Your existing classes
   toast.className = `toast-enter toast-glass pointer-events-auto px-6 py-2.5 rounded-full text-[13px] font-bold mt-3 text-center`;
   
-  // Only the message remains
   toast.innerHTML = `<span>${message}</span>`;
 
   container.appendChild(toast);
