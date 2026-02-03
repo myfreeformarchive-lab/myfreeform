@@ -289,25 +289,27 @@ function startDripFeed() {
   if (dripTimeout) clearTimeout(dripTimeout);
 
   async function drip() {
-    // If the buffer is empty, go find ONE random post
+    // 🚀 THE FIX: If the user switched tabs while we were waiting, STOP IMMEDIATELY
+    if (currentTab !== 'public') return;
+
     if (postBuffer.length === 0) {
       await refillBufferRandomly(1);
     }
 
-    // If we successfully found one, show it
+    // Double check again after the 'await' finishes
+    if (currentTab !== 'public') return;
+
     if (postBuffer.length > 0) {
       const nextPost = postBuffer.shift();
       visiblePosts.unshift(nextPost);
       injectSinglePost(nextPost, 'top');
 
-      // Keep the feed length manageable
       if (visiblePosts.length > 50) {
         visiblePosts.pop();
         if (DOM.list.lastElementChild) DOM.list.lastElementChild.remove();
       }
     }
     
-    // Your 20 second loop
     dripTimeout = setTimeout(drip, 20000); 
   }
 
@@ -413,8 +415,12 @@ async function refillBufferRandomly(count = 1, silent = false) {
 }
 
 function injectSinglePost(item, position = 'top') {
+  // 🚀 THE FIX: If we are in Private mode, DO NOT inject global posts into the list
+  if (currentTab === 'private' && item.authorId !== MY_USER_ID) {
+    return; 
+  }
+
   const postNode = createPostNode(item); 
-  
   postNode.classList.add('animate-in', 'fade-in', 'slide-in-from-top-4', 'duration-500');
 
   if (position === 'top') {
@@ -423,7 +429,6 @@ function injectSinglePost(item, position = 'top') {
     DOM.list.appendChild(postNode);
   }
 
-  // 🚀 THE FIX: Start a live listener for this specific post's numbers
   watchPostCounts(item.id);
 }
 
