@@ -2,7 +2,7 @@
 module.exports = {
   // ✅ Scan HTML and Javascript for Tailwind classes
   content: ["./index.html", "./app.js"],
-  safelist: ["w-12", "h-12", "w-16", "h-16", "w-20", "h-20", "w-24", "h-24", "w-32", "h-32"],
+  safelist: ["w-12", "h-12", "w-16", "h-16", "w-[68px]", "h-[68px]", "w-[72px]", "h-[72px]", "w-[76px]", "h-[76px]", "w-20", "h-20", "w-24", "h-24", "w-32", "h-32"],
   theme: {
     extend: {
       fontFamily: { 
