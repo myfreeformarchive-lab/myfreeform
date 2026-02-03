@@ -1095,6 +1095,26 @@ async function deleteGlobal(postId) {
 
         // 5. Commit all changes at once
         await batch.commit();
+		
+		// --- 🚀 START OF THE FIX ---
+
+        // 1. Remove it from the JavaScript array so it's gone from memory
+        visiblePosts = visiblePosts.filter(p => p.id !== postId && p.firebaseId !== postId);
+
+        // 2. Surgically remove the HTML card from the screen immediately
+        const elToRemove = document.querySelector(`[data-id="${postId}"]`);
+        if (elToRemove) {
+          elToRemove.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-300');
+          setTimeout(() => elToRemove.remove(), 300);
+        }
+
+        // 3. Kill the "Live Watcher" for this post so it stops listening
+        if (activePostListeners.has(postId)) {
+          activePostListeners.get(postId)(); // Stop the listener
+          activePostListeners.delete(postId); // Remove from the Map
+        }
+        
+        // --- 🏁 END OF THE FIX ---
         
         console.log(`Successfully deleted post ${postId}, comments, and likes.`);
 
