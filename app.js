@@ -618,18 +618,46 @@ async function subscribePublicFeed() {
 
     DOM.loadTrigger.style.opacity = '0';
 
-    // 3. Ego-Listener (Stay open to catch your own new posts)
+    // ============================================================
+    // 3. Ego-Listener (Tweaked: The "Instant Feedback" Loop)
+    // ============================================================
+    
+    // Capture the exact moment we started listening
+    const listenStartTime = Date.now(); 
+
     const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
+    
     publicUnsubscribe = onSnapshot(myPostsQuery, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
-        if (change.type === "added" && !processedIds.has(change.doc.id)) {
-          const postObj = { id: change.doc.id, ...change.doc.data(), isFirebase: true };
-          processedIds.add(postObj.id);
+        const docId = change.doc.id;
+        const data = change.doc.data();
+
+        // 🛡️ TIME GATE CHECK
+        // 1. !data.createdAt -> It's a local pending write (instant feedback)
+        // 2. data.createdAt > listenStartTime -> It's a post confirmed by server AFTER we loaded
+        const isNewPost = !data.createdAt || (data.createdAt.toMillis ? data.createdAt.toMillis() : Date.now()) > listenStartTime;
+
+        if (change.type === "added" && !processedIds.has(docId)) {
+          
+          // If it's an old post (history), mark it processed so we ignore it, but DO NOT render it.
+          if (!isNewPost) {
+             processedIds.add(docId);
+             return; 
+          }
+
+          // It is BRAND NEW -> Inject immediately
+          const postObj = { id: docId, ...data, isFirebase: true };
+          processedIds.add(docId);
           visiblePosts.unshift(postObj);
+          
           injectSinglePost(postObj, 'top');
+          
+          // Nice touch: smooth scroll to top to confirm to user their post is live
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+
         if (change.type === "modified") {
-          updateUISurgically(change.doc.id, change.doc.data());
+          updateUISurgically(docId, data);
         }
       });
     });
