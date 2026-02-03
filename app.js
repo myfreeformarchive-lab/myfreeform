@@ -266,45 +266,28 @@ function updateUISurgically(id, data) {
   }
 }
 
+// TEMPORARY TEST VERSION
 async function refillBufferRandomly(count = 1, silent = false) {
   try {
-    const counterRef = doc(db, "metadata", "postCounter");
-    const counterSnap = await getDoc(counterRef);
+    // Just grab 1 post that isn't yours to test the buffer
+    const q = query(collection(db, "globalPosts"), limit(10));
+    const snap = await getDocs(q);
     
-    if (!counterSnap.exists()) {
-      console.error("Metadata/postCounter not found!");
-      return;
-    }
+    const docs = snap.docs;
+    if (docs.length === 0) return;
 
-    const maxId = counterSnap.data().count;
-    // SAMPLE WINDOW: Sample from the last 2000 posts
-    const minId = Math.max(1, maxId - 2000); 
-
-    const randomTags = [];
-    while(randomTags.length < count) {
-      const rand = Math.floor(Math.random() * (maxId - minId + 1) + minId);
-      const tag = `UID:${rand}`;
-      if (!randomTags.includes(tag)) randomTags.push(tag);
-    }
-
-    // DEBUG: Check if we are actually generating tags
-    console.log("Fetching tags:", randomTags);
-
-    const q = query(collection(db, "globalPosts"), where("uniqueTag", "in", randomTags));
-    const querySnapshot = await getDocs(q);
+    // Pick 1 random one from the 10 we grabbed
+    const randomDoc = docs[Math.floor(Math.random() * docs.length)];
+    const post = { id: randomDoc.id, ...randomDoc.data(), isFirebase: true };
     
-    querySnapshot.forEach((doc) => {
-      const post = { id: doc.id, ...doc.data(), isFirebase: true };
-      if (!processedIds.has(post.id)) {
-        postBuffer.push(post);
-        processedIds.add(post.id);
-      }
-    });
+    if (!processedIds.has(post.id)) {
+      postBuffer.push(post);
+      processedIds.add(post.id);
+    }
 
     if (!silent) updateBufferUI();
-    
-  } catch (err) {
-    console.error("Buffer Refill Error:", err);
+  } catch (e) {
+    console.error("Test Sampler Failed:", e);
   }
 }
 
@@ -482,26 +465,29 @@ async function subscribePublicFeed() {
   if (dripTimeout) clearTimeout(dripTimeout);
 
   // 2. Clear UI
-  DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Discovering thoughts...</div>';
+  DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Connecting to the feed...</div>';
 
-  // 3. START THE PROCESS
   try {
-    // We don't "await" this anymore—we let it run and THEN render
-    refillBufferRandomly(15, true).then(() => {
-      if (postBuffer.length > 0) {
-        visiblePosts = [...postBuffer];
-        postBuffer = []; 
-        renderListItems(visiblePosts);
-      } else {
-        // Fallback: If randomizer fails, show a message
-        DOM.list.innerHTML = '<div class="text-center py-20 opacity-50">The universe is quiet... try refreshing.</div>';
-      }
-      
-      DOM.loadTrigger.style.opacity = '0';
-      startDripFeed(); // Start the heartbeat only AFTER initial load
+    // 🚀 STEP 1: Get the 5 newest posts IMMEDIATELY so the screen isn't blank
+    const fastQuery = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(5));
+    const fastSnap = await getDocs(fastQuery);
+    
+    fastSnap.forEach(doc => {
+      const post = { id: doc.id, ...doc.data(), isFirebase: true };
+      visiblePosts.push(post);
+      processedIds.add(doc.id);
     });
 
-    // 4. EGO-LISTENER (Still runs in background)
+    renderListItems(visiblePosts);
+    DOM.loadTrigger.style.opacity = '0';
+
+    // 🚀 STEP 2: Kick off the discovery logic in the background
+    // We don't 'await' this, so if it fails, the screen stays as is.
+    refillBufferRandomly(1, true).then(() => {
+        startDripFeed();
+    });
+
+    // 🚀 STEP 3: Listen for your own posts
     const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
     publicUnsubscribe = onSnapshot(myPostsQuery, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
@@ -519,8 +505,8 @@ async function subscribePublicFeed() {
     });
 
   } catch (err) {
-    console.error("Discovery failed:", err);
-    DOM.list.innerHTML = `<div class="text-center py-12 text-slate-500">Error loading feed.</div>`;
+    console.error("Feed Critical Failure:", err);
+    DOM.list.innerHTML = `<div class="text-center py-12">Unable to connect. Check console.</div>`;
   }
 }
 
