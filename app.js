@@ -57,6 +57,7 @@ let commentsUnsubscribe = null;
 let activePostId = null; 
 let activeShareMenuId = null;
 let modalAutoUnsubscribe = null;
+let scrollObserver = null;
 
 // At the top of your script
 let visiblePosts = [];   
@@ -402,8 +403,14 @@ function switchTab(tab) {
   currentTab = tab;
   localStorage.setItem('freeform_tab_pref', tab);
   currentLimit = BATCH_SIZE;
+  
   updateTabClasses();
   loadFeed();
+
+  // 🚀 THE FIX: If we just switched to public, re-prime the infinite scroll
+  if (tab === 'public') {
+    setupInfiniteScroll(); 
+  }
 }
 
 function updateTabClasses() {
@@ -462,6 +469,7 @@ function loadFeed() {
     subscribeArchiveSync();
   } else {
     // Start Discovery Mode
+	DOM.loadTrigger.style.display = 'flex';
     subscribePublicFeed();
   }
 }
@@ -896,18 +904,29 @@ document.addEventListener('click', (e) => {
 // 5. POST ACTIONS & SCROLL
 // ==========================================
 function setupInfiniteScroll() {
-  const observer = new IntersectionObserver((entries) => {
-    // 0.1 threshold means 10% of the trigger must be visible
+  // 1. If an observer already exists, kill it first
+  if (scrollObserver) {
+    scrollObserver.disconnect();
+  }
+
+  // 2. Create the new observer
+  scrollObserver = new IntersectionObserver((entries) => {
     if (entries[0].isIntersecting && !isLoadingMore) {
-      loadMoreData();
+      // Only trigger if we are actually on the public tab
+      if (currentTab === 'public') {
+        loadMoreData();
+      }
     }
   }, { 
     root: null, 
     threshold: 0.1,
-    rootMargin: '100px' // 🔥 Pro-tip: Start loading 100px BEFORE the user hits the bottom
+    rootMargin: '150px' // Increased margin for a smoother "Discovery" feel
   });
   
-  observer.observe(DOM.loadTrigger);
+  // 3. Start watching the trigger
+  if (DOM.loadTrigger) {
+    scrollObserver.observe(DOM.loadTrigger);
+  }
 }
 
 function loadMoreData() {
