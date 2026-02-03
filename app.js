@@ -58,6 +58,7 @@ let activePostId = null;
 let activeShareMenuId = null;
 let modalAutoUnsubscribe = null;
 let scrollObserver = null;
+let lastGhostToastTime = 0;
 
 // At the top of your script
 let visiblePosts = [];   
@@ -1431,7 +1432,12 @@ function openModal(post) {
       else {
         modalAutoUnsubscribe(); // Stop listening
         closeModal();           // Kick user out of the modal
-		showToast("Note no longer available", "neutral");
+		
+		const now = Date.now();
+  if (now - lastGhostToastTime > 3000) { // 3000ms = 3 seconds
+    showToast("Note no longer available", "neutral");
+    lastGhostToastTime = now;
+  }
         
         // Also remove it from the background feed so it's not there when the modal closes
         const el = document.querySelector(`[data-id="${realFirestoreId}"]`);
