@@ -56,6 +56,7 @@ let selectedFont = localStorage.getItem('freeform_font_pref') || 'font-sans';
 let publicUnsubscribe = null;
 let commentsUnsubscribe = null;
 let activePostId = null; 
+let activeShareMenuId = null;
 
 // At the top of your script
 let visiblePosts = [];   
@@ -737,9 +738,18 @@ function createPostNode(item) {
 
   // 7. Click Handler for Modal
   el.onclick = (e) => {
-    if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) return;
-    openModal(item);
-  };
+  // ⚡ NEW: Don't open modal if share menu is currently open
+  if (activeShareMenuId) {
+    return;
+  }
+
+  // Original checks
+  if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) {
+    return;
+  }
+  
+  openModal(item);
+};
 
   // 8. Share Button Handlers
   const platformBtns = el.querySelectorAll('.share-icon-btn');
@@ -775,25 +785,66 @@ function renderListItems(items) {
   });
 }
 
+// ==========================================
+// ENHANCED SHARE MENU LOGIC (with Priority)
+// ==========================================
 window.toggleShare = function(event, menuId) {
   event.stopPropagation();
   const menu = document.getElementById(menuId);
-  const trigger = event.currentTarget;
   
   if (!menu) return;
 
   const isActive = menu.classList.contains('active');
 
-  document.querySelectorAll('.share-menu.active').forEach(m => {
-    m.classList.remove('active');
-    if(m.nextElementSibling) m.nextElementSibling.classList.remove('active');
-  });
+  // If a different menu is open, close it first
+  if (activeShareMenuId && activeShareMenuId !== menuId) {
+    const oldMenu = document.getElementById(activeShareMenuId);
+    if (oldMenu) oldMenu.classList.remove('active');
+    const oldTrigger = oldMenu?.previousElementSibling;
+    if (oldTrigger) oldTrigger.classList.remove('active');
+  }
 
-  if (!isActive) {
+  if (isActive) {
+    // CLOSING the menu
+    menu.classList.remove('active');
+    event.currentTarget.classList.remove('active');
+    activeShareMenuId = null;
+  } else {
+    // OPENING the menu
     menu.classList.add('active');
-    trigger.classList.add('active');
+    event.currentTarget.classList.add('active');
+    activeShareMenuId = menuId;
   }
 };
+
+// NEW: Intercept ALL document clicks to enforce menu priority
+document.addEventListener('click', (e) => {
+  // If no menu is open, do nothing special
+  if (!activeShareMenuId) return;
+
+  const activeMenu = document.getElementById(activeShareMenuId);
+  if (!activeMenu) return;
+
+  // 1. If clicking INSIDE the menu or its trigger → allow it
+  const isClickInMenu = activeMenu.contains(e.target);
+  const trigger = activeMenu.nextElementSibling; // The share button is next to the menu
+  const isClickOnTrigger = trigger && trigger.contains(e.target);
+  
+  if (isClickInMenu || isClickOnTrigger) {
+    return; // Let the click pass through
+  }
+
+  // 2. Menu is open and click is OUTSIDE → close menu and BLOCK other handlers
+  e.stopPropagation();
+  activeMenu.classList.remove('active');
+  if (trigger) trigger.classList.remove('active');
+  activeShareMenuId = null;
+  
+  // Optional: Prevent default to be extra safe
+  if (e.target.closest('.feed-item')) {
+    e.preventDefault();
+  }
+}, true); // ← IMPORTANT: Use CAPTURE phase so this runs first
 
 // ==========================================
 // 5. POST ACTIONS & SCROLL
