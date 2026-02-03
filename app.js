@@ -1647,19 +1647,13 @@ function showToast(message, type = "success") {
   const container = document.getElementById('toast-container');
   if (!container) return;
 
-  // --- THE FIX ---
-  // If the container already has a toast (even if it's fading out), 
-  // we immediately stop this function. The second toast is ignored.
-  if (container.hasChildNodes()) {
+  // Only checks for actual elements, not whitespace/text nodes
+  if (container.children.length > 0) {
     return;
   }
-  // ----------------
 
   const toast = document.createElement('div');
-  
-  // Your existing classes
   toast.className = `toast-enter toast-glass pointer-events-auto px-6 py-2.5 rounded-full text-[13px] font-bold mt-3 text-center`;
-  
   toast.innerHTML = `<span>${message}</span>`;
 
   container.appendChild(toast);
