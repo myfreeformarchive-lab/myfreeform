@@ -266,17 +266,40 @@ function updateUISurgically(id, data) {
 }
 
 function watchPostCounts(postId) {
-  // If we're already watching this post, don't start a new listener
   if (activePostListeners.has(postId)) return;
 
   const postRef = doc(db, "globalPosts", postId);
+  
   const unsubscribe = onSnapshot(postRef, (docSnap) => {
+    // ✅ CASE A: The post exists (Update numbers as usual)
     if (docSnap.exists()) {
       const data = docSnap.data();
-      // Use our surgical update helper to refresh the UI
       updateUISurgically(postId, data);
+    } 
+    // 🚀 CASE B: THE FIX - The post was deleted by someone else!
+    else {
+      console.log(`Post ${postId} was deleted remotely. Removing from UI.`);
+      
+      // 1. Remove from local state array
+      visiblePosts = visiblePosts.filter(p => p.id !== postId && p.firebaseId !== postId);
+
+      // 2. Remove from the screen with a fade
+      const elToRemove = document.querySelector(`[data-id="${postId}"]`);
+      if (elToRemove) {
+        elToRemove.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-500');
+        setTimeout(() => elToRemove.remove(), 500);
+      }
+
+      // 3. Clean up this listener itself
+      if (activePostListeners.has(postId)) {
+        const unsub = activePostListeners.get(postId);
+        if (unsub) unsub();
+        activePostListeners.delete(postId);
+      }
     }
-  }, (err) => console.error("Post watch failed:", err));
+  }, (err) => {
+    console.warn("Post watch lost connection (likely deleted):", err);
+  });
 
   activePostListeners.set(postId, unsubscribe);
 }
@@ -1283,16 +1306,28 @@ function openModal(post) {
   if (realFirestoreId) {
     if(DOM.commentInputBar) DOM.commentInputBar.style.display = 'block';
 	
-	// ✅ SYNC: Get latest counts (Comments AND Likes)
+// ✅ SYNC: Watch for changes (and deletions!)
     const postRef = doc(db, "globalPosts", realFirestoreId);
-    onSnapshot(postRef, (docSnap) => {
+    
+    // We store this in a variable so we can clean it up if the post is deleted
+    const modalAutoUnsubscribe = onSnapshot(postRef, (docSnap) => {
       if (docSnap.exists()) {
         const serverData = docSnap.data();
         updateLocalPostWithServerData(
             realFirestoreId, 
             serverData.commentCount || 0, 
-            serverData.likeCount || 0 // <--- Added this
+            serverData.likeCount || 0
         );
+      } 
+      // 🚀 THE FIX: If someone else deletes the post while the modal is open
+      else {
+        modalAutoUnsubscribe(); // Stop listening
+        closeModal();           // Kick user out of the modal
+        showToast("This post has been removed.", "neutral");
+        
+        // Also remove it from the background feed so it's not there when the modal closes
+        const el = document.querySelector(`[data-id="${realFirestoreId}"]`);
+        if (el) el.remove();
       }
     });
 
