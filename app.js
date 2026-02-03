@@ -24,11 +24,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 signInAnonymously(auth)
   .then(() => {
-    console.log("Logged in anonymously to bypass security rules");
-  })
-  .catch((error) => {
-    console.error("Auth failed. Check if Anonymous Auth is enabled in Firebase Console:", error.message);
-  });
+    console.log("Logged in");
 
 // ==========================================
 // 1. STATE & DOM lalaa
@@ -1608,3 +1604,8 @@ document.addEventListener('visibilitychange', () => {
     }, 300);
   }
 });
+
+})
+  .catch((error) => {
+    console.error("Auth failed. Check if Anonymous Auth is enabled in Firebase Console:", error.message);
+  });
