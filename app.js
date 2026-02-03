@@ -785,7 +785,7 @@ function createPostNode(item) {
   // 1. Create the base container
   const el = document.createElement('div');
   el.setAttribute('data-id', item.id);
-  // Added 'select-none' to prevent highlighting text while tapping fast
+  // Added 'select-none'
   el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative select-none";
 
   // 2. Logic: Time, Fonts, and Tags
@@ -852,7 +852,6 @@ function createPostNode(item) {
   const footerHtml = `<div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
 
   // 5. Inject HTML
-  // RESTORED: Your original Top Bar with Global/Local Badge
   el.innerHTML = `
     <div class="animation-container absolute inset-0 pointer-events-none z-0 flex items-center justify-center overflow-hidden"></div>
     <div class="flex justify-between items-start mb-2 relative z-10">
@@ -867,59 +866,60 @@ function createPostNode(item) {
     ${footerHtml}
   `;
 
-  // 6. Delete Button (Manual Node Creation)
+  // 6. Delete Button FIX
   if (!item.isFirebase || isMyGlobalPost) {
     const delBtn = document.createElement('button');
-    delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-30 p-2";
+    
+    // FIX 1: Added 'z-50', 'pointer-events-auto', and a specific class 'delete-btn'
+    delBtn.className = "delete-btn absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-50 p-2 pointer-events-auto";
     delBtn.innerHTML = "✕";
+    
     delBtn.onclick = (e) => { 
-      e.stopPropagation(); 
+      // Stop the click from bubbling up to the card
+      e.stopPropagation();
+      e.preventDefault(); // Extra safety
       item.isFirebase ? deleteGlobal(item.id) : deleteLocal(item.id); 
     };
     el.appendChild(delBtn);
   }
 
-  // --- DOUBLE TAP LOGIC STARTS HERE ---
-  
+  // --- DOUBLE TAP LOGIC ---
   let clickTimeout = null;
 
-  // 7. SINGLE TAP Handler (Delayed for Modal)
+  // 7. SINGLE TAP Handler
   el.onclick = (e) => {
-    // Standard safety checks
     if (activeShareMenuId) return;
-    if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) {
+
+    // FIX 2: Added explicit check for '.delete-btn'
+    if (e.target.closest('button') || 
+        e.target.closest('.delete-btn') || 
+        e.target.closest('.share-container') || 
+        e.target.closest('.like-trigger')) {
       return;
     }
 
     if (clickTimeout) return;
 
-    // Wait 250ms to see if user clicks again
     clickTimeout = setTimeout(() => {
       openModal(item);
       clickTimeout = null;
     }, 250);
   };
 
-  // 8. DOUBLE TAP Handler (Immediate Like)
+  // 8. DOUBLE TAP Handler
   el.ondblclick = (e) => {
-    // 1. Cancel the modal
     if (clickTimeout) {
       clearTimeout(clickTimeout);
       clickTimeout = null;
     }
     
-    // 2. Safety check
-    if (e.target.closest('button') || e.target.closest('.share-container')) return;
+    // FIX 3: Safety check here too
+    if (e.target.closest('button') || e.target.closest('.delete-btn') || e.target.closest('.share-container')) return;
 
-    // 3. Like logic
     toggleLike(e, realId);
-
-    // 4. Animation
     showHeartAnimation(el);
   };
   
-  // --- DOUBLE TAP LOGIC ENDS HERE ---
-
   // 9. Share Button Handlers
   const platformBtns = el.querySelectorAll('.share-icon-btn');
   platformBtns.forEach(btn => {
