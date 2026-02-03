@@ -165,6 +165,52 @@ DOM.emojiButtons.forEach(btn => {
   });
 });
 
+// --- 📱 MOBILE SWIPE GESTURE LOGIC ---
+
+let touchStartX = 0;
+let touchEndX = 0;
+
+// 1. Capture where the finger starts
+document.addEventListener('touchstart', e => {
+    touchStartX = e.changedTouches[0].screenX;
+}, { passive: true });
+
+// 2. Capture where the finger ends and calculate the distance
+document.addEventListener('touchend', e => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipeGesture();
+}, { passive: true });
+
+function handleSwipeGesture() {
+    const swipeDistance = touchEndX - touchStartX;
+    const threshold = 80; // Min distance in pixels to trigger a switch
+
+    // Check if we are inside a scrollable area (like a modal or comment input)
+    // We don't want to switch tabs if the user is just scrolling through comments
+    if (!DOM.modal.classList.contains('hidden')) return;
+
+    // SWIPE RIGHT (Finger moves Left -> Right) => Go to Private
+    if (swipeDistance > threshold && currentTab === 'public') {
+        console.log("Swipe detected: Moving to Private");
+        switchTab('private');
+        triggerHapticFeedback(); // Optional extra polish
+    } 
+    
+    // SWIPE LEFT (Finger moves Right -> Left) => Go to Public
+    else if (swipeDistance < -threshold && currentTab === 'private') {
+        console.log("Swipe detected: Moving to Public");
+        switchTab('public');
+        triggerHapticFeedback();
+    }
+}
+
+// 🚀 BONUS: Vibration feedback for that "Premium" feel
+function triggerHapticFeedback() {
+    if ('vibrate' in navigator) {
+        navigator.vibrate(10); // A tiny 10ms tap
+    }
+}
+
 // ==========================================
 // 2. DESKTOP POPUP TOGGLE LOGIC
 // ==========================================
@@ -400,17 +446,25 @@ function applyFontPreference(font) {
 
 function switchTab(tab) {
   if (currentTab === tab) return;
-  currentTab = tab;
-  localStorage.setItem('freeform_tab_pref', tab);
-  currentLimit = BATCH_SIZE;
   
-  updateTabClasses();
-  loadFeed();
+  // Add a quick fade-out to the list for a smoother transition
+  DOM.list.style.opacity = '0';
+  DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
+  
+  setTimeout(() => {
+      currentTab = tab;
+      localStorage.setItem('freeform_tab_pref', tab);
+      currentLimit = BATCH_SIZE;
+      
+      updateTabClasses();
+      loadFeed();
+      
+      if (tab === 'public') setupInfiniteScroll();
 
-  // 🚀 THE FIX: If we just switched to public, re-prime the infinite scroll
-  if (tab === 'public') {
-    setupInfiniteScroll(); 
-  }
+      // Fade it back in
+      DOM.list.style.opacity = '1';
+      DOM.list.style.transform = 'translateX(0)';
+  }, 100);
 }
 
 function updateTabClasses() {
