@@ -968,8 +968,10 @@ el.onclick = (e) => {
 
 // Helper Function for the Heart Animation
 function showHeartAnimation(container) {
-  // Get position of container to place heart in the right spot
+  // Instead of using the container's animation div, create a new one at body level
   const rect = container.getBoundingClientRect();
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
   
   const heart = document.createElement('div');
   heart.innerHTML = `
@@ -978,23 +980,29 @@ function showHeartAnimation(container) {
     </svg>
   `;
   
-  // Use Tailwind classes but position fixed at body level
-  heart.className = "transform scale-0 opacity-0 transition-all duration-500 ease-out fixed pointer-events-none z-50";
+  // Position it absolutely on the page, not inside the post
+  heart.style.cssText = `
+    position: fixed;
+    left: ${rect.left + rect.width/2 - 40}px;
+    top: ${rect.top + rect.height/2 - 40}px;
+    transform: scale(0);
+    opacity: 0;
+    transition: all 500ms ease-out;
+    will-change: transform, opacity;
+    pointer-events: none;
+    z-index: 9999;
+  `;
   
-  // Position it where the container is
-  heart.style.left = `${rect.left + rect.width/2 - 40}px`;
-  heart.style.top = `${rect.top + rect.height/2 - 40}px`;
-  
-  // Append to body instead of container - isolated from DOM updates!
+  // Append to body, completely outside the post DOM
   document.body.appendChild(heart);
 
   requestAnimationFrame(() => {
-    heart.classList.remove('scale-0', 'opacity-0');
-    heart.classList.add('scale-125', 'opacity-100');
+    heart.style.transform = 'scale(1.25)';
+    heart.style.opacity = '1';
     
     setTimeout(() => {
-      heart.classList.remove('scale-125', 'opacity-100');
-      heart.classList.add('scale-150', 'opacity-0');
+      heart.style.transform = 'scale(1.5)';
+      heart.style.opacity = '0';
       setTimeout(() => heart.remove(), 500);
     }, 400);
   });
