@@ -876,7 +876,7 @@ function createPostNode(item) {
     </div>
   `;
 
-  const footerHtml = `<div class="mt-6 pt-5 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
+  const footerHtml = `<div class="mt-6 pt-5 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
 
   // 5. Inject HTML with animation container
   el.innerHTML = `
