@@ -1957,45 +1957,43 @@ function cleanText(str) {
 }
 
 function renderSmartText(rawText) {
-    // 1. RegEx that captures URLs but tries to exclude trailing symbols
-    const urlPattern = /((?:https?:\/\/|www\.|[a-z0-9.-]+\.[a-z]{2,}\/)[^\s)]+)/ig;
+    if (!rawText) return "";
+    
+    // Updated RegEx: Now finds domains like 'archive.org' even without http/www or trailing slashes
+    const urlPattern = /((?:https?:\/\/|www\.|[a-z0-9.-]+\.[a-z]{2,})[^\s]*)/ig;
 
     return rawText.replace(urlPattern, (url) => {
         try {
-            // --- STEP A: CLEANING ---
-            // Remove trailing punctuation or "weird chars" that aren't valid at the end of a URL
-            let cleanUrl = url.replace(/^[([<{]+/, '');
-			cleanUrl = cleanUrl.replace(/[\])>}§$%&*~^@!#<>¶•°¬!,.;:]+$/, '');
+            // 1. CAPTURE symbols at the start and end so we can put them back as plain text
+            const leadingPunct = url.match(/^[([<{]+/)?.[0] || '';
+            const trailingPunct = url.match(/[\])>}§$%&*~^@!#<>¶•°¬!,.;:]+$/)?.[0] || '';
             
-            // --- STEP B: PARSING ---
+            // 2. Create the "Meat" (The actual URL for the logic)
+            let cleanUrl = url.substring(leadingPunct.length, url.length - trailingPunct.length);
+            
+            // 3. PARSING
             let tempUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
             const urlObj = new URL(tempUrl);
             
-            // --- STEP C: DISPLAY LOGIC ---
-            // Extract the domain (google.com)
+            // 4. DISPLAY LOGIC (Instagram Style)
             const domain = urlObj.hostname.replace('www.', '');
-            
-            // Extract the first part of the path (/gallery)
             const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
             const firstPath = pathParts.length > 0 ? `/${pathParts[0]}` : '';
             
             let displayLink = domain + firstPath;
-
-            // Cap the length for the UI
             if (displayLink.length > 30) {
                 displayLink = displayLink.substring(0, 27) + '...';
             }
 
-            // --- STEP D: THE HTML RENDER ---
-            // 'word-break: break-all' is the secret sauce for "ghosting"
-            // Inside renderSmartText...
-return `<a href="javascript:void(0)" 
-           onclick="openExitModal('${cleanUrl}')" 
-           class="text-blue-500 hover:text-blue-400 underline decoration-1 underline-offset-4"
-           style="word-break: break-all; display: inline-block;">${displayLink}</a>`;
+            // 5. THE HTML RENDER
+            // We put leadingPunct and trailingPunct OUTSIDE the <a> tag
+            return `${leadingPunct}<a href="javascript:void(0)" 
+                onclick="event.stopPropagation(); openExitModal('${cleanUrl}')" 
+                class="text-blue-500 hover:text-blue-400 underline decoration-1 underline-offset-4"
+                style="word-break: break-all;">${displayLink}</a>${trailingPunct}`;
                        
         } catch (e) {
-            // If it's a total mess, return the original text so we don't lose data
+            // If it fails to parse, return the original matched string as is
             return url;
         }
     });
