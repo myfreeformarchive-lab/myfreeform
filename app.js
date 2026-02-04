@@ -876,13 +876,13 @@ function createPostNode(item) {
     </div>
   `;
 
-  const footerHtml = `<div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
+  const footerHtml = `<div class="mt-6 pt-4 pb-2 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
 
   // 5. Inject HTML with animation container
   el.innerHTML = `
   <div class="animation-container absolute inset-0 flex items-center justify-center pointer-events-none z-30"></div>
   
-  <div class="flex justify-between items-start mb-3">
+  <div class="flex justify-between items-start pt-2 mb-4">
     <div class="flex items-center gap-2">
       <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
         ${item.isFirebase ? 'Global' : 'Local'}
