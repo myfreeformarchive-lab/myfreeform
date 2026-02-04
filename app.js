@@ -924,29 +924,22 @@ el.onclick = (e) => {
       clickCount = 0;
     }, 250); // 250ms delay to detect double-click
   } else if (clickCount === 2) {
-    // Double click detected!
-    clearTimeout(clickTimer);
-    clickCount = 0;
-    
-    // Trigger heart animation
-    showHeartAnimation(el);
-    
-    // Also trigger the like if it has access
-    if (hasCommentsAccess) {
-      // ✅ FIX: Check the current like state dynamically
-      const likeButton = el.querySelector('.like-trigger');
-      if (likeButton) {
-        // Check if currently liked by looking at the heart icon's current classes
-        const heartIcon = likeButton.querySelector('svg');
-        const currentlyLiked = heartIcon && heartIcon.classList.contains('fill-red-500');
-        
-        // Only trigger like if not currently liked (Instagram-style behavior)
-        if (!currentlyLiked) {
-          likeButton.click();
-        }
-      }
+  // Double click detected!
+  clearTimeout(clickTimer);
+  clickCount = 0;
+  
+  // Trigger heart animation
+  showHeartAnimation(el);
+  
+  // Also trigger the like if it has access
+  if (hasCommentsAccess) {
+    const likeButton = el.querySelector('.like-trigger');
+    if (likeButton) {
+      // Always toggle for both local and global posts
+      likeButton.click();
     }
   }
+}
 };
 
   // 8. Share Button Handlers
