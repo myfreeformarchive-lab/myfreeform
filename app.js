@@ -1987,8 +1987,8 @@ function renderSmartText(rawText) {
             
             let displayLink = domain + firstPath;
             if (displayLink.length > 30) {
-                displayLink = displayLink.substring(0, 27) + '...';
-            }
+    displayLink = displayLink.slice(0, 18) + '...' + displayLink.slice(-10);
+}
 
             // 5. THE HTML RENDER
             return `${leadingPunct}<a href="javascript:void(0)" 
