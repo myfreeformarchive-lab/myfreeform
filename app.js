@@ -1959,50 +1959,53 @@ function cleanText(str) {
 function renderSmartText(rawText) {
     if (!rawText) return "";
     
+    // Improved pattern: finds domains but is careful not to swallow brackets at the end
     const urlPattern = /((?:https?:\/\/|www\.)[^\s()<>[\]{}|\\^%§¶•°¬!]+|(?:\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:\/[^\s()<>[\]{}|\\^%§¶•°¬!]*)?)|(?:\b[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s()<>[\]{}|\\^%§¶•°¬!]*)?))/ig;
 
     return rawText.replace(urlPattern, (url) => {
         try {
+            // 1. IMPROVED CAPTURE: Using [0] on the match result to get the WHOLE string of brackets
             const leadingMatch = url.match(/^[([<{]+/);
             const leadingPunct = leadingMatch ? leadingMatch[0] : '';
 
             const trailingMatch = url.match(/[\])>}§$%&*~^@!#<>¶•°¬!,.;:]+$/);
             const trailingPunct = trailingMatch ? trailingMatch[0] : '';
             
+            // 2. Create the "Meat" using the lengths of what we found
             let cleanUrl = url.substring(leadingPunct.length, url.length - trailingPunct.length);
-            if (!cleanUrl) return url; 
+            
+            if (!cleanUrl) return url; // Safety check
 
+            // 3. PARSING
             let tempUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
             const urlObj = new URL(tempUrl);
             
-            // --- STEP 4: UPDATED DISPLAY LOGIC (Punycode Fix) ---
-            
-            // decodeURI converts xn-- back to pretty characters (è, ö, etc.)
-            const domain = decodeURI(urlObj.hostname).replace('www.', '');
+            // 4. DISPLAY LOGIC
+            const domain = urlObj.hostname.replace('www.', '');
             const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
-            
-            // Decode the first path segment for the basic display
-            const firstPath = pathParts.length > 0 ? `/${decodeURI(pathParts[0])}` : '';
+            const firstPath = pathParts.length > 0 ? `/${pathParts[0]}` : '';
             
             let displayLink = domain + firstPath;
-
             if (displayLink.length > 30) {
-                // We use your custom segment-based truncation
-                const parts = displayLink.split('/');
-                if (parts.length > 1) {
-                    const d = parts[0];
-                    const lastPart = parts[parts.length - 1];
-                    
-                    if (d.length + lastPart.length + 4 < 30) {
-                        displayLink = `${d}/.../${lastPart}`;
-                    } else {
-                        displayLink = displayLink.slice(0, 27) + '...';
-                    }
-                } else {
-                    displayLink = displayLink.slice(0, 27) + '...';
-                }
-            }
+    const parts = displayLink.split('/');
+    if (parts.length > 1) {
+        // Keep domain and last path segment
+        const domain = parts[0];
+        const lastPart = parts[parts.length - 1];
+        
+        if (domain.length + lastPart.length + 4 < 30) {
+            displayLink = `${domain}/.../${lastPart}`;
+        } else {
+            // Fall back to end truncation if even that's too long
+            displayLink = displayLink.slice(0, 27) + '...';
+        }
+    } else {
+        // Single part (domain only), truncate at end
+        displayLink = displayLink.slice(0, 27) + '...';
+    }
+}
 
+            // 5. THE HTML RENDER
             return `${leadingPunct}<a href="javascript:void(0)" 
                 onclick="event.stopPropagation(); openExitModal('${cleanUrl}')" 
                 class="text-blue-500 hover:text-blue-400 underline decoration-1 underline-offset-4"
