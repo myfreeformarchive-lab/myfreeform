@@ -800,8 +800,9 @@ async function sharePost(text, platform) {
 function createPostNode(item) {
   // 1. Create the base container
   const el = document.createElement('div');
+  const cursorClass = item.isFirebase ? "" : "cursor-pointer";
   el.setAttribute('data-id', item.id);
-  el.className = "feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow cursor-pointer relative";
+  el.className = `feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow relative ${cursorClass}`;
 
   // 2. Logic: Time, Fonts, and Tags
   const time = getRelativeTime(item.createdAt);
@@ -899,56 +900,55 @@ function createPostNode(item) {
     el.appendChild(delBtn);
   }
 
-  // 7. Double-click and single-click handlers
+// 7. Double-click and single-click handlers
 let clickTimer = null;
 let clickCount = 0;
 
 el.onclick = (e) => {
-  // Don't open modal if share menu is currently open
-  if (activeShareMenuId) {
-    return;
+  // A. Block if share menu is open
+  if (activeShareMenuId) return;
+
+  // B. Identify the targets
+  const isButton = e.target.closest('button');
+  const isShare = e.target.closest('.share-container');
+  const isLike = e.target.closest('.like-trigger');
+  const isLink = e.target.closest('a'); // <--- CRITICAL: Protects our new blue links
+  const isCommentBtn = e.target.closest('.icon-tabler-message-circle-2'); // The message icon
+
+  // C. If it's a specific action button (Like, Share, Delete, or our Blue Link), stop here.
+  if (isButton || isShare || isLike || isLink) return;
+
+  // D. PUBLIC POST LOGIC: 
+  // If it's a Global post, ONLY the comment icon can open the modal.
+  if (item.isFirebase && !isCommentBtn) {
+    return; // User clicked the whitespace of a public card; do nothing.
   }
 
-  // Original checks
-  if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) {
-    return;
-  }
-  
+  // E. CLICK TRACKING (For Private posts or clicking the Comment Icon)
   clickCount++;
   
   if (clickCount === 1) {
-    // Single click - wait to see if it's actually a double-click
     clickTimer = setTimeout(() => {
-      // It was just a single click, open the modal
       openModal(item);
       clickCount = 0;
-    }, 250); // 250ms delay to detect double-click
+    }, 250); 
   } else if (clickCount === 2) {
-  // Double click detected!
-  clearTimeout(clickTimer);
-  clickCount = 0;
-  
-  // Trigger heart animation FIRST
-  showHeartAnimation(el);
-  
-  // Also trigger the like if it has access
-  if (hasCommentsAccess) {
-    const likeButton = el.querySelector('.like-trigger');
-    if (likeButton) {
-      // Check if currently liked by looking at the heart icon's current classes
-      const heartIcon = likeButton.querySelector('svg');
-      const currentlyLiked = heartIcon && heartIcon.classList.contains('fill-red-500');
-      
-      // Only trigger like if not currently liked (Instagram-style behavior)
-      if (!currentlyLiked) {
-        // Small delay but animation should be protected now
-        setTimeout(() => {
-          likeButton.click();
-        }, 50); // Reduced delay since animation is more resilient
+    clearTimeout(clickTimer);
+    clickCount = 0;
+    
+    // Heart animation and Like logic remains the same
+    showHeartAnimation(el);
+    if (hasCommentsAccess) {
+      const likeButton = el.querySelector('.like-trigger');
+      if (likeButton) {
+        const heartIcon = likeButton.querySelector('svg');
+        const currentlyLiked = heartIcon && heartIcon.classList.contains('fill-red-500');
+        if (!currentlyLiked) {
+          setTimeout(() => { likeButton.click(); }, 50);
+        }
       }
     }
   }
-}
 };
 
   // 8. Share Button Handlers
