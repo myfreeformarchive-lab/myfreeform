@@ -1987,7 +1987,22 @@ function renderSmartText(rawText) {
             
             let displayLink = domain + firstPath;
             if (displayLink.length > 30) {
-    displayLink = displayLink.slice(0, 18) + '...' + displayLink.slice(-10);
+    const parts = displayLink.split('/');
+    if (parts.length > 1) {
+        // Keep domain and last path segment
+        const domain = parts[0];
+        const lastPart = parts[parts.length - 1];
+        
+        if (domain.length + lastPart.length + 4 < 30) {
+            displayLink = `${domain}/.../${lastPart}`;
+        } else {
+            // Fall back to end truncation if even that's too long
+            displayLink = displayLink.slice(0, 27) + '...';
+        }
+    } else {
+        // Single part (domain only), truncate at end
+        displayLink = displayLink.slice(0, 27) + '...';
+    }
 }
 
             // 5. THE HTML RENDER
