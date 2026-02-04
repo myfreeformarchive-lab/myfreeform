@@ -883,7 +883,9 @@ function createPostNode(item) {
         <span class="text-xs text-slate-500 font-medium">${time}</span>
       </div>
     </div>
-    <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] pointer-events-none ${fontClass}">${renderSmartText(item.content)}</p>
+    <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] ${fontClass}">
+  ${renderSmartText(cleanText(item.content))}
+</p>
     ${footerHtml}
   `;
 
@@ -1535,7 +1537,7 @@ function openModal(post) {
   const realFirestoreId = post.isFirebase ? post.id : post.firebaseId;
   activePostId = realFirestoreId; 
   
-  DOM.modalContent.innerHTML = renderSmartText(post.content);
+  DOM.modalContent.innerHTML = renderSmartText(cleanText(post.content));
   const fontClass = post.font || 'font-sans';
   DOM.modalContent.classList.remove('font-sans', 'font-serif', 'font-mono', 'font-hand');
   DOM.modalContent.classList.add(fontClass);
@@ -1605,14 +1607,16 @@ function openModal(post) {
         }
 
         div.innerHTML = `
-          <div class="bg-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-none max-w-[90%]">
-             <p class="text-[15px] text-gray-800 leading-snug break-words font-sans">${renderSmartText(c.text)}</p>
-          </div>
-          <div class="flex items-center mt-1 ml-1">
-            <span class="text-[10px] text-gray-400">${time}</span>
-            ${deleteBtn}
-          </div>
-        `;
+  <div class="bg-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-none max-w-[90%]">
+     <p class="text-[15px] text-gray-800 leading-snug break-words font-sans">
+       ${renderSmartText(cleanText(c.text))}
+     </p>
+  </div>
+  <div class="flex items-center mt-1 ml-1">
+    <span class="text-[10px] text-gray-400">${time}</span>
+    ${deleteBtn}
+  </div>
+`;
         if (isMyComment) {
           const btn = div.querySelector('.delete-comment-btn');
           if (btn) btn.onclick = () => deleteComment(realFirestoreId, doc.id);
@@ -1951,87 +1955,102 @@ function updateMeter() {
   DOM.storage.textContent = `${kb} KB used`;
 }
 
+const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
+
 function cleanText(str) {
   if (!str) return "";
   return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function renderSmartText(rawText) {
-    if (!rawText) return "";
-    
-    // Improved pattern: finds domains but is careful not to swallow brackets at the end
-    const urlPattern = /((?:https?:\/\/|www\.|[a-z0-9.-]+\.[a-z]{2,})[^\s()<>\[\]{}]*)/ig;
+  if (!rawText) return "";
 
-    return rawText.replace(urlPattern, (url) => {
-        try {
-            // 1. IMPROVED CAPTURE: Using [0] on the match result to get the WHOLE string of brackets
-            const leadingMatch = url.match(/^[([<{]+/);
-            const leadingPunct = leadingMatch ? leadingMatch[0] : '';
+  const urlPattern =
+    /((?:https?:\/\/|www\.|[a-z0-9-]+(?:\.[a-z0-9-]+)+)(?:\/[^\s<>]*)?)/gi;
 
-            const trailingMatch = url.match(/[\])>}§$%&*~^@!#<>¶•°¬!,.;:]+$/);
-            const trailingPunct = trailingMatch ? trailingMatch[0] : '';
-            
-            // 2. Create the "Meat" using the lengths of what we found
-            let cleanUrl = url.substring(leadingPunct.length, url.length - trailingPunct.length);
-            
-            if (!cleanUrl) return url; // Safety check
+  return rawText.replace(urlPattern, (candidate) => {
+    const leading = candidate.match(/^[([{<"'`]+/);
+    const trailing = candidate.match(/[)\]}>\"'`.,;:!?]+$/);
 
-            // 3. PARSING
-            let tempUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
-            const urlObj = new URL(tempUrl);
-            
-            // 4. DISPLAY LOGIC
-            const domain = urlObj.hostname.replace('www.', '');
-            const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
-            const firstPath = pathParts.length > 0 ? `/${pathParts[0]}` : '';
-            
-            let displayLink = domain + firstPath;
-            if (displayLink.length > 30) {
-    displayLink = displayLink.slice(0, 18) + '...' + displayLink.slice(-10);
+    const leadingPunct = leading ? leading[0] : "";
+    const trailingPunct = trailing ? trailing[0] : "";
+
+    let core = candidate
+      .slice(leadingPunct.length, candidate.length - trailingPunct.length)
+      .trim();
+
+    if (!core) return candidate;
+
+    const withScheme =
+      core.startsWith("http://") || core.startsWith("https://")
+        ? core
+        : `https://${core}`;
+
+    let parsed;
+    try {
+      parsed = new URL(withScheme);
+    } catch {
+      return candidate;
+    }
+
+    if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) return candidate;
+
+    const domain = parsed.hostname.replace(/^www\./i, "");
+    const path = parsed.pathname === "/" ? "" : parsed.pathname;
+    const maxDisplay = 32;
+    const maxPathTail = 20;
+
+    let display;
+    if (!path) {
+      display = domain;
+    } else if (domain.length + path.length <= maxDisplay) {
+      display = `${domain}${path}`;
+    } else {
+      const tail = path.length > maxPathTail ? path.slice(-maxPathTail) : path;
+      display = `${domain}/…${tail}`;
+    }
+
+    const safeHref = parsed.toString();
+
+    return (
+      `${leadingPunct}<a href="${safeHref}"` +
+      ` target="_blank" rel="noopener noreferrer"` +
+      ` class="text-blue-500 hover:text-blue-400 underline decoration-1 underline-offset-4 link-ellipsis"` +
+      ` style="word-break: break-all;" data-exit-link="true"` +
+      ` title="${safeHref}" aria-label="Open link ${safeHref}">${display}</a>${trailingPunct}`
+    );
+  });
 }
-
-            // 5. THE HTML RENDER
-            return `${leadingPunct}<a href="javascript:void(0)" 
-                onclick="event.stopPropagation(); openExitModal('${cleanUrl}')" 
-                class="text-blue-500 hover:text-blue-400 underline decoration-1 underline-offset-4"
-                style="word-break: break-all;">${displayLink}</a>${trailingPunct}`;
-                       
-        } catch (e) {
-            return url;
-        }
-    });
-}
-
-let pendingUrl = "";
 
 function openExitModal(url) {
-    pendingUrl = url;
-    document.getElementById('target-url-display').textContent = url;
-    document.getElementById('confirm-exit-btn').href = url;
-    document.getElementById('link-exit-modal').style.display = 'flex';
+  document.getElementById("target-url-display").textContent = url;
+  document.getElementById("confirm-exit-btn").href = url;
+  document.getElementById("link-exit-modal").style.display = "flex";
 }
+
+function closeExitModal() {
+  document.getElementById("link-exit-modal").style.display = "none";
+}
+
+// Delegated click handler for all exit links.
+document.addEventListener("click", (event) => {
+  const link = event.target.closest('a[data-exit-link="true"]');
+  if (!link) return;
+  event.preventDefault();
+  event.stopPropagation();
+  openExitModal(link.href);
+});
 
 // Close modal if user clicks the dark background
-window.onclick = function(event) {
-    const modal = document.getElementById('link-exit-modal');
-    if (event.target == modal) closeExitModal();
-}
+window.onclick = function (event) {
+  const modal = document.getElementById("link-exit-modal");
+  if (event.target === modal) closeExitModal();
+};
 
-// Add these to the window object so the HTML onclick can see them
-window.openExitModal = function(url) {
-    // We don't need 'pendingUrl = url' anymore because we set the href directly
-    document.getElementById('target-url-display').textContent = url;
-    document.getElementById('confirm-exit-btn').href = url;
-    document.getElementById('link-exit-modal').style.display = 'flex';
-}
-
-window.closeExitModal = function() {
-    document.getElementById('link-exit-modal').style.display = 'none';
-}
-
-// Also make sure renderSmartText is available if needed, 
-// though it's usually called inside your script logic
+// Make functions available globally if needed
 window.renderSmartText = renderSmartText;
+window.openExitModal = openExitModal;
+window.closeExitModal = closeExitModal;
 
 function getRelativeTime(timestamp) {
   if (!timestamp) return "Just now";
