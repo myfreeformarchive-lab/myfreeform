@@ -870,15 +870,14 @@ function createPostNode(item) {
 
   const footerHtml = `<div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
 
-  // 5. Inject HTML (WITH ANIMATION CONTAINER ADDED)
-  // ADD UNIQUE ID TO THE GLOBAL/LOCAL SPAN FOR TRACKING
+  // 5. Inject HTML with animation container
   el.innerHTML = `
     <!-- Animation container for heart effect -->
     <div class="animation-container absolute inset-0 flex items-center justify-center pointer-events-none z-30"></div>
     
     <div class="flex justify-between items-start mb-2">
       <div class="flex items-center gap-2">
-        <span id="global-local-${realId}" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
           ${item.isFirebase ? 'Global' : 'Local'}
         </span>
         <span class="text-xs text-slate-500 font-medium">${time}</span>
@@ -887,9 +886,6 @@ function createPostNode(item) {
     <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] pointer-events-none ${fontClass}">${cleanText(item.content)}</p>
     ${footerHtml}
   `;
-
-  // 🔍 DEBUG LOG 1: Check initial state
-  console.log(`[DEBUG] Post ${realId} created - Global/Local label:`, el.querySelector(`#global-local-${realId}`).textContent);
 
   // 6. Delete Button (Manual Node Creation)
   if (!item.isFirebase || isMyGlobalPost) {
@@ -903,14 +899,11 @@ function createPostNode(item) {
     el.appendChild(delBtn);
   }
 
-  // 7. DOUBLE-CLICK AND SINGLE-CLICK HANDLERS
+  // 7. Double-click and single-click handlers
   let clickTimer = null;
   let clickCount = 0;
   
   el.onclick = (e) => {
-    // 🔍 DEBUG LOG 2: Check state on any click
-    console.log(`[DEBUG] Click event on post ${realId} - Global/Local label before processing:`, el.querySelector(`#global-local-${realId}`).textContent);
-    
     // Don't open modal if share menu is currently open
     if (activeShareMenuId) {
       return;
@@ -931,57 +924,22 @@ function createPostNode(item) {
         clickCount = 0;
       }, 250); // 250ms delay to detect double-click
     } else if (clickCount === 2) {
-  // Double click detected!
-  console.log(`[DEBUG] Double-click detected on post ${realId}`);
-  clearTimeout(clickTimer);
-  clickCount = 0;
-  
-  // 🔍 DEBUG LOG 3: Check before heart animation
-  console.log(`[DEBUG] Before heart animation - Global/Local label:`, el.querySelector(`#global-local-${realId}`).textContent);
-  
-  // Trigger heart animation
-  showHeartAnimation(el);
-  
-  // 🔍 DEBUG LOG 4: Check after heart animation
-  console.log(`[DEBUG] After heart animation - Global/Local label:`, el.querySelector(`#global-local-${realId}`).textContent);
-  
-  // Also trigger the like if it has access and isn't already liked
-  if (hasCommentsAccess && !isLiked) {
-    console.log(`[DEBUG] About to call toggleLike for post ${realId}`);
-    
-    // 🔍 DEBUG LOG 5: Check all spans before toggleLike
-    const allSpans = el.querySelectorAll('span');
-    console.log(`[DEBUG] All spans in post before toggleLike:`, Array.from(allSpans).map(span => ({
-      class: span.className,
-      text: span.textContent,
-      id: span.id
-    })));
-    
-    // ✅ FIX: Click the actual like button instead of calling toggleLike directly
-    const likeButton = el.querySelector('.like-trigger');
-    if (likeButton) {
-      likeButton.click();
-    }
-    
-    // 🔍 DEBUG LOG 6: Check all spans after toggleLike with delay
-    setTimeout(() => {
-      const allSpansAfter = el.querySelectorAll('span');
-      console.log(`[DEBUG] All spans in post AFTER toggleLike:`, Array.from(allSpansAfter).map(span => ({
-        class: span.className,
-        text: span.textContent,
-        id: span.id
-      })));
+      // Double click detected!
+      clearTimeout(clickTimer);
+      clickCount = 0;
       
-      console.log(`[DEBUG] After toggleLike - Global/Local label:`, el.querySelector(`#global-local-${realId}`).textContent);
+      // Trigger heart animation
+      showHeartAnimation(el);
       
-      // 🔍 DEBUG LOG 7: Check if the specific span still exists
-      const globalLocalSpan = el.querySelector(`#global-local-${realId}`);
-      if (!globalLocalSpan) {
-        console.error(`[ERROR] Global/Local span with id="global-local-${realId}" has been removed from DOM!`);
+      // Also trigger the like if it has access and isn't already liked
+      if (hasCommentsAccess && !isLiked) {
+        // Click the actual like button to properly trigger the like
+        const likeButton = el.querySelector('.like-trigger');
+        if (likeButton) {
+          likeButton.click();
+        }
       }
-    }, 100);
-  }
-}
+    }
   };
 
   // 8. Share Button Handlers
@@ -994,27 +952,6 @@ function createPostNode(item) {
       const menu = el.querySelector('.share-menu');
       if (menu) menu.classList.remove('active');
     };
-  });
-
-  // 🔍 DEBUG LOG 8: Set up mutation observer to catch any changes
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      if (mutation.type === 'childList' || mutation.type === 'characterData') {
-        const globalLocalSpan = el.querySelector(`#global-local-${realId}`);
-        if (globalLocalSpan && (globalLocalSpan.textContent !== 'Global' && globalLocalSpan.textContent !== 'Local')) {
-          console.error(`[CAUGHT!] Global/Local span text changed to: "${globalLocalSpan.textContent}"`);
-          console.trace('Stack trace for the change:');
-        }
-      }
-    });
-  });
-  
-  // Start observing the post element for changes
-  observer.observe(el, { 
-    childList: true, 
-    characterData: true, 
-    subtree: true,
-    characterDataOldValue: true 
   });
 
   return el;
