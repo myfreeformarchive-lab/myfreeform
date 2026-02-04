@@ -1957,117 +1957,52 @@ function cleanText(str) {
 }
 
 function renderSmartText(rawText) {
-
     if (!rawText) return "";
-
-    
-
     const urlPattern = /((?:https?:\/\/|www\.)[^\s()<>[\]{}|\\^%§¶•°¬!]+|(?:\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:\/[^\s()<>[\]{}|\\^%§¶•°¬!]*)?)|(?:\b[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s()<>[\]{}|\\^%§¶•°¬!]*)?))/ig;
-
-
-
     return rawText.replace(urlPattern, (url) => {
-
         try {
-
-            const leadingMatch = url.match(/^[([<{]+/);
-
-            const leadingPunct = leadingMatch ? leadingMatch[0] : '';
-
-
-
-            const trailingMatch = url.match(/[\])>}§$%&*~^@!#<>¶•°¬!,.;:]+$/);
-
-            const trailingPunct = trailingMatch ? trailingMatch[0] : '';
-
-            
-
-            let cleanUrl = url.substring(leadingPunct.length, url.length - trailingPunct.length);
-
-            if (!cleanUrl) return url; 
-
-
-
-            let tempUrl = /^https?:\/\//i.test(cleanUrl) ? cleanUrl : `https://${cleanUrl}`;
-
-            const urlObj = new URL(tempUrl);
-
-            
-
-            // --- STEP 4: UPDATED DISPLAY LOGIC (Punycode Fix) ---
-
-            
-
-            // decodeURI converts xn-- back to pretty characters (è, ö, etc.)
-
-            const domain = (typeof punycode !== 'undefined' ? punycode.toUnicode(urlObj.hostname) : urlObj.hostname).replace('www.', '');
-
-            const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
-
-            
-
-            // Decode the first path segment for the basic display
-
+     const leadingMatch = url.match(/^[([<{]+/);
+     const leadingPunct = leadingMatch ? leadingMatch[0] : '';
+     const trailingMatch = url.match(/[\])>}§$%&*~^@!#<>¶•°¬!,.;:]+$/);
+     const trailingPunct = trailingMatch ? trailingMatch[0] : '';
+     let cleanUrl = url.substring(leadingPunct.length, url.length - trailingPunct.length);
+     if (!cleanUrl) return url; 
+     let tempUrl = /^https?:\/\//i.test(cleanUrl) ? cleanUrl : `https://${cleanUrl}`;
+     const urlObj = new URL(tempUrl);
+               
+            const domain = urlObj.hostname.includes('xn--') && typeof punycode !== 'undefined' 
+    ? punycode.toUnicode(urlObj.hostname).replace('www.', '')
+    : decodeURI(urlObj.hostname).replace('www.', '');
+			
+            const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);      
             const firstPath = pathParts.length > 0 ? `/${decodeURI(pathParts[0])}` : '';
-
-            
-
             let displayLink = domain + firstPath;
-
-
-
             if (displayLink.length > 30) {
-
-                // We use your custom segment-based truncation
-
                 const parts = displayLink.split('/');
-
                 if (parts.length > 1) {
-
                     const d = parts[0];
-
-                    const lastPart = parts[parts.length - 1];
-
-                    
-
+                    const lastPart = parts[parts.length - 1];                  
                     if (d.length + lastPart.length + 4 < 30) {
-
                         displayLink = `${d}/.../${lastPart}`;
-
                     } else {
-
                         displayLink = displayLink.slice(0, 27) + '...';
-
                     }
-
                 } else {
-
                     displayLink = displayLink.slice(0, 27) + '...';
-
                 }
-
             }
-
-
-
-            return `${leadingPunct}<a href="javascript:void(0)" 
+    return `${leadingPunct}<a href="javascript:void(0)" 
 
                 onclick="event.stopPropagation(); openExitModal('${cleanUrl}')" 
 
                 class="text-blue-500 hover:text-blue-400 underline decoration-1 underline-offset-4"
 
                 style="word-break: break-all;">${displayLink}</a>${trailingPunct}`;
-
-                       
-
+				
         } catch (e) {
-
             return url;
-
         }
-
     });
-
 }
 
 let pendingUrl = "";
