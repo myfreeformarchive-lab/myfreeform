@@ -1958,13 +1958,14 @@ function cleanText(str) {
 
 function renderSmartText(rawText) {
     // 1. RegEx that captures URLs but tries to exclude trailing symbols
-    const urlPattern = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+    const urlPattern = /((?:https?:\/\/|www\.|[a-z0-9.-]+\.[a-z]{2,}\/)[^\s)]+)/ig;
 
     return rawText.replace(urlPattern, (url) => {
         try {
             // --- STEP A: CLEANING ---
             // Remove trailing punctuation or "weird chars" that aren't valid at the end of a URL
-            let cleanUrl = url.replace(/[§$%&*~^@!#<>¶•°¬!,.;:]+$/, '');
+            let cleanUrl = url.replace(/^[([<{]+/, '');
+			cleanUrl = cleanUrl.replace(/[\])>}§$%&*~^@!#<>¶•°¬!,.;:]+$/, '');
             
             // --- STEP B: PARSING ---
             let tempUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
