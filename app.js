@@ -1972,22 +1972,24 @@ function renderSmartText(rawText) {
             let cleanUrl = url.substring(leadingPunct.length, url.length - trailingPunct.length);
             if (!cleanUrl) return url; 
 
+            // --- STEP 3: PARSING (Safety First) ---
             let tempUrl = /^https?:\/\//i.test(cleanUrl) ? cleanUrl : `https://${cleanUrl}`;
-            const urlObj = new URL(tempUrl);
             
-            // --- STEP 4: UPDATED DISPLAY LOGIC (Punycode Fix) ---
+            // encodeURI makes the URL safe for the URL object (è -> %C3%A8)
+            const urlObj = new URL(encodeURI(tempUrl));
             
-            // decodeURI converts xn-- back to pretty characters (è, ö, etc.)
-            const domain = decodeURI(urlObj.hostname).replace('www.', '');
+            // --- STEP 4: DISPLAY LOGIC (The "Pretty" Version) ---
+            
+            // decodeURIComponent turns %C3%A8 back into è for the UI
+            const domain = decodeURIComponent(urlObj.hostname).replace('www.', '');
             const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
             
-            // Decode the first path segment for the basic display
-            const firstPath = pathParts.length > 0 ? `/${decodeURI(pathParts[0])}` : '';
+            // Decode the first path segment for display
+            const firstPath = pathParts.length > 0 ? `/${decodeURIComponent(pathParts[0])}` : '';
             
             let displayLink = domain + firstPath;
 
             if (displayLink.length > 30) {
-                // We use your custom segment-based truncation
                 const parts = displayLink.split('/');
                 if (parts.length > 1) {
                     const d = parts[0];
@@ -2009,6 +2011,7 @@ function renderSmartText(rawText) {
                 style="word-break: break-all;">${displayLink}</a>${trailingPunct}`;
                        
         } catch (e) {
+            // If the URL is truly broken, we still return the original text
             return url;
         }
     });
