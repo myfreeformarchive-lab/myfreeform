@@ -1975,58 +1975,19 @@ function renderSmartText(rawText) {
             let cleanUrl = url.substring(leadingPunct.length, url.length - trailingPunct.length);
             if (!cleanUrl) return url; 
 
-            // 2. PARSING: Special handling for international domains
+            // 2. PARSING: Use encodeURI so the URL object doesn't crash on 'è'
             let tempUrl = /^https?:\/\//i.test(cleanUrl) ? cleanUrl : `https://${cleanUrl}`;
+            const urlObj = new URL(encodeURI(tempUrl));
             
-            // Try to parse URL - for international domains, try without encoding first
-            let urlObj;
-            try {
-                urlObj = new URL(tempUrl);
-            } catch (e) {
-                // If it fails, encode just the path part (not the domain)
-                const match = tempUrl.match(/^(https?:\/\/[^\/]+)(\/.*)?$/);
-                if (match) {
-                    const base = match[1];
-                    const path = match[2] || '';
-                    try {
-                        urlObj = new URL(base + encodeURI(path));
-                    } catch (e2) {
-                        // Last resort: encode everything
-                        urlObj = new URL(encodeURI(tempUrl));
-                    }
-                } else {
-                    urlObj = new URL(encodeURI(tempUrl));
-                }
-            }
+            // 3. DISPLAY: Extract domain from ORIGINAL cleanUrl to preserve international characters
+            // Remove protocol and www. from the original string
+            let domainSource = cleanUrl.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
             
-            // 3. DISPLAY: Handle both Punycode and percent-encoded domains
-            let domain = urlObj.hostname;
+            // Extract just the domain (everything before the first slash)
+            const slashIndex = domainSource.indexOf('/');
+            const domain = slashIndex > -1 ? domainSource.substring(0, slashIndex) : domainSource;
             
-            // Check if domain is Punycode (xn--) and convert it back
-            if (domain.includes('xn--')) {
-                // For Punycode domains, we need to use the Internationalization API if available
-                // or just keep it as-is if not
-                try {
-                    // Try to decode using a temporary anchor element (browser handles IDN)
-                    const a = document.createElement('a');
-                    a.href = urlObj.href;
-                    // The browser will show the Unicode version in the hostname if it can
-                    domain = a.hostname;
-                } catch (e) {
-                    // Keep the punycode version if browser method fails
-                    domain = urlObj.hostname;
-                }
-            } else {
-                // For regular domains, decode any percent encoding
-                try {
-                    domain = decodeURIComponent(domain);
-                } catch (e) {
-                    domain = urlObj.hostname;
-                }
-            }
-            
-            domain = domain.replace('www.', '');
-            
+            // Use urlObj for path (it handles encoding properly)
             const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
             const firstPath = pathParts.length > 0 ? `/${decodeURIComponent(pathParts[0])}` : '';
             
@@ -2048,11 +2009,8 @@ function renderSmartText(rawText) {
                 }
             }
 
-            // Escape quotes in URL for the onclick handler
-            const escapedUrl = cleanUrl.replace(/'/g, "\\'");
-
             return `${leadingPunct}<a href="javascript:void(0)" 
-                onclick="event.stopPropagation(); openExitModal('${escapedUrl}')" 
+                onclick="event.stopPropagation(); openExitModal('${cleanUrl}')" 
                 class="text-blue-500 hover:text-blue-400 underline decoration-1 underline-offset-4"
                 style="word-break: break-all;">${displayLink}</a>${trailingPunct}`;
                        
