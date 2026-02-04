@@ -1975,50 +1975,58 @@ function renderSmartText(rawText) {
             let cleanUrl = url.substring(leadingPunct.length, url.length - trailingPunct.length);
             if (!cleanUrl) return url; 
 
-            // 2. PARSING: Don't use encodeURI here - let URL constructor handle it
+            // 2. PARSING: Special handling for international domains
             let tempUrl = /^https?:\/\//i.test(cleanUrl) ? cleanUrl : `https://${cleanUrl}`;
             
-            // Try to parse the URL - this will convert IDN to Punycode automatically
+            // Try to parse URL - for international domains, try without encoding first
             let urlObj;
             try {
                 urlObj = new URL(tempUrl);
             } catch (e) {
-                // If URL parsing fails, try encoding just the path part
-                const urlParts = tempUrl.match(/^(https?:\/\/[^\/]+)(\/.*)?$/);
-                if (urlParts) {
-                    const base = urlParts[1];
-                    const path = urlParts[2] || '';
-                    urlObj = new URL(base + encodeURI(path));
+                // If it fails, encode just the path part (not the domain)
+                const match = tempUrl.match(/^(https?:\/\/[^\/]+)(\/.*)?$/);
+                if (match) {
+                    const base = match[1];
+                    const path = match[2] || '';
+                    try {
+                        urlObj = new URL(base + encodeURI(path));
+                    } catch (e2) {
+                        // Last resort: encode everything
+                        urlObj = new URL(encodeURI(tempUrl));
+                    }
                 } else {
-                    throw e;
+                    urlObj = new URL(encodeURI(tempUrl));
                 }
             }
             
-            // 3. DISPLAY: Handle Punycode conversion back to Unicode
+            // 3. DISPLAY: Handle both Punycode and percent-encoded domains
             let domain = urlObj.hostname;
             
-            // Convert Punycode (xn--) domains back to Unicode
+            // Check if domain is Punycode (xn--) and convert it back
             if (domain.includes('xn--')) {
+                // For Punycode domains, we need to use the Internationalization API if available
+                // or just keep it as-is if not
                 try {
-                    // Split by dots to handle each part separately
-                    domain = domain.split('.').map(part => {
-                        if (part.startsWith('xn--')) {
-                            // This is a Punycode part, decode it
-                            // Using the browser's built-in IDN support via URL API
-                            return decodeURIComponent(escape(atob(part.substring(4))));
-                        }
-                        return part;
-                    }).join('.');
+                    // Try to decode using a temporary anchor element (browser handles IDN)
+                    const a = document.createElement('a');
+                    a.href = urlObj.href;
+                    // The browser will show the Unicode version in the hostname if it can
+                    domain = a.hostname;
                 } catch (e) {
-                    // If Punycode decoding fails, just use the original
+                    // Keep the punycode version if browser method fails
+                    domain = urlObj.hostname;
+                }
+            } else {
+                // For regular domains, decode any percent encoding
+                try {
+                    domain = decodeURIComponent(domain);
+                } catch (e) {
                     domain = urlObj.hostname;
                 }
             }
             
-            // Remove www. prefix for display
             domain = domain.replace('www.', '');
             
-            // Handle path decoding
             const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
             const firstPath = pathParts.length > 0 ? `/${decodeURIComponent(pathParts[0])}` : '';
             
@@ -2040,9 +2048,11 @@ function renderSmartText(rawText) {
                 }
             }
 
-            // Use the original cleanUrl for the href to preserve the correct URL
+            // Escape quotes in URL for the onclick handler
+            const escapedUrl = cleanUrl.replace(/'/g, "\\'");
+
             return `${leadingPunct}<a href="javascript:void(0)" 
-                onclick="event.stopPropagation(); openExitModal('${cleanUrl.replace(/'/g, "\\'")}')" 
+                onclick="event.stopPropagation(); openExitModal('${escapedUrl}')" 
                 class="text-blue-500 hover:text-blue-400 underline decoration-1 underline-offset-4"
                 style="word-break: break-all;">${displayLink}</a>${trailingPunct}`;
                        
