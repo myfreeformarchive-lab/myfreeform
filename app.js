@@ -809,8 +809,8 @@ function createPostNode(item) {
   const el = document.createElement('div');
   el.setAttribute('data-id', item.id);
   const cursorClass = item.isFirebase ? "" : "cursor-pointer";
-  const borderClass = item.isFirebase ? "border-slate-100" : "border-slate-50";
-  el.className = `feed-item bg-white px-6 py-10 border-b ${borderClass} relative transition-colors hover:bg-slate-50/50 ${cursorClass}`;
+  
+  el.className = `feed-item block w-full bg-white px-4 py-3 mb-6 border-b border-slate-100 relative transition-colors ${cursorClass}`;
   // 2. Logic: Time, Fonts, and Tags
   const time = getRelativeTime(item.createdAt);
   const fontClass = item.font || 'font-sans'; 
@@ -876,7 +876,7 @@ function createPostNode(item) {
     </div>
   `;
 
-  const footerHtml = `<div class="mt-8 pt-5 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
+  const footerHtml = `<div class="mt-6 pt-5 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
 
   // 5. Inject HTML with animation container
   el.innerHTML = `
