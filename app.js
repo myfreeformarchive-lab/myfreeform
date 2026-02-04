@@ -928,26 +928,8 @@ el.onclick = (e) => {
   clearTimeout(clickTimer);
   clickCount = 0;
   
-  console.log(`[ANIM DEBUG] Double-click on ${item.isFirebase ? 'GLOBAL' : 'LOCAL'} post ${realId}`);
-  
-  // Check animation container before
-  const animContainerBefore = el.querySelector('.animation-container');
-  console.log('[ANIM DEBUG] Animation container exists before?', !!animContainerBefore);
-  console.log('[ANIM DEBUG] Animation container children before:', animContainerBefore?.children.length);
-  
-  // Trigger heart animation
-  console.log('[ANIM DEBUG] Calling showHeartAnimation...');
+  // Trigger heart animation FIRST
   showHeartAnimation(el);
-  
-  // Check animation container after animation starts
-  setTimeout(() => {
-    const animContainerAfter = el.querySelector('.animation-container');
-    console.log('[ANIM DEBUG] Animation container exists after?', !!animContainerAfter);
-    console.log('[ANIM DEBUG] Animation container children after:', animContainerAfter?.children.length);
-    if (animContainerAfter?.children.length > 0) {
-      console.log('[ANIM DEBUG] Animation element classes:', animContainerAfter.children[0].className);
-    }
-  }, 10);
   
   // Also trigger the like if it has access
   if (hasCommentsAccess) {
@@ -957,44 +939,14 @@ el.onclick = (e) => {
       const heartIcon = likeButton.querySelector('svg');
       const currentlyLiked = heartIcon && heartIcon.classList.contains('fill-red-500');
       
-      console.log('[ANIM DEBUG] Currently liked?', currentlyLiked);
-      
       // Only trigger like if not currently liked (Instagram-style behavior)
       if (!currentlyLiked) {
-        console.log('[ANIM DEBUG] Triggering like button click...');
-        likeButton.click();
-        
-        // Check what happens after click
+        // ✅ FIX: Add delay to let animation start before DOM updates
         setTimeout(() => {
-          const animContainerAfterClick = el.querySelector('.animation-container');
-          console.log('[ANIM DEBUG] After click - Animation container exists?', !!animContainerAfterClick);
-          console.log('[ANIM DEBUG] After click - Animation container children:', animContainerAfterClick?.children.length);
-        }, 100);
-      } else {
-        console.log('[ANIM DEBUG] Already liked, not clicking button');
+          likeButton.click();
+        }, 100); // Small delay to let animation establish
       }
     }
-  }
-  
-  // Monitor for any DOM changes that might interrupt animation
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      if (mutation.target.classList?.contains('animation-container') || 
-          mutation.target.closest?.('.animation-container')) {
-        console.log('[ANIM DEBUG] Animation container mutation detected:', mutation.type, mutation);
-      }
-    });
-  });
-  
-  if (animContainerBefore) {
-    observer.observe(animContainerBefore, { 
-      childList: true, 
-      attributes: true, 
-      subtree: true 
-    });
-    
-    // Stop observing after animation should be done
-    setTimeout(() => observer.disconnect(), 1000);
   }
 }
 };
