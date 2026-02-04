@@ -2000,7 +2000,7 @@ function renderSmartText(rawText) {
 
             // decodeURI converts xn-- back to pretty characters (è, ö, etc.)
 
-            const domain = punycode.toUnicode(urlObj.hostname).replace('www.', '');
+            const domain = (typeof punycode !== 'undefined' ? punycode.toUnicode(urlObj.hostname) : urlObj.hostname).replace('www.', '');
 
             const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
 
