@@ -180,37 +180,44 @@ DOM.emojiButtons.forEach(btn => {
 // --- 📱 MOBILE SWIPE GESTURE LOGIC ---
 
 let touchStartX = 0;
+let touchStartY = 0;
 let touchEndX = 0;
+let touchEndY = 0;
 
 // 1. Capture where the finger starts
 document.addEventListener('touchstart', e => {
     touchStartX = e.changedTouches[0].screenX;
+	touchStartY = e.changedTouches[0].screenY;
 }, { passive: true });
 
 // 2. Capture where the finger ends and calculate the distance
 document.addEventListener('touchend', e => {
     touchEndX = e.changedTouches[0].screenX;
+	touchEndY = e.changedTouches[0].screenY;
     handleSwipeGesture();
 }, { passive: true });
 
 function handleSwipeGesture() {
-    const swipeDistance = touchEndX - touchStartX;
-    const threshold = 70; // Min distance in pixels to trigger a switch
+    const swipeDistanceX = touchEndX - touchStartX;
+	const swipeDistanceY = touchEndY - touchStartY;
+    const threshold = 65; // Min distance in pixels to trigger a switch
 
     // Check if we are inside a scrollable area (like a modal or comment input)
     // We don't want to switch tabs if the user is just scrolling through comments
     if (!DOM.modal.classList.contains('hidden')) return;
+	
+	if (Math.abs(swipeDistanceY) > Math.abs(swipeDistanceX)) {
+        return; 
+    }
 
     // SWIPE RIGHT (Finger moves Left -> Right) => Go to Private
-    if (swipeDistance > threshold && currentTab === 'public') {
-        console.log("Swipe detected: Moving to Private");
+    if (swipeDistanceX > threshold && currentTab === 'public') {
         switchTab('private');
-        triggerHapticFeedback(); // Optional extra polish
+        triggerHapticFeedback();
     } 
     
     // SWIPE LEFT (Finger moves Right -> Left) => Go to Public
-    else if (swipeDistance < -threshold && currentTab === 'private') {
-        console.log("Swipe detected: Moving to Public");
+    else if (swipeDistanceX < -threshold && currentTab === 'private') {
         switchTab('public');
         triggerHapticFeedback();
     }
