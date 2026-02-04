@@ -941,10 +941,10 @@ el.onclick = (e) => {
       
       // Only trigger like if not currently liked (Instagram-style behavior)
       if (!currentlyLiked) {
-        // ✅ FIX: Add delay to let animation start before DOM updates
+        // Small delay but animation should be protected now
         setTimeout(() => {
           likeButton.click();
-        }, 100); // Small delay to let animation establish
+        }, 50); // Reduced delay since animation is more resilient
       }
     }
   }
@@ -978,18 +978,32 @@ function showHeartAnimation(container) {
     </svg>
   `;
   
-  heart.className = "transform scale-0 opacity-0 transition-all duration-500 ease-out";
+  // Force GPU acceleration and isolate from DOM reflows
+  heart.style.cssText = `
+    transform: scale(0) translateZ(0);
+    opacity: 0;
+    transition: all 500ms ease-out;
+    will-change: transform, opacity;
+    position: absolute;
+    pointer-events: none;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  `;
+  
   animContainer.appendChild(heart);
 
+  // Use double requestAnimationFrame for more reliable start
   requestAnimationFrame(() => {
-    heart.classList.remove('scale-0', 'opacity-0');
-    heart.classList.add('scale-125', 'opacity-100');
-    
-    setTimeout(() => {
-      heart.classList.remove('scale-125', 'opacity-100');
-      heart.classList.add('scale-150', 'opacity-0');
-      setTimeout(() => heart.remove(), 500);
-    }, 400);
+    requestAnimationFrame(() => {
+      heart.style.transform = 'scale(1.25) translateZ(0)';
+      heart.style.opacity = '1';
+      
+      setTimeout(() => {
+        heart.style.transform = 'scale(1.5) translateZ(0)';
+        heart.style.opacity = '0';
+        setTimeout(() => heart.remove(), 500);
+      }, 400);
+    });
   });
 }
 
