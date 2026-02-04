@@ -920,7 +920,7 @@ el.onclick = (e) => {
     // Single click - wait to see if it's actually a double-click
     clickTimer = setTimeout(() => {
       // It was just a single click, open the modal
-      //openModal(item);
+      openModal(item);
       clickCount = 0;
     }, 250); // 250ms delay to detect double-click
   } else if (clickCount === 2) {
