@@ -920,7 +920,7 @@ el.onclick = (e) => {
     // Single click - wait to see if it's actually a double-click
     clickTimer = setTimeout(() => {
       // It was just a single click, open the modal
-      openModal(item);
+      //openModal(item);
       clickCount = 0;
     }, 250); // 250ms delay to detect double-click
   } else if (clickCount === 2) {
@@ -1960,7 +1960,7 @@ function renderSmartText(rawText) {
     if (!rawText) return "";
     
     // Improved pattern: finds domains but is careful not to swallow brackets at the end
-    const urlPattern = /((?:https?:\/\/|www\.|[a-z0-9.-]+\.[a-z]{2,})[^\s()<>\[\]{}]*)/ig;
+    const urlPattern = /((?:https?:\/\/|www\.)[^\s()<>[\]{}|\\^%§¶•°¬!]+|(?:\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:\/[^\s()<>[\]{}|\\^%§¶•°¬!]*)?)|(?:\b[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s()<>[\]{}|\\^%§¶•°¬!]*)?))/ig;
 
     return rawText.replace(urlPattern, (url) => {
         try {
