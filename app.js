@@ -905,38 +905,38 @@ let clickTimer = null;
 let clickCount = 0;
 
 el.onclick = (e) => {
-  // A. Block if share menu is open
   if (activeShareMenuId) return;
 
-  // B. Identify the targets
+  // 1. Identify targets
   const isButton = e.target.closest('button');
   const isShare = e.target.closest('.share-container');
   const isLike = e.target.closest('.like-trigger');
-  const isLink = e.target.closest('a'); // <--- CRITICAL: Protects our new blue links
-  const isCommentBtn = e.target.closest('.icon-tabler-message-circle-2'); // The message icon
+  const isLink = e.target.closest('a'); 
+  const isCommentBtn = e.target.closest('.icon-tabler-message-circle-2');
 
-  // C. If it's a specific action button (Like, Share, Delete, or our Blue Link), stop here.
+  // 2. Immediate Block for specific interactive elements
   if (isButton || isShare || isLike || isLink) return;
 
-  // D. PUBLIC POST LOGIC: 
-  // If it's a Global post, ONLY the comment icon can open the modal.
-  if (item.isFirebase && !isCommentBtn) {
-    return; // User clicked the whitespace of a public card; do nothing.
-  }
-
-  // E. CLICK TRACKING (For Private posts or clicking the Comment Icon)
+  // 3. Increment click count BEFORE the Global check
   clickCount++;
   
   if (clickCount === 1) {
     clickTimer = setTimeout(() => {
-      openModal(item);
+      // --- THE SELECTIVE GATEKEEPER ---
+      // Only open modal if: It's Private OR it's a Global Comment Icon click
+      const shouldOpenModal = !item.isFirebase || isCommentBtn;
+
+      if (shouldOpenModal) {
+        openModal(item);
+      }
+      
       clickCount = 0;
     }, 250); 
   } else if (clickCount === 2) {
     clearTimeout(clickTimer);
     clickCount = 0;
     
-    // Heart animation and Like logic remains the same
+    // Double-click (Heart) should work on Global posts too!
     showHeartAnimation(el);
     if (hasCommentsAccess) {
       const likeButton = el.querySelector('.like-trigger');
