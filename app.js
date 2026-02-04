@@ -900,47 +900,54 @@ function createPostNode(item) {
   }
 
   // 7. Double-click and single-click handlers
-  let clickTimer = null;
-  let clickCount = 0;
-  
-  el.onclick = (e) => {
-    // Don't open modal if share menu is currently open
-    if (activeShareMenuId) {
-      return;
-    }
+let clickTimer = null;
+let clickCount = 0;
 
-    // Original checks
-    if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) {
-      return;
-    }
-    
-    clickCount++;
-    
-    if (clickCount === 1) {
-      // Single click - wait to see if it's actually a double-click
-      clickTimer = setTimeout(() => {
-        // It was just a single click, open the modal
-        openModal(item);
-        clickCount = 0;
-      }, 250); // 250ms delay to detect double-click
-    } else if (clickCount === 2) {
-      // Double click detected!
-      clearTimeout(clickTimer);
+el.onclick = (e) => {
+  // Don't open modal if share menu is currently open
+  if (activeShareMenuId) {
+    return;
+  }
+
+  // Original checks
+  if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) {
+    return;
+  }
+  
+  clickCount++;
+  
+  if (clickCount === 1) {
+    // Single click - wait to see if it's actually a double-click
+    clickTimer = setTimeout(() => {
+      // It was just a single click, open the modal
+      openModal(item);
       clickCount = 0;
-      
-      // Trigger heart animation
-      showHeartAnimation(el);
-      
-      // Also trigger the like if it has access and isn't already liked
-      if (hasCommentsAccess && !isLiked) {
-        // Click the actual like button to properly trigger the like
-        const likeButton = el.querySelector('.like-trigger');
-        if (likeButton) {
+    }, 250); // 250ms delay to detect double-click
+  } else if (clickCount === 2) {
+    // Double click detected!
+    clearTimeout(clickTimer);
+    clickCount = 0;
+    
+    // Trigger heart animation
+    showHeartAnimation(el);
+    
+    // Also trigger the like if it has access
+    if (hasCommentsAccess) {
+      // ✅ FIX: Check the current like state dynamically
+      const likeButton = el.querySelector('.like-trigger');
+      if (likeButton) {
+        // Check if currently liked by looking at the heart icon's current classes
+        const heartIcon = likeButton.querySelector('svg');
+        const currentlyLiked = heartIcon && heartIcon.classList.contains('fill-red-500');
+        
+        // Only trigger like if not currently liked (Instagram-style behavior)
+        if (!currentlyLiked) {
           likeButton.click();
         }
       }
     }
-  };
+  }
+};
 
   // 8. Share Button Handlers
   const platformBtns = el.querySelectorAll('.share-icon-btn');
