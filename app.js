@@ -931,53 +931,57 @@ function createPostNode(item) {
         clickCount = 0;
       }, 250); // 250ms delay to detect double-click
     } else if (clickCount === 2) {
-      // Double click detected!
-      console.log(`[DEBUG] Double-click detected on post ${realId}`);
-      clearTimeout(clickTimer);
-      clickCount = 0;
-      
-      // 🔍 DEBUG LOG 3: Check before heart animation
-      console.log(`[DEBUG] Before heart animation - Global/Local label:`, el.querySelector(`#global-local-${realId}`).textContent);
-      
-      // Trigger heart animation
-      showHeartAnimation(el);
-      
-      // 🔍 DEBUG LOG 4: Check after heart animation
-      console.log(`[DEBUG] After heart animation - Global/Local label:`, el.querySelector(`#global-local-${realId}`).textContent);
-      
-      // Also trigger the like if it has access and isn't already liked
-      if (hasCommentsAccess && !isLiked) {
-        console.log(`[DEBUG] About to call toggleLike for post ${realId}`);
-        
-        // 🔍 DEBUG LOG 5: Check all spans before toggleLike
-        const allSpans = el.querySelectorAll('span');
-        console.log(`[DEBUG] All spans in post before toggleLike:`, Array.from(allSpans).map(span => ({
-          class: span.className,
-          text: span.textContent,
-          id: span.id
-        })));
-        
-        toggleLike(e, realId);
-        
-        // 🔍 DEBUG LOG 6: Check all spans after toggleLike with delay
-        setTimeout(() => {
-          const allSpansAfter = el.querySelectorAll('span');
-          console.log(`[DEBUG] All spans in post AFTER toggleLike:`, Array.from(allSpansAfter).map(span => ({
-            class: span.className,
-            text: span.textContent,
-            id: span.id
-          })));
-          
-          console.log(`[DEBUG] After toggleLike - Global/Local label:`, el.querySelector(`#global-local-${realId}`).textContent);
-          
-          // 🔍 DEBUG LOG 7: Check if the specific span still exists
-          const globalLocalSpan = el.querySelector(`#global-local-${realId}`);
-          if (!globalLocalSpan) {
-            console.error(`[ERROR] Global/Local span with id="global-local-${realId}" has been removed from DOM!`);
-          }
-        }, 100);
-      }
+  // Double click detected!
+  console.log(`[DEBUG] Double-click detected on post ${realId}`);
+  clearTimeout(clickTimer);
+  clickCount = 0;
+  
+  // 🔍 DEBUG LOG 3: Check before heart animation
+  console.log(`[DEBUG] Before heart animation - Global/Local label:`, el.querySelector(`#global-local-${realId}`).textContent);
+  
+  // Trigger heart animation
+  showHeartAnimation(el);
+  
+  // 🔍 DEBUG LOG 4: Check after heart animation
+  console.log(`[DEBUG] After heart animation - Global/Local label:`, el.querySelector(`#global-local-${realId}`).textContent);
+  
+  // Also trigger the like if it has access and isn't already liked
+  if (hasCommentsAccess && !isLiked) {
+    console.log(`[DEBUG] About to call toggleLike for post ${realId}`);
+    
+    // 🔍 DEBUG LOG 5: Check all spans before toggleLike
+    const allSpans = el.querySelectorAll('span');
+    console.log(`[DEBUG] All spans in post before toggleLike:`, Array.from(allSpans).map(span => ({
+      class: span.className,
+      text: span.textContent,
+      id: span.id
+    })));
+    
+    // ✅ FIX: Click the actual like button instead of calling toggleLike directly
+    const likeButton = el.querySelector('.like-trigger');
+    if (likeButton) {
+      likeButton.click();
     }
+    
+    // 🔍 DEBUG LOG 6: Check all spans after toggleLike with delay
+    setTimeout(() => {
+      const allSpansAfter = el.querySelectorAll('span');
+      console.log(`[DEBUG] All spans in post AFTER toggleLike:`, Array.from(allSpansAfter).map(span => ({
+        class: span.className,
+        text: span.textContent,
+        id: span.id
+      })));
+      
+      console.log(`[DEBUG] After toggleLike - Global/Local label:`, el.querySelector(`#global-local-${realId}`).textContent);
+      
+      // 🔍 DEBUG LOG 7: Check if the specific span still exists
+      const globalLocalSpan = el.querySelector(`#global-local-${realId}`);
+      if (!globalLocalSpan) {
+        console.error(`[ERROR] Global/Local span with id="global-local-${realId}" has been removed from DOM!`);
+      }
+    }, 100);
+  }
+}
   };
 
   // 8. Share Button Handlers
