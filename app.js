@@ -968,9 +968,11 @@ el.onclick = (e) => {
 
 // Helper Function for the Heart Animation
 function showHeartAnimation(container) {
-  const animContainer = container.querySelector('.animation-container');
-  if (!animContainer) return;
-
+  // Instead of using the container's animation div, create a new one at body level
+  const rect = container.getBoundingClientRect();
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+  
   const heart = document.createElement('div');
   heart.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" class="w-20 h-20 text-red-500 fill-red-500 drop-shadow-lg" viewBox="0 0 24 24" stroke-width="0" stroke="currentColor">
@@ -978,32 +980,31 @@ function showHeartAnimation(container) {
     </svg>
   `;
   
-  // Force GPU acceleration and isolate from DOM reflows
+  // Position it absolutely on the page, not inside the post
   heart.style.cssText = `
-    transform: scale(0) translateZ(0);
+    position: fixed;
+    left: ${rect.left + rect.width/2 - 40}px;
+    top: ${rect.top + rect.height/2 - 40}px;
+    transform: scale(0);
     opacity: 0;
     transition: all 500ms ease-out;
     will-change: transform, opacity;
-    position: absolute;
     pointer-events: none;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
+    z-index: 9999;
   `;
   
-  animContainer.appendChild(heart);
+  // Append to body, completely outside the post DOM
+  document.body.appendChild(heart);
 
-  // Use double requestAnimationFrame for more reliable start
   requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      heart.style.transform = 'scale(1.25) translateZ(0)';
-      heart.style.opacity = '1';
-      
-      setTimeout(() => {
-        heart.style.transform = 'scale(1.5) translateZ(0)';
-        heart.style.opacity = '0';
-        setTimeout(() => heart.remove(), 500);
-      }, 400);
-    });
+    heart.style.transform = 'scale(1.25)';
+    heart.style.opacity = '1';
+    
+    setTimeout(() => {
+      heart.style.transform = 'scale(1.5)';
+      heart.style.opacity = '0';
+      setTimeout(() => heart.remove(), 500);
+    }, 400);
   });
 }
 
