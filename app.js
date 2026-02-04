@@ -1959,42 +1959,40 @@ function cleanText(str) {
 function renderSmartText(rawText) {
     if (!rawText) return "";
     
-    const urlPattern = /((?:https?:\/\/|www\.)[^\s()<>[\]{}|\\^%§¶•°¬!]+|(?:\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:\/[^\s()<>[\]{}|\\^%§¶•°¬!]*)?)|(?:\b[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s()<>[\]{}|\\^%§¶•°¬!]*)?))/ig;
+    // This pattern is "Greedy" - it captures international characters and only stops at spaces or common layout symbols
+    const urlPattern = /((?:https?:\/\/|www\.)[^\s<>[\]{}|\\^%]+|(?:\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:\/[^\s<>[\]{}|\\^%]* )?)|(?:\b[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s<>[\]{}|\\^%]* )?))/ig;
 
     return rawText.replace(urlPattern, (url) => {
         try {
+            // 1. PEELING: Now this logic is the boss of what is "Link" and what is "Punctuation"
             const leadingMatch = url.match(/^[([<{]+/);
             const leadingPunct = leadingMatch ? leadingMatch[0] : '';
 
-            const trailingMatch = url.match(/[\])>}§$%&*~^@!#<>¶•°¬!,.;:]+$/);
+            // We added more symbols here to ensure they stay outside the blue link
+            const trailingMatch = url.match(/[\])>}§$%&*~^@!#¶•°¬!,.;:]+$/);
             const trailingPunct = trailingMatch ? trailingMatch[0] : '';
             
             let cleanUrl = url.substring(leadingPunct.length, url.length - trailingPunct.length);
             if (!cleanUrl) return url; 
 
-            // --- STEP 3: PARSING (Safety First) ---
+            // 2. PARSING: Use encodeURI so the URL object doesn't crash on 'è'
             let tempUrl = /^https?:\/\//i.test(cleanUrl) ? cleanUrl : `https://${cleanUrl}`;
-            
-            // encodeURI makes the URL safe for the URL object (è -> %C3%A8)
             const urlObj = new URL(encodeURI(tempUrl));
             
-            // --- STEP 4: DISPLAY LOGIC (The "Pretty" Version) ---
-            
-            // decodeURIComponent turns %C3%A8 back into è for the UI
+            // 3. DISPLAY: Use decodeURIComponent to turn 'xn--' or '%C3' back into 'è'
+            // We use urlObj.href to ensure we have the fully qualified domain
             const domain = decodeURIComponent(urlObj.hostname).replace('www.', '');
             const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
-            
-            // Decode the first path segment for display
             const firstPath = pathParts.length > 0 ? `/${decodeURIComponent(pathParts[0])}` : '';
             
             let displayLink = domain + firstPath;
 
+            // 4. TRUNCATION: Your custom logic
             if (displayLink.length > 30) {
                 const parts = displayLink.split('/');
                 if (parts.length > 1) {
                     const d = parts[0];
                     const lastPart = parts[parts.length - 1];
-                    
                     if (d.length + lastPart.length + 4 < 30) {
                         displayLink = `${d}/.../${lastPart}`;
                     } else {
@@ -2011,7 +2009,6 @@ function renderSmartText(rawText) {
                 style="word-break: break-all;">${displayLink}</a>${trailingPunct}`;
                        
         } catch (e) {
-            // If the URL is truly broken, we still return the original text
             return url;
         }
     });
