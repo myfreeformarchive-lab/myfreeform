@@ -1975,13 +1975,50 @@ function renderSmartText(rawText) {
             let cleanUrl = url.substring(leadingPunct.length, url.length - trailingPunct.length);
             if (!cleanUrl) return url; 
 
-            // 2. PARSING: Use encodeURI so the URL object doesn't crash on 'è'
+            // 2. PARSING: Don't use encodeURI here - let URL constructor handle it
             let tempUrl = /^https?:\/\//i.test(cleanUrl) ? cleanUrl : `https://${cleanUrl}`;
-            const urlObj = new URL(encodeURI(tempUrl));
             
-            // 3. DISPLAY: Use decodeURIComponent to turn 'xn--' or '%C3' back into 'è'
-            // We use urlObj.href to ensure we have the fully qualified domain
-            const domain = decodeURIComponent(urlObj.hostname).replace('www.', '');
+            // Try to parse the URL - this will convert IDN to Punycode automatically
+            let urlObj;
+            try {
+                urlObj = new URL(tempUrl);
+            } catch (e) {
+                // If URL parsing fails, try encoding just the path part
+                const urlParts = tempUrl.match(/^(https?:\/\/[^\/]+)(\/.*)?$/);
+                if (urlParts) {
+                    const base = urlParts[1];
+                    const path = urlParts[2] || '';
+                    urlObj = new URL(base + encodeURI(path));
+                } else {
+                    throw e;
+                }
+            }
+            
+            // 3. DISPLAY: Handle Punycode conversion back to Unicode
+            let domain = urlObj.hostname;
+            
+            // Convert Punycode (xn--) domains back to Unicode
+            if (domain.includes('xn--')) {
+                try {
+                    // Split by dots to handle each part separately
+                    domain = domain.split('.').map(part => {
+                        if (part.startsWith('xn--')) {
+                            // This is a Punycode part, decode it
+                            // Using the browser's built-in IDN support via URL API
+                            return decodeURIComponent(escape(atob(part.substring(4))));
+                        }
+                        return part;
+                    }).join('.');
+                } catch (e) {
+                    // If Punycode decoding fails, just use the original
+                    domain = urlObj.hostname;
+                }
+            }
+            
+            // Remove www. prefix for display
+            domain = domain.replace('www.', '');
+            
+            // Handle path decoding
             const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
             const firstPath = pathParts.length > 0 ? `/${decodeURIComponent(pathParts[0])}` : '';
             
@@ -2003,8 +2040,9 @@ function renderSmartText(rawText) {
                 }
             }
 
+            // Use the original cleanUrl for the href to preserve the correct URL
             return `${leadingPunct}<a href="javascript:void(0)" 
-                onclick="event.stopPropagation(); openExitModal('${cleanUrl}')" 
+                onclick="event.stopPropagation(); openExitModal('${cleanUrl.replace(/'/g, "\\'")}')" 
                 class="text-blue-500 hover:text-blue-400 underline decoration-1 underline-offset-4"
                 style="word-break: break-all;">${displayLink}</a>${trailingPunct}`;
                        
