@@ -800,10 +800,9 @@ async function sharePost(text, platform) {
 function createPostNode(item) {
   // 1. Create the base container
   const el = document.createElement('div');
-  const cursorClass = item.isFirebase ? "" : "cursor-pointer";
   el.setAttribute('data-id', item.id);
+  const cursorClass = item.isFirebase ? "" : "cursor-pointer";
   el.className = `feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow relative ${cursorClass}`;
-
   // 2. Logic: Time, Fonts, and Tags
   const time = getRelativeTime(item.createdAt);
   const fontClass = item.font || 'font-sans'; 
@@ -873,9 +872,7 @@ function createPostNode(item) {
 
   // 5. Inject HTML with animation container
   el.innerHTML = `
-    <!-- Animation container for heart effect -->
     <div class="animation-container absolute inset-0 flex items-center justify-center pointer-events-none z-30"></div>
-    
     <div class="flex justify-between items-start mb-2">
       <div class="flex items-center gap-2">
         <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
@@ -884,7 +881,9 @@ function createPostNode(item) {
         <span class="text-xs text-slate-500 font-medium">${time}</span>
       </div>
     </div>
-    <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] pointer-events-none ${fontClass}">${renderSmartText(item.content)}</p>
+    <p class="post-body text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] relative z-10 ${fontClass}">
+        ${renderSmartText(item.content)}
+    </p>
     ${footerHtml}
   `;
 
@@ -900,56 +899,54 @@ function createPostNode(item) {
     el.appendChild(delBtn);
   }
 
-// 7. Double-click and single-click handlers
-let clickTimer = null;
-let clickCount = 0;
+ // 7. Refined Click Handler (The Calibrated Net)
+  let clickTimer = null;
+  let clickCount = 0;
 
-el.onclick = (e) => {
-  if (activeShareMenuId) return;
+  el.onclick = (e) => {
+    if (activeShareMenuId) return;
 
-  // 1. Identify targets
-  const isButton = e.target.closest('button');
-  const isShare = e.target.closest('.share-container');
-  const isLike = e.target.closest('.like-trigger');
-  const isLink = e.target.closest('a'); 
-  const isCommentBtn = e.target.closest('.icon-tabler-message-circle-2');
+    // A. THE LINK SHIELD: If they clicked a link, let the link handle itself.
+    if (e.target.closest('a')) return;
 
-  // 2. Immediate Block for specific interactive elements
-  if (isButton || isShare || isLike || isLink) return;
+    // B. THE BUTTON SHIELD: Same for buttons and icons
+    if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) {
+      return;
+    }
 
-  // 3. Increment click count BEFORE the Global check
-  clickCount++;
-  
-  if (clickCount === 1) {
-    clickTimer = setTimeout(() => {
-      // --- THE SELECTIVE GATEKEEPER ---
-      // Only open modal if: It's Private OR it's a Global Comment Icon click
-      const shouldOpenModal = !item.isFirebase || isCommentBtn;
+    // C. THE GLOBAL FILTER:
+    // If it's a Global post, ONLY the message icon (comment bubble) opens the modal.
+    const isCommentIcon = e.target.closest('.icon-tabler-message-circle-2');
+    if (item.isFirebase && !isCommentIcon) {
+      // However, we DON'T return here yet, because we still want double-tap to work!
+    }
 
-      if (shouldOpenModal) {
-        openModal(item);
-      }
-      
+    clickCount++;
+    if (clickCount === 1) {
+      clickTimer = setTimeout(() => {
+        // DECISION: Open modal if it's Local OR we clicked the Comment Icon
+        if (!item.isFirebase || isCommentIcon) {
+          openModal(item);
+        }
+        clickCount = 0;
+      }, 250);
+    } else if (clickCount === 2) {
+      clearTimeout(clickTimer);
       clickCount = 0;
-    }, 250); 
-  } else if (clickCount === 2) {
-    clearTimeout(clickTimer);
-    clickCount = 0;
-    
-    // Double-click (Heart) should work on Global posts too!
-    showHeartAnimation(el);
-    if (hasCommentsAccess) {
-      const likeButton = el.querySelector('.like-trigger');
-      if (likeButton) {
-        const heartIcon = likeButton.querySelector('svg');
-        const currentlyLiked = heartIcon && heartIcon.classList.contains('fill-red-500');
-        if (!currentlyLiked) {
-          setTimeout(() => { likeButton.click(); }, 50);
+      
+      // Instagram-style double-tap heart (Works for Global & Local)
+      showHeartAnimation(el);
+      if (hasCommentsAccess) {
+        const likeButton = el.querySelector('.like-trigger');
+        if (likeButton) {
+          const heartIcon = likeButton.querySelector('svg');
+          if (heartIcon && !heartIcon.classList.contains('fill-red-500')) {
+            setTimeout(() => likeButton.click(), 50);
+          }
         }
       }
     }
-  }
-};
+  };
 
   // 8. Share Button Handlers
   const platformBtns = el.querySelectorAll('.share-icon-btn');
