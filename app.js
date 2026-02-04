@@ -883,7 +883,7 @@ function createPostNode(item) {
         <span class="text-xs text-slate-500 font-medium">${time}</span>
       </div>
     </div>
-    <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] pointer-events-none ${fontClass}">${cleanText(item.content)}</p>
+    <p class="text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] pointer-events-none ${fontClass}">${renderSmartText(item.content)}</p>
     ${footerHtml}
   `;
 
@@ -1535,7 +1535,7 @@ function openModal(post) {
   const realFirestoreId = post.isFirebase ? post.id : post.firebaseId;
   activePostId = realFirestoreId; 
   
-  DOM.modalContent.textContent = post.content;
+  DOM.modalContent.innerHTML = renderSmartText(post.content);
   const fontClass = post.font || 'font-sans';
   DOM.modalContent.classList.remove('font-sans', 'font-serif', 'font-mono', 'font-hand');
   DOM.modalContent.classList.add(fontClass);
@@ -1606,7 +1606,7 @@ function openModal(post) {
 
         div.innerHTML = `
           <div class="bg-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-none max-w-[90%]">
-             <p class="text-[15px] text-gray-800 leading-snug break-words font-sans">${cleanText(c.text)}</p>
+             <p class="text-[15px] text-gray-800 leading-snug break-words font-sans">${renderSmartText(c.text)}</p>
           </div>
           <div class="flex items-center mt-1 ml-1">
             <span class="text-[10px] text-gray-400">${time}</span>
@@ -1954,6 +1954,43 @@ function updateMeter() {
 function cleanText(str) {
   if (!str) return "";
   return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function renderSmartText(rawText) {
+    if (!rawText) return "";
+    
+    // 1. Run your original sanitizer first
+    let safeText = cleanText(rawText);
+
+    // 2. Define the URL pattern
+    const urlPattern = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+
+    // 3. Transform the links
+    return safeText.replace(urlPattern, (url) => {
+        try {
+            let tempUrl = url.startsWith('http') ? url : `https://${url}`;
+            const urlObj = new URL(tempUrl);
+            
+            // "Instagram-style" display: host + first part of path
+            let displayLink = urlObj.hostname.replace('www.', '') + urlObj.pathname;
+            if (displayLink.endsWith('/')) displayLink = displayLink.slice(0, -1);
+            
+            // Keep the display text concise
+            if (displayLink.length > 28) {
+                displayLink = displayLink.substring(0, 25) + '...';
+            }
+
+            // Wrap in anchor tag
+            // Note: we use &quot; for safety inside the template string
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer" 
+                       onclick="event.stopPropagation()" 
+                       class="text-blue-500 hover:text-blue-700 font-bold underline decoration-2 underline-offset-2 transition-all">
+                       ${displayLink}
+                    </a>`;
+        } catch (e) {
+            return url; // If URL is too broken to parse, return the safe text version
+        }
+    });
 }
 
 function getRelativeTime(timestamp) {
