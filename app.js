@@ -1957,40 +1957,66 @@ function cleanText(str) {
 }
 
 function renderSmartText(rawText) {
-    if (!rawText) return "";
-    
-    // 1. Run your original sanitizer first
-    let safeText = cleanText(rawText);
-
-    // 2. Define the URL pattern
+    // 1. RegEx that captures URLs but tries to exclude trailing symbols
     const urlPattern = /(https?:\/\/[^\s]+|www\.[^\s]+)/g;
 
-    // 3. Transform the links
-    return safeText.replace(urlPattern, (url) => {
+    return rawText.replace(urlPattern, (url) => {
         try {
-            let tempUrl = url.startsWith('http') ? url : `https://${url}`;
+            // --- STEP A: CLEANING ---
+            // Remove trailing punctuation or "weird chars" that aren't valid at the end of a URL
+            let cleanUrl = url.replace(/[§$%&*~^@!#<>¶•°¬!,.;:]+$/, '');
+            
+            // --- STEP B: PARSING ---
+            let tempUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
             const urlObj = new URL(tempUrl);
             
-            // "Instagram-style" display: host + first part of path
-            let displayLink = urlObj.hostname.replace('www.', '') + urlObj.pathname;
-            if (displayLink.endsWith('/')) displayLink = displayLink.slice(0, -1);
+            // --- STEP C: DISPLAY LOGIC ---
+            // Extract the domain (google.com)
+            const domain = urlObj.hostname.replace('www.', '');
             
-            // Keep the display text concise
-            if (displayLink.length > 28) {
-                displayLink = displayLink.substring(0, 25) + '...';
+            // Extract the first part of the path (/gallery)
+            const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
+            const firstPath = pathParts.length > 0 ? `/${pathParts[0]}` : '';
+            
+            let displayLink = domain + firstPath;
+
+            // Cap the length for the UI
+            if (displayLink.length > 30) {
+                displayLink = displayLink.substring(0, 27) + '...';
             }
 
-            // Wrap in anchor tag
-            // Note: we use &quot; for safety inside the template string
-            return `<a href="${url}" target="_blank" rel="noopener noreferrer" 
-                       onclick="event.stopPropagation()" 
-                       class="text-blue-500 hover:text-blue-700 font-bold underline decoration-2 underline-offset-2 transition-all">
-                       ${displayLink}
-                    </a>`;
+            // --- STEP D: THE HTML RENDER ---
+            // 'word-break: break-all' is the secret sauce for "ghosting"
+            // Inside renderSmartText...
+return `<a href="javascript:void(0)" 
+           onclick="openExitModal('${cleanUrl}')" 
+           class="text-blue-500 hover:text-blue-400 underline decoration-1 underline-offset-4"
+           style="word-break: break-all; display: inline-block;">${displayLink}</a>`;
+                       
         } catch (e) {
-            return url; // If URL is too broken to parse, return the safe text version
+            // If it's a total mess, return the original text so we don't lose data
+            return url;
         }
     });
+}
+
+let pendingUrl = "";
+
+function openExitModal(url) {
+    pendingUrl = url;
+    document.getElementById('target-url-display').textContent = url;
+    document.getElementById('confirm-exit-btn').href = url;
+    document.getElementById('link-exit-modal').style.display = 'flex';
+}
+
+function closeExitModal() {
+    document.getElementById('link-exit-modal').style.display = 'none';
+}
+
+// Close modal if user clicks the dark background
+window.onclick = function(event) {
+    const modal = document.getElementById('link-exit-modal');
+    if (event.target == modal) closeExitModal();
 }
 
 function getRelativeTime(timestamp) {
