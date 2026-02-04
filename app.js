@@ -810,7 +810,7 @@ function createPostNode(item) {
   el.setAttribute('data-id', item.id);
   const cursorClass = item.isFirebase ? "" : "cursor-pointer";
   const borderClass = item.isFirebase ? "border-slate-100" : "border-slate-50";
-  el.className = `feed-item bg-white px-5 py-8 border-b border-slate-100 relative transition-colors hover:bg-slate-50/50 ${cursorClass}`;
+  el.className = `feed-item bg-white px-5 py-6 border-b ${borderClass} relative transition-colors hover:bg-slate-50/50 ${cursorClass}`;
   // 2. Logic: Time, Fonts, and Tags
   const time = getRelativeTime(item.createdAt);
   const fontClass = item.font || 'font-sans'; 
