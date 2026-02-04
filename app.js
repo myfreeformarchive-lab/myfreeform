@@ -870,8 +870,11 @@ function createPostNode(item) {
 
   const footerHtml = `<div class="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
 
-  // 5. Inject HTML
+  // 5. Inject HTML (WITH ANIMATION CONTAINER ADDED)
   el.innerHTML = `
+    <!-- Animation container for heart effect -->
+    <div class="animation-container absolute inset-0 flex items-center justify-center pointer-events-none z-30"></div>
+    
     <div class="flex justify-between items-start mb-2">
       <div class="flex items-center gap-2">
         <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
@@ -896,20 +899,44 @@ function createPostNode(item) {
     el.appendChild(delBtn);
   }
 
-  // 7. Click Handler for Modal
-  el.onclick = (e) => {
-  // ⚡ NEW: Don't open modal if share menu is currently open
-  if (activeShareMenuId) {
-    return;
-  }
-
-  // Original checks
-  if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) {
-    return;
-  }
+  // 7. DOUBLE-CLICK AND SINGLE-CLICK HANDLERS
+  let clickTimer = null;
+  let clickCount = 0;
   
-  openModal(item);
-};
+  el.onclick = (e) => {
+    // Don't open modal if share menu is currently open
+    if (activeShareMenuId) {
+      return;
+    }
+
+    // Original checks
+    if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) {
+      return;
+    }
+    
+    clickCount++;
+    
+    if (clickCount === 1) {
+      // Single click - wait to see if it's actually a double-click
+      clickTimer = setTimeout(() => {
+        // It was just a single click, open the modal
+        openModal(item);
+        clickCount = 0;
+      }, 250); // 250ms delay to detect double-click
+    } else if (clickCount === 2) {
+      // Double click detected!
+      clearTimeout(clickTimer);
+      clickCount = 0;
+      
+      // Trigger heart animation
+      showHeartAnimation(el);
+      
+      // Also trigger the like if it has access and isn't already liked
+      if (hasCommentsAccess && !isLiked) {
+        toggleLike(e, realId);
+      }
+    }
+  };
 
   // 8. Share Button Handlers
   const platformBtns = el.querySelectorAll('.share-icon-btn');
