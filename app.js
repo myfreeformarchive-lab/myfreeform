@@ -810,7 +810,7 @@ function createPostNode(item) {
   el.setAttribute('data-id', item.id);
   const cursorClass = item.isFirebase ? "" : "cursor-pointer";
   const borderClass = item.isFirebase ? "border-slate-100" : "border-slate-50";
-  el.className = `feed-item bg-white px-5 py-6 border-b ${borderClass} relative transition-colors hover:bg-slate-50/50 ${cursorClass}`;
+  el.className = `feed-item bg-white px-6 py-10 border-b ${borderClass} relative transition-colors hover:bg-slate-50/50 ${cursorClass}`;
   // 2. Logic: Time, Fonts, and Tags
   const time = getRelativeTime(item.createdAt);
   const fontClass = item.font || 'font-sans'; 
@@ -876,25 +876,24 @@ function createPostNode(item) {
     </div>
   `;
 
-  const footerHtml = `<div class="mt-6 pt-4 pb-2 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
+  const footerHtml = `<div class="mt-8 pt-5 border-t border-slate-50 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
 
   // 5. Inject HTML with animation container
   el.innerHTML = `
-  <div class="animation-container absolute inset-0 flex items-center justify-center pointer-events-none z-30"></div>
-  
-  <div class="flex justify-between items-start pt-2 mb-4">
-    <div class="flex items-center gap-2">
-      <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
-        ${item.isFirebase ? 'Global' : 'Local'}
-      </span>
-      <span class="text-xs text-slate-400 font-medium">${time}</span>
-    </div>
+<div class="animation-container absolute inset-0 flex items-center justify-center pointer-events-none z-30"></div>
+ 
+<div class="flex justify-between items-start mb-6"> <div class="flex items-center gap-2">
+    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
+      ${item.isFirebase ? 'Global' : 'Local'}
+    </span>
+    <span class="text-xs text-slate-400 font-medium">${time}</span>
   </div>
+</div>
 
-    <p class="post-body text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] relative z-10 ${fontClass}">${renderSmartText(item.content)}</p>
+<p class="post-body text-slate-800 whitespace-pre-wrap leading-relaxed text-[16px] relative z-10 ${fontClass}">${renderSmartText(item.content)}</p>
 
-    ${footerHtml}
-  `;
+${footerHtml}
+`;
 
   // 6. Delete Button (Manual Node Creation)
   if (!item.isFirebase || isMyGlobalPost) {
