@@ -1956,50 +1956,65 @@ function cleanText(str) {
   return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
+
 function renderSmartText(rawText) {
-    if (!rawText) return "";
-    
-    // Improved pattern: finds domains but is careful not to swallow brackets at the end
-    const urlPattern = /((?:https?:\/\/|www\.|[a-z0-9.-]+\.[a-z]{2,})[^\s()<>\[\]{}]*)/ig;
+  if (!rawText) return "";
 
-    return rawText.replace(urlPattern, (url) => {
-        try {
-            // 1. IMPROVED CAPTURE: Using [0] on the match result to get the WHOLE string of brackets
-            const leadingMatch = url.match(/^[([<{]+/);
-            const leadingPunct = leadingMatch ? leadingMatch[0] : '';
+  const urlPattern = /((?:https?:\/\/|www\.|[a-z0-9.-]+\.[a-z]{2,})[^\s()<>\[\]{}]*)/ig;
 
-            const trailingMatch = url.match(/[\])>}§$%&*~^@!#<>¶•°¬!,.;:]+$/);
-            const trailingPunct = trailingMatch ? trailingMatch[0] : '';
-            
-            // 2. Create the "Meat" using the lengths of what we found
-            let cleanUrl = url.substring(leadingPunct.length, url.length - trailingPunct.length);
-            
-            if (!cleanUrl) return url; // Safety check
+  return rawText.replace(urlPattern, (url) => {
+    try {
+      const leadingMatch = url.match(/^[([<{]+/);
+      const trailingMatch = url.match(/[\])>}§$%&*~^@!#<>¶•°¬!,.;:]+$/);
 
-            // 3. PARSING
-            let tempUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
-            const urlObj = new URL(tempUrl);
-            
-            // 4. DISPLAY LOGIC
-            const domain = urlObj.hostname.replace('www.', '');
-            const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
-            const firstPath = pathParts.length > 0 ? `/${pathParts[0]}` : '';
-            
-            let displayLink = domain + firstPath;
-            if (displayLink.length > 30) {
-    displayLink = displayLink.slice(0, 18) + '...' + displayLink.slice(-10);
-}
+      const leadingPunct = leadingMatch ? leadingMatch[0] : "";
+      const trailingPunct = trailingMatch ? trailingMatch[0] : "";
 
-            // 5. THE HTML RENDER
-            return `${leadingPunct}<a href="javascript:void(0)" 
-                onclick="event.stopPropagation(); openExitModal('${cleanUrl}')" 
-                class="text-blue-500 hover:text-blue-400 underline decoration-1 underline-offset-4"
-                style="word-break: break-all;">${displayLink}</a>${trailingPunct}`;
-                       
-        } catch (e) {
-            return url;
+      let cleanUrl = url.substring(
+        leadingPunct.length,
+        url.length - trailingPunct.length
+      );
+
+      if (!cleanUrl) return url;
+
+      const withScheme =
+        cleanUrl.startsWith("http://") || cleanUrl.startsWith("https://")
+          ? cleanUrl
+          : `https://${cleanUrl}`;
+
+      const parsed = new URL(withScheme);
+      if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) return url;
+
+      // Display: keep domain, truncate only the path tail if long
+      const domain = parsed.hostname.replace(/^www\./i, "");
+      const path = parsed.pathname === "/" ? "" : parsed.pathname;
+      const maxDisplay = 32;
+      const maxPathTail = 20;
+
+      let display = domain;
+      if (path) {
+        if (domain.length + path.length <= maxDisplay) {
+          display = `${domain}${path}`;
+        } else {
+          const tail = path.length > maxPathTail ? path.slice(-maxPathTail) : path;
+          display = `${domain}/…${tail}`;
         }
-    });
+      }
+
+      const safeHref = parsed.toString();
+
+      return (
+        `${leadingPunct}<a href="${safeHref}"` +
+        ` target="_blank" rel="noopener noreferrer"` +
+        ` class="text-blue-500 hover:text-blue-400 underline decoration-1 underline-offset-4"` +
+        ` style="word-break: break-all;" data-exit-link="true"` +
+        ` title="${safeHref}">${display}</a>${trailingPunct}`
+      );
+    } catch {
+      return url;
+    }
+  });
 }
 
 let pendingUrl = "";
