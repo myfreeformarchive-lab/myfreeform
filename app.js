@@ -2009,15 +2009,27 @@ function openExitModal(url) {
     document.getElementById('link-exit-modal').style.display = 'flex';
 }
 
-function closeExitModal() {
-    document.getElementById('link-exit-modal').style.display = 'none';
-}
-
 // Close modal if user clicks the dark background
 window.onclick = function(event) {
     const modal = document.getElementById('link-exit-modal');
     if (event.target == modal) closeExitModal();
 }
+
+// Add these to the window object so the HTML onclick can see them
+window.openExitModal = function(url) {
+    // We don't need 'pendingUrl = url' anymore because we set the href directly
+    document.getElementById('target-url-display').textContent = url;
+    document.getElementById('confirm-exit-btn').href = url;
+    document.getElementById('link-exit-modal').style.display = 'flex';
+}
+
+window.closeExitModal = function() {
+    document.getElementById('link-exit-modal').style.display = 'none';
+}
+
+// Also make sure renderSmartText is available if needed, 
+// though it's usually called inside your script logic
+window.renderSmartText = renderSmartText;
 
 function getRelativeTime(timestamp) {
   if (!timestamp) return "Just now";
