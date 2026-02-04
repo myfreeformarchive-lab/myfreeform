@@ -1959,23 +1959,28 @@ function cleanText(str) {
 function renderSmartText(rawText) {
     if (!rawText) return "";
     
-    // Updated RegEx: Now finds domains like 'archive.org' even without http/www or trailing slashes
-    const urlPattern = /((?:https?:\/\/|www\.|[a-z0-9.-]+\.[a-z]{2,})[^\s]*)/ig;
+    // Improved pattern: finds domains but is careful not to swallow brackets at the end
+    const urlPattern = /((?:https?:\/\/|www\.|[a-z0-9.-]+\.[a-z]{2,})[^\s()<>\[\]{}]*)/ig;
 
     return rawText.replace(urlPattern, (url) => {
         try {
-            // 1. CAPTURE symbols at the start and end so we can put them back as plain text
-            const leadingPunct = url.match(/^[([<{]+/)?.[0] || '';
-            const trailingPunct = url.match(/[\])>}§$%&*~^@!#<>¶•°¬!,.;:]+$/)?.[0] || '';
+            // 1. IMPROVED CAPTURE: Using [0] on the match result to get the WHOLE string of brackets
+            const leadingMatch = url.match(/^[([<{]+/);
+            const leadingPunct = leadingMatch ? leadingMatch[0] : '';
+
+            const trailingMatch = url.match(/[\])>}§$%&*~^@!#<>¶•°¬!,.;:]+$/);
+            const trailingPunct = trailingMatch ? trailingMatch[0] : '';
             
-            // 2. Create the "Meat" (The actual URL for the logic)
+            // 2. Create the "Meat" using the lengths of what we found
             let cleanUrl = url.substring(leadingPunct.length, url.length - trailingPunct.length);
             
+            if (!cleanUrl) return url; // Safety check
+
             // 3. PARSING
             let tempUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
             const urlObj = new URL(tempUrl);
             
-            // 4. DISPLAY LOGIC (Instagram Style)
+            // 4. DISPLAY LOGIC
             const domain = urlObj.hostname.replace('www.', '');
             const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);
             const firstPath = pathParts.length > 0 ? `/${pathParts[0]}` : '';
@@ -1986,14 +1991,12 @@ function renderSmartText(rawText) {
             }
 
             // 5. THE HTML RENDER
-            // We put leadingPunct and trailingPunct OUTSIDE the <a> tag
             return `${leadingPunct}<a href="javascript:void(0)" 
                 onclick="event.stopPropagation(); openExitModal('${cleanUrl}')" 
                 class="text-blue-500 hover:text-blue-400 underline decoration-1 underline-offset-4"
                 style="word-break: break-all;">${displayLink}</a>${trailingPunct}`;
                        
         } catch (e) {
-            // If it fails to parse, return the original matched string as is
             return url;
         }
     });
