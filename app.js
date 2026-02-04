@@ -809,7 +809,8 @@ function createPostNode(item) {
   const el = document.createElement('div');
   el.setAttribute('data-id', item.id);
   const cursorClass = item.isFirebase ? "" : "cursor-pointer";
-  el.className = `feed-item bg-white p-5 rounded-xl shadow-sm border border-slate-100 mb-4 hover:shadow-md transition-shadow relative ${cursorClass}`;
+  const borderClass = item.isFirebase ? "border-slate-100" : "border-slate-50";
+  el.className = `feed-item bg-white px-5 py-6 border-b ${borderClass} relative transition-colors hover:bg-slate-50/50 ${cursorClass}`;
   // 2. Logic: Time, Fonts, and Tags
   const time = getRelativeTime(item.createdAt);
   const fontClass = item.font || 'font-sans'; 
@@ -879,16 +880,16 @@ function createPostNode(item) {
 
   // 5. Inject HTML with animation container
   el.innerHTML = `
-    <div class="animation-container absolute inset-0 flex items-center justify-center pointer-events-none z-30"></div>
-    
-    <div class="flex justify-between items-start mb-2">
-      <div class="flex items-center gap-2">
-        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
-          ${item.isFirebase ? 'Global' : 'Local'}
-        </span>
-        <span class="text-xs text-slate-500 font-medium">${time}</span>
-      </div>
+  <div class="animation-container absolute inset-0 flex items-center justify-center pointer-events-none z-30"></div>
+  
+  <div class="flex justify-between items-start mb-3">
+    <div class="flex items-center gap-2">
+      <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
+        ${item.isFirebase ? 'Global' : 'Local'}
+      </span>
+      <span class="text-xs text-slate-400 font-medium">${time}</span>
     </div>
+  </div>
 
     <p class="post-body text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] relative z-10 ${fontClass}">${renderSmartText(item.content)}</p>
 
