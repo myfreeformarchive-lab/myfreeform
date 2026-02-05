@@ -200,7 +200,7 @@ document.addEventListener('touchend', e => {
 function handleSwipeGesture() {
     const swipeDistanceX = touchEndX - touchStartX;
 	const swipeDistanceY = touchEndY - touchStartY;
-    const threshold = 65; // Min distance in pixels to trigger a switch
+    const threshold = 60; // Min distance in pixels to trigger a switch
 
     // Check if we are inside a scrollable area (like a modal or comment input)
     // We don't want to switch tabs if the user is just scrolling through comments
@@ -211,14 +211,14 @@ function handleSwipeGesture() {
     }
 
     // SWIPE RIGHT (Finger moves Left -> Right) => Go to Private
-    if (swipeDistanceX > threshold && currentTab === 'public') {
-        switchTab('private');
+    if (swipeDistanceX > threshold && currentTab === 'private') {
+        switchTab('public');
         triggerHapticFeedback();
     } 
     
     // SWIPE LEFT (Finger moves Right -> Left) => Go to Public
-    else if (swipeDistanceX < -threshold && currentTab === 'private') {
-        switchTab('public');
+    else if (swipeDistanceX < -threshold && currentTab === 'public') {
+        switchTab('private');
         triggerHapticFeedback();
     }
 }
