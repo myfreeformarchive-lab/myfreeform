@@ -2002,7 +2002,7 @@ function renderSmartText(rawText) {
 
                 class="text-blue-500 hover:text-blue-400 underline decoration-1 underline-offset-4"
 
-                style="word-break: break-all;">${displayLink}</a>${trailingPunct}`;
+                >${displayLink}</a>${trailingPunct}`;
 				
         } catch (e) {
             return url;
