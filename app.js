@@ -1017,7 +1017,7 @@ function renderListItems(items) {
   DOM.list.innerHTML = ''; 
   
   if (items.length === 0) {
-    DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl"><p class="text-slate-500">No thoughts here yet.</p></div>`;
+    DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 lg:border-slate-300 lg:border-[1.2px] rounded-xl"><p class="text-slate-500">No thoughts here yet.</p></div>`;
     return;
   }
 
