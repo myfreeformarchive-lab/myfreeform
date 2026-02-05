@@ -1,3 +1,20 @@
+// Add this temporarily at the very top of app.js
+const originalEval = window.eval;
+window.eval = function() {
+  console.error('EVAL CALLED:', arguments);
+  console.trace(); // This will show you WHERE it's being called from
+  return originalEval.apply(this, arguments);
+};
+
+const OriginalFunction = window.Function;
+window.Function = function() {
+  console.error('new Function() CALLED:', arguments);
+  console.trace();
+  return OriginalFunction.apply(this, arguments);
+};
+
+
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
 import { 
   getFirestore, collection, addDoc, deleteDoc, doc, updateDoc,
@@ -78,22 +95,6 @@ function getThoughtBubbleSVG(className = "w-20 h-20") {
 }
 
 window.getThoughtBubbleSVG = getThoughtBubbleSVG;
-
-
-// Add this temporarily at the very top of app.js
-const originalEval = window.eval;
-window.eval = function() {
-  console.error('EVAL CALLED:', arguments);
-  console.trace(); // This will show you WHERE it's being called from
-  return originalEval.apply(this, arguments);
-};
-
-const OriginalFunction = window.Function;
-window.Function = function() {
-  console.error('new Function() CALLED:', arguments);
-  console.trace();
-  return OriginalFunction.apply(this, arguments);
-};
 
 // ==========================================
 // 2. INITIALIZATION
