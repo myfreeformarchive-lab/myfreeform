@@ -753,14 +753,30 @@ function getSmartShareButtons(text) {
 }
 
 async function sharePost(text, platform) {
+  // Strip HTML tags and decode HTML entities
+  const cleanText = text
+    .replace(/<[^>]*>/g, '') // Remove all HTML tags
+    .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
+    .replace(/&amp;/g, '&')  // Replace &amp; with &
+    .replace(/&lt;/g, '<')   // Replace &lt; with <
+    .replace(/&gt;/g, '>')   // Replace &gt; with >
+    .replace(/&quot;/g, '"') // Replace &quot; with "
+    .replace(/&#39;/g, "'")  // Replace &#39; with '
+    .replace(/&apos;/g, "'") // Replace &apos; with '
+    .replace(/&mdash;/g, '—') // Em dash
+    .replace(/&ndash;/g, '–') // En dash
+    .replace(/&hellip;/g, '...') // Ellipsis
+    .replace(/\s+/g, ' ')    // Collapse multiple spaces
+    .trim();                 // Remove leading/trailing spaces
+  
   const currentUrl = window.location.href;
-  const urlText = encodeURIComponent(text);
+  const urlText = encodeURIComponent(cleanText);
   const urlLink = encodeURIComponent(currentUrl);
 
   // === 📋 COPY TO CLIPBOARD LOGIC ===
   if (platform === 'copy') {
     try {
-      await navigator.clipboard.writeText(`${text}\n\n${currentUrl}`);
+      await navigator.clipboard.writeText(`${cleanText}\n\n${currentUrl}`);
       
       // ✅ SUCCESS: Sleek Toast instead of Alert
       showToast("Copied to clipboard");
