@@ -890,7 +890,7 @@ function createPostNode(item) {
   </div>
 </div>
 
-<p class="post-body text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] relative z-10 ${fontClass} break-keep">${renderSmartText(item.content)}</p>
+<p class="post-body text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] relative z-10 ${fontClass} break-keep break-words">${renderSmartText(item.content)}</p>
 
 ${footerHtml}
 `;
