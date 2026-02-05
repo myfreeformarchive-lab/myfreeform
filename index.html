@@ -87,30 +87,44 @@
     </div>
   </header>
 
-<main class="max-w-xl mx-auto pt-20">
+<main class="max-w-xl mx-auto">
+<div class="h-14"></div>
     
   <!-- 1. INPUT AREA -->
   <section class="group bg-white p-4 border-slate-100 lg:border-slate-300 transition-all duration-300 cursor-text w-full"
     onclick="document.getElementById('postInput').focus()">
     
-    <div class="flex flex-col gap-2">
-      <textarea id="postInput" rows="3" 
+    <div class="flex flex-col gap-2 mt-2">
+      <textarea id="postInput" rows="2" 
         class="w-full bg-transparent border-none focus:ring-0 outline-none text-[15px] md:text-[16px] placeholder-slate-400 text-slate-700 resize-none p-0 leading-relaxed font-sans transition-all duration-200" 
         placeholder="What's on your mind?"></textarea>
       
-      <div class="flex items-center gap-2 p-2 overflow-x-auto no-scrollbar" id="fontToolbar">
+       <div class="flex items-center gap-4 p-2 overflow-x-auto no-scrollbar" id="fontToolbar">
+
         <button class="font-btn w-8 h-8 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-all ring-2 ring-brand-500 ring-offset-1 shrink-0" data-font="font-sans">
+
           <span class="font-sans text-xs font-bold">Aa</span>
+
         </button>
+
         <button class="font-btn w-8 h-8 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-all shrink-0" data-font="font-serif">
+
           <span class="font-serif text-xs font-bold">Aa</span>
+
         </button>
+
         <button class="font-btn w-8 h-8 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-all shrink-0" data-font="font-mono">
-          <span class="font-mono text-[10px] font-bold">Aa</span>
+
+          <span class="font-mono text-xs font-bold">Aa</span>
+
         </button>
+
         <button class="font-btn w-8 h-8 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-all shrink-0" data-font="font-hand">
-          <span class="font-hand text-sm font-bold">Aa</span>
+
+          <span class="font-hand text-xs font-bold">Aa</span>
+
         </button>
+
       </div>
 
       <div class="flex items-center justify-between mt-1 pt-3 border-t border-slate-50 group-focus-within:border-slate-100 transition-colors">
