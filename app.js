@@ -197,29 +197,51 @@ document.addEventListener('touchend', e => {
     handleSwipeGesture();
 }, { passive: true });
 
+// 1. Change to false to allow us to "lock" the screen during a swipe
+document.addEventListener('touchmove', e => {
+    let currentX = e.changedTouches[0].screenX;
+    let currentY = e.changedTouches[0].screenY;
+    
+    let diffX = currentX - touchStartX;
+    let diffY = currentY - touchStartY;
+
+    // If moving horizontally more than vertically, lock the screen
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+        if (e.cancelable) e.preventDefault(); 
+    }
+}, { passive: false });
+
+// 2. Update your handleSwipeGesture to include the UI sync
 function handleSwipeGesture() {
     const swipeDistanceX = touchEndX - touchStartX;
-	const swipeDistanceY = touchEndY - touchStartY;
-    const threshold = 60; // Min distance in pixels to trigger a switch
+    const swipeDistanceY = touchEndY - touchStartY;
+    const threshold = 60;
 
-    // Check if we are inside a scrollable area (like a modal or comment input)
-    // We don't want to switch tabs if the user is just scrolling through comments
     if (!DOM.modal.classList.contains('hidden')) return;
-	
-	if (Math.abs(swipeDistanceY) > Math.abs(swipeDistanceX)) {
-        return; 
-    }
+    if (Math.abs(swipeDistanceY) > Math.abs(swipeDistanceX)) return;
 
-    // SWIPE RIGHT (Finger moves Left -> Right) => Go to Private
+    // FINGER MOVES RIGHT -> GO PUBLIC (Left Tab)
     if (swipeDistanceX > threshold && currentTab === 'private') {
+        updatePrivateToggle(false); // Sync the toggle switch
         switchTab('public');
         triggerHapticFeedback();
     } 
-    
-    // SWIPE LEFT (Finger moves Right -> Left) => Go to Public
+    // FINGER MOVES LEFT -> GO PRIVATE (Right Tab)
     else if (swipeDistanceX < -threshold && currentTab === 'public') {
+        updatePrivateToggle(true); // Sync the toggle switch
         switchTab('private');
         triggerHapticFeedback();
+    }
+}
+
+// Helper to keep your toggle switch in sync with the swipe
+function updatePrivateToggle(isPrivate) {
+    const toggle = document.getElementById('publicToggle');
+    const label = document.getElementById('publicLabel');
+    if (toggle) {
+        toggle.checked = isPrivate;
+        label.textContent = isPrivate ? "Private" : "Public";
+        // Ensure your CSS classes for the brand colors also update here
     }
 }
 
