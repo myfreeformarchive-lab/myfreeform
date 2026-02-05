@@ -222,13 +222,11 @@ function handleSwipeGesture() {
 
     // FINGER MOVES RIGHT -> GO PUBLIC (Left Tab)
     if (swipeDistanceX > threshold && currentTab === 'private') {
-        updatePrivateToggle(false); // Sync the toggle switch
         switchTab('public');
         triggerHapticFeedback();
     } 
     // FINGER MOVES LEFT -> GO PRIVATE (Right Tab)
     else if (swipeDistanceX < -threshold && currentTab === 'public') {
-        updatePrivateToggle(true); // Sync the toggle switch
         switchTab('private');
         triggerHapticFeedback();
     }
