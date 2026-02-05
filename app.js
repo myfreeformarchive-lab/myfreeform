@@ -2109,23 +2109,3 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js')
     .then(() => console.log("Service Worker Registered"));
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if styles already exist to avoid duplicates
-    if (!document.getElementById('message-animations')) {
-        const animationStyles = document.createElement('style');
-        animationStyles.id = 'message-animations';
-        animationStyles.innerHTML = `
-            @keyframes pulse {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.5; }
-            }
-            @keyframes shake {
-                0%, 100% { transform: translateX(0); }
-                25% { transform: translateX(-5px); }
-                75% { transform: translateX(5px); }
-            }
-        `;
-        document.head.appendChild(animationStyles);
-    }
-});
