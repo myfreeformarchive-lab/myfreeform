@@ -187,45 +187,49 @@ let touchEndY = 0;
 // 1. Capture where the finger starts
 document.addEventListener('touchstart', e => {
     touchStartX = e.changedTouches[0].screenX;
-	touchStartY = e.changedTouches[0].screenY;
+    touchStartY = e.changedTouches[0].screenY;
 }, { passive: true });
 
-// 2. Capture where the finger ends and calculate the distance
-document.addEventListener('touchend', e => {
-    touchEndX = e.changedTouches[0].screenX;
-	touchEndY = e.changedTouches[0].screenY;
-    handleSwipeGesture();
-}, { passive: true });
-
-// 1. Change to false to allow us to "lock" the screen during a swipe
+// 2. NEW: This stops the "shaking" while the finger is moving
 document.addEventListener('touchmove', e => {
     let currentX = e.changedTouches[0].screenX;
     let currentY = e.changedTouches[0].screenY;
     
-    let diffX = currentX - touchStartX;
-    let diffY = currentY - touchStartY;
+    let diffX = Math.abs(currentX - touchStartX);
+    let diffY = Math.abs(currentY - touchStartY);
 
-    // If moving horizontally more than vertically, lock the screen
-    if (Math.abs(diffX) > Math.abs(diffY)) {
-        if (e.cancelable) e.preventDefault(); 
+    // If swiping horizontally more than vertically, stop the browser wobble
+    if (diffX > diffY && diffX > 10) {
+        if (e.cancelable) e.preventDefault();
     }
-}, { passive: false });
+}, { passive: false }); // Needs to be false to allow preventDefault
 
-// 2. Update your handleSwipeGesture to include the UI sync
+// 3. Capture where the finger ends and calculate the distance
+document.addEventListener('touchend', e => {
+    touchEndX = e.changedTouches[0].screenX;
+    touchEndY = e.changedTouches[0].screenY;
+    handleSwipeGesture();
+}, { passive: true });
+
 function handleSwipeGesture() {
     const swipeDistanceX = touchEndX - touchStartX;
     const swipeDistanceY = touchEndY - touchStartY;
-    const threshold = 60;
+    const threshold = 60; // Min distance in pixels to trigger a switch
 
+    // Check if we are inside a scrollable area (like a modal or comment input)
     if (!DOM.modal.classList.contains('hidden')) return;
-    if (Math.abs(swipeDistanceY) > Math.abs(swipeDistanceX)) return;
 
-    // FINGER MOVES RIGHT -> GO PUBLIC (Left Tab)
+    if (Math.abs(swipeDistanceY) > Math.abs(swipeDistanceX)) {
+        return; 
+    }
+
+    // SWIPE RIGHT (Finger moves Left -> Right) => Go to Public
     if (swipeDistanceX > threshold && currentTab === 'private') {
         switchTab('public');
         triggerHapticFeedback();
     } 
-    // FINGER MOVES LEFT -> GO PRIVATE (Right Tab)
+    
+    // SWIPE LEFT (Finger moves Right -> Left) => Go to Private
     else if (swipeDistanceX < -threshold && currentTab === 'public') {
         switchTab('private');
         triggerHapticFeedback();
