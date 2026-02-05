@@ -20,6 +20,7 @@
 
 textarea, input {
   cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="black" d="M10 2h2v1h-3v10h3v1h-8v-1h3V3H4V2h6z"/></svg>') 8 8, text;
+  word-break: keep-all; 
 }
 
 #loadTrigger {
