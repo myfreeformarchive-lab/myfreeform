@@ -190,21 +190,7 @@ document.addEventListener('touchstart', e => {
     touchStartY = e.changedTouches[0].screenY;
 }, { passive: true });
 
-// 2. NEW: This stops the "shaking" while the finger is moving
-document.addEventListener('touchmove', e => {
-    let currentX = e.changedTouches[0].screenX;
-    let currentY = e.changedTouches[0].screenY;
-    
-    let diffX = Math.abs(currentX - touchStartX);
-    let diffY = Math.abs(currentY - touchStartY);
-
-    // If swiping horizontally more than vertically, stop the browser wobble
-    if (diffX > diffY && diffX > 10) {
-        if (e.cancelable) e.preventDefault();
-    }
-}, { passive: false }); // Needs to be false to allow preventDefault
-
-// 3. Capture where the finger ends and calculate the distance
+// 2. Capture where the finger ends and calculate the distance
 document.addEventListener('touchend', e => {
     touchEndX = e.changedTouches[0].screenX;
     touchEndY = e.changedTouches[0].screenY;
@@ -216,9 +202,8 @@ function handleSwipeGesture() {
     const swipeDistanceY = touchEndY - touchStartY;
     const threshold = 60; // Min distance in pixels to trigger a switch
 
-    // Check if we are inside a scrollable area (like a modal or comment input)
     if (!DOM.modal.classList.contains('hidden')) return;
-
+    
     if (Math.abs(swipeDistanceY) > Math.abs(swipeDistanceX)) {
         return; 
     }
@@ -236,10 +221,9 @@ function handleSwipeGesture() {
     }
 }
 
-// 🚀 BONUS: Vibration feedback for that "Premium" feel
 function triggerHapticFeedback() {
     if ('vibrate' in navigator) {
-        navigator.vibrate(10); // A tiny 10ms tap
+        navigator.vibrate(10);
     }
 }
 
