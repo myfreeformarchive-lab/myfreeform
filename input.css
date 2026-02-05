@@ -34,18 +34,6 @@ textarea, input {
   visibility: hidden; 
 }
 
-/* Prevent horizontal wobbling on the main container */
-main {
-    overflow-x: hidden;
-    touch-action: pan-y; /* Allows vertical scrolling but prevents browser-default horizontal gestures */
-}
-
-html, body {
-    max-width: 100%;
-    overflow-x: hidden;
-    position: relative;
-}
-
 /* Ensure the feed doesn't stretch past the screen */
 #feedList {
     width: 100%;
@@ -55,6 +43,15 @@ html, body {
 /* 1. Base Settings */
 body {
   -webkit-font-smoothing: antialiased;
+  
+  /* This stops the browser from shaking/bouncing horizontally */
+    overscroll-behavior-x: none; 
+    
+    /* This ensures nothing "pokes out" to the right */
+    overflow-x: hidden;
+    
+    /* This tells the browser: "I'll handle horizontal swipes, you handle vertical scrolls" */
+    touch-action: pan-y;
 }
 textarea::-webkit-scrollbar { display: none; }
 
