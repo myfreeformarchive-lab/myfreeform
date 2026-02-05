@@ -234,17 +234,6 @@ function handleSwipeGesture() {
     }
 }
 
-// Helper to keep your toggle switch in sync with the swipe
-function updatePrivateToggle(isPrivate) {
-    const toggle = document.getElementById('publicToggle');
-    const label = document.getElementById('publicLabel');
-    if (toggle) {
-        toggle.checked = isPrivate;
-        label.textContent = isPrivate ? "Private" : "Public";
-        // Ensure your CSS classes for the brand colors also update here
-    }
-}
-
 // 🚀 BONUS: Vibration feedback for that "Premium" feel
 function triggerHapticFeedback() {
     if ('vibrate' in navigator) {
