@@ -769,7 +769,13 @@ async function sharePost(text, platform) {
     .replace(/\s+/g, ' ')    // Collapse multiple spaces
     .trim();                 // Remove leading/trailing spaces
   
-  const currentUrl = window.location.href;
+  let currentUrl = window.location.href;
+  if (currentUrl.endsWith('/index.html')) {
+    currentUrl = currentUrl.replace('/index.html', '/');
+  } else if (currentUrl.endsWith('index.html')) {
+    currentUrl = currentUrl.replace('index.html', '');
+  }
+  
   const urlText = encodeURIComponent(cleanText);
   const urlLink = encodeURIComponent(currentUrl);
 
