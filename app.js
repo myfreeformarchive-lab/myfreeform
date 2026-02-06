@@ -444,13 +444,15 @@ function injectSinglePost(item, position = 'top') {
   const postNode = createPostNode(item); 
   postNode.classList.add('animate-in', 'fade-in', 'slide-in-from-top-4', 'duration-500');
 
-  if (position === 'top') {
-    DOM.list.prepend(postNode);
+    if (position === 'top') {
+    setTimeout(() => {
+      DOM.list.prepend(postNode);
+      watchPostCounts(item.id);
+    }, 1500); // 1.5 seconds delay
   } else {
     DOM.list.appendChild(postNode);
+    watchPostCounts(item.id);
   }
-
-  watchPostCounts(item.id);
 }
 
 // ==========================================
