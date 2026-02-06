@@ -41,14 +41,10 @@ textarea, input {
 /* Ensure the feed doesn't stretch past the screen */
 #feedList {
     width: 100%;
-    /* REMOVE the fixed height and overflow-y */
-    /* This allows the Window to handle the scrolling again */
     display: block;
-    box-sizing: border-box; 
-    
-    /* Keep these to hide the bar on the main page */
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    /* Ensure no height or overflow rules are here anymore */
+    height: auto; 
+    overflow: visible;
 }
 
 .feed-item {
@@ -77,24 +73,26 @@ header {
 }
 
 html {
+    /* REMOVE height: 100% - This is what locked the scroll */
     overflow-x: hidden;
     width: 100%;
-    margin: 0;
-    padding: 0;
-    /* This makes the whole page snap, not just a box */
-    scroll-snap-type: y mandatory; 
+    scroll-snap-type: y proximity; 
     scroll-behavior: smooth;
 }
 
 /* 1. Base Settings */
 body {
     -webkit-font-smoothing: antialiased;
-    overscroll-behavior-x: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    /* Remove height: 100% */
+    /* Use min-height: 100vh just to ensure the page fills the screen */
+    min-height: 100vh; 
+    
     overflow-x: hidden;
     overscroll-behavior-y: contain; 
     touch-action: manipulation;
-    /* Remove height: 100% to let it grow with your content */
-    min-height: 100.1vh; 
 }
 
 * {
