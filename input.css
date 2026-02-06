@@ -41,15 +41,12 @@ textarea, input {
 /* Ensure the feed doesn't stretch past the screen */
 #feedList {
     width: 100%;
-    /* Keep the height so the snap 'box' is defined */
-    height: calc(100vh - 112px); 
-    overflow-y: auto;
-    scroll-snap-type: y mandatory;
-    overscroll-behavior-y: contain;
-    /* This ensures the padding doesn't mess with the snap calc */
+    /* REMOVE the fixed height and overflow-y */
+    /* This allows the Window to handle the scrolling again */
+    display: block;
     box-sizing: border-box; 
     
-    /* Hide scrollbars */
+    /* Keep these to hide the bar on the main page */
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -58,9 +55,10 @@ textarea, input {
     scroll-snap-align: start;
     scroll-snap-stop: always;
     
-    /* REDUCE THIS: Since #feedList already starts below the header, 
-       set this to 0 or a very small number (like 8px for a little breathing room) */
-    scroll-margin-top: 0px; 
+    /* IMPORTANT: Since we are scrolling the whole page now, 
+       we need to stop the snap 112px down so it doesn't hide 
+       under your Header (56px) + Tabs (56px). */
+    scroll-margin-top: 112px; 
 }
 
 header {
@@ -83,25 +81,20 @@ html {
     width: 100%;
     margin: 0;
     padding: 0;
-	height: 100%;
+    /* This makes the whole page snap, not just a box */
+    scroll-snap-type: y mandatory; 
+    scroll-behavior: smooth;
 }
 
 /* 1. Base Settings */
 body {
-  -webkit-font-smoothing: antialiased;
-  
-  /* Keeps the "bounce" away */
-  overscroll-behavior-x: none; 
-  
-  /* Stops elements from poking out */
-  overflow-x: hidden;
-  overscroll-behavior-y: contain;
-  
-  /* FIX: Allows panning and pinching (zoom), but still prevents double-tap-to-zoom jitter */
-  touch-action: manipulation; 
-  
-  height: 100%;
-  min-height: 100.1vh;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-x: none;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain; 
+    touch-action: manipulation;
+    /* Remove height: 100% to let it grow with your content */
+    min-height: 100.1vh; 
 }
 
 * {
