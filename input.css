@@ -83,7 +83,7 @@ html {
     scroll-behavior: smooth;
     /* 'manipulation' prevents accidental double-tap zooms but allows smooth scrolling */
     touch-action: manipulation; 
-	height: auto;
+	height: 100%;
 }
 
 /* 3. Body: The Scroll Surface */
@@ -97,7 +97,7 @@ body {
     overflow-x: hidden;
     /* 'auto' allows the native Android overscroll glow (premium feel) */
     /*overscroll-behavior-y: auto;*/ 
-	height: 100%;
+	height: auto;
 	overscroll-behavior-y: contain;
 	overscroll-behavior-x: none;
 	touch-action: manipulation;
