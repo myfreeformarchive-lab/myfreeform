@@ -419,6 +419,9 @@
 </div>
 
   <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+  
+  <script> // CSP violation logger — install before any other scripts document.addEventListener('securitypolicyviolation', function(e) { try { console.error('CSP VIOLATION:', { 'violatedDirective': e.violatedDirective, 'effectiveDirective': e.effectiveDirective, 'blockedURI': e.blockedURI, 'originalPolicy': e.originalPolicy, 'disposition': e.disposition, 'documentURI': e.documentURI, 'referrer': e.referrer, 'statusCode': e.statusCode, 'lineNumber': e.lineNumber, 'columnNumber': e.columnNumber, 'sourceFile': e.sourceFile || '(n/a)' }); // print a trace to help identify in which callstack it happened console.trace('CSP violation trace'); } catch (err) { console.error('Failed to log CSP event', err); } }); console.info('CSP violation listener installed'); </script>
+  
   <script type="module" src="app.js"></script>
 
 <div id="toast-container" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] flex flex-col-reverse gap-2 pointer-events-none w-full max-w-sm items-center">
