@@ -41,58 +41,61 @@ textarea, input {
 /* Ensure the feed doesn't stretch past the screen */
 #feedList {
     width: 100%;
-    display: block;
-    /* Ensure no height or overflow rules are here anymore */
-    height: auto; 
-    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    gap: 16px; /* Space between your post cards */
+    padding-bottom: 50px; /* Buffer so the last post can snap correctly */
 }
 
 .feed-item {
+    width: 100%;
+    /* The Magnet: Ensures each post 'clicks' into place */
     scroll-snap-align: start;
     scroll-snap-stop: always;
     
-    /* IMPORTANT: Since we are scrolling the whole page now, 
-       we need to stop the snap 112px down so it doesn't hide 
-       under your Header (56px) + Tabs (56px). */
+    /* Offset: Header(56px) + Tabs(56px) = 112px */
     scroll-margin-top: 112px; 
+    
+    /* Critical for Android: Ensures the card doesn't block the scroll */
+    touch-action: auto; 
 }
 
+/* 1. Header: The Hardware-Accelerated Anchor */
 header {
-    /* 1. Force Hardware Acceleration (The "Glue") */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
     backface-visibility: hidden;
     perspective: 1000;
-
-    /* 2. Re-enable touch but prevent "pull-to-bounce" triggers */
-    touch-action: pan-y pinch-zoom;
-    
-    /* 3. Ensure it stays at the top without shifting */
-    left: 0;
-    right: 0;
+    /* Allows scrolling to start even if your finger hits the header */
+    touch-action: pan-y pinch-zoom; 
 }
 
+/* 2. HTML: The Snap Engine */
 html {
-    /* REMOVE height: 100% - This is what locked the scroll */
     overflow-x: hidden;
     width: 100%;
     scroll-snap-type: y proximity; 
     scroll-behavior: smooth;
+    /* 'manipulation' prevents accidental double-tap zooms but allows smooth scrolling */
+    touch-action: manipulation; 
 }
 
-/* 1. Base Settings */
+/* 3. Body: The Scroll Surface */
 body {
     -webkit-font-smoothing: antialiased;
     margin: 0;
     padding: 0;
     width: 100%;
-    /* Remove height: 100% */
-    /* Use min-height: 100vh just to ensure the page fills the screen */
-    min-height: 100vh; 
-    
+    /* 101vh ensures the Android browser always sees a reason to scroll */
+    min-height: 101vh; 
     overflow-x: hidden;
-    overscroll-behavior-y: contain; 
-    touch-action: manipulation;
+    /* 'auto' allows the native Android overscroll glow (premium feel) */
+    overscroll-behavior-y: auto; 
 }
 
 * {
