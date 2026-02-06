@@ -97,7 +97,7 @@ body {
     overflow-x: hidden;
     /* 'auto' allows the native Android overscroll glow (premium feel) */
     /*overscroll-behavior-y: auto;*/ 
-	height: auto;
+	height: 100%;
 	overscroll-behavior-y: contain;
 	overscroll-behavior-x: none;
 	touch-action: manipulation;
