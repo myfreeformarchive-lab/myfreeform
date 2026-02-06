@@ -58,6 +58,15 @@ body {
   touch-action: manipulation; 
 }
 
+* {
+  box-sizing: border-box;
+}
+
+img, video, canvas {
+  max-width: 100%;
+  height: auto;
+}
+
 textarea::-webkit-scrollbar { display: none; }
 
 /* Hide scrollbar for Chrome/Safari/Opera */
