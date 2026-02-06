@@ -44,6 +44,21 @@ textarea, input {
     overflow-x: hidden;
 }
 
+header { /* Or whatever your header class/ID is */
+    position: fixed; /* or sticky */
+    top: 0;
+    left: 0;
+    width: 100%;
+    
+    /* This is the magic line: it tells the browser to use the GPU 
+       to 'lock' the element in place, preventing that jittery bounce */
+    will-change: transform;
+    transform: translateZ(0);
+    
+    /* Prevents touch events on the header from triggering the body scroll bounce */
+    touch-action: none; 
+}
+
 html {
     overflow-x: hidden;
     width: 100%;
