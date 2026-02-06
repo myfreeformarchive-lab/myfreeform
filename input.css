@@ -50,17 +50,23 @@ div, section, header, footer, main, aside {
 }
 
 /* 1. Base Settings */
+html {
+    /* This is the safest place to stop the side-to-side shake */
+    overflow-x: hidden;
+    width: 100%;
+}
+
 body {
-  -webkit-font-smoothing: antialiased;
-  
-  /* Keeps the "bounce" away */
-  overscroll-behavior-x: none; 
-  
-  /* Stops elements from poking out */
-  overflow-x: hidden;
-  
-  /* FIX: Allows panning and pinching (zoom), but still prevents double-tap-to-zoom jitter */
-  touch-action: manipulation; 
+    -webkit-font-smoothing: antialiased;
+    width: 100%;
+    margin: 0;
+    /* We removed 'touch-action' and 'overscroll' from here to fix the white screen */
+}
+
+img, svg, canvas, video {
+    max-width: 100%;
+	height: auto;
+    display: block;
 }
 
 textarea::-webkit-scrollbar { display: none; }
