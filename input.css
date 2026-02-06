@@ -45,7 +45,7 @@ textarea, input {
 }
 
 header { /* Or whatever your header class/ID is */
-    position: fixed; /* or sticky */
+    position: sticky; /* or fixed */
     top: 0;
     left: 0;
     width: 100%;
