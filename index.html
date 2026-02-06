@@ -62,18 +62,9 @@
 <script src="https://cdn.jsdelivr.net/npm/punycode@1.4.1/punycode.js"></script>
 
 <script>
-  // TEMP – put this before <script type="module" src="app.js"></script>
-  // It logs any use of eval/new Function, string-based setTimeout/setInterval,
-  // and common DOM script-injection paths (innerHTML, insertAdjacentHTML, appendChild of <script>).
   (function() {
-    const wrap = (name, original, reporter) => {
-      window[name] = function(...args) {
-        try { reporter(args); } catch (e) { /* ignore */ }
-        return original.apply(this, args);
-      };
-    };
-
-    // eval and Function
+    // Lightweight runtime detector for eval / Function / string timeouts
+    // and suspicious script-injection via innerHTML / insertAdjacentHTML / appendChild.
     try {
       const realEval = window.eval;
       window.eval = function() {
@@ -81,7 +72,7 @@
         console.trace();
         return realEval.apply(this, arguments);
       };
-    } catch (e) {}
+    } catch (e) { /* ignore */ }
 
     try {
       const RealFunction = Function;
@@ -90,7 +81,7 @@
         console.trace();
         return RealFunction.apply(this, args);
       };
-    } catch (e) {}
+    } catch (e) { /* ignore */ }
 
     // setTimeout / setInterval with string argument
     (function() {
@@ -102,6 +93,7 @@
         }
         return origSetTimeout.call(this, handler, ...rest);
       };
+
       const origSetInterval = window.setInterval;
       window.setInterval = function(handler, ...rest) {
         if (typeof handler === 'string') {
@@ -131,40 +123,46 @@
       }
 
       const origInsertAdjacentHTML = Element.prototype.insertAdjacentHTML;
-      Element.prototype.insertAdjacentHTML = function(position, text) {
-        if (typeof text === 'string' && /<script[\s>]/i.test(text)) {
-          console.error('insertAdjacentHTML includes <script> tag:', text);
-          console.trace();
-        }
-        return origInsertAdjacentHTML.call(this, position, text);
-      };
+      if (origInsertAdjacentHTML) {
+        Element.prototype.insertAdjacentHTML = function(position, text) {
+          if (typeof text === 'string' && /<script[\s>]/i.test(text)) {
+            console.error('insertAdjacentHTML includes <script> tag:', text);
+            console.trace();
+          }
+          return origInsertAdjacentHTML.call(this, position, text);
+        };
+      }
     })();
 
     // appendChild / insertBefore script element detector
     (function() {
       const origAppend = Node.prototype.appendChild;
       Node.prototype.appendChild = function(node) {
-        if (node && node.tagName === 'SCRIPT' && (node.type === '' || node.type === 'text/javascript')) {
-          if (node.src) {
-            console.warn('appendChild adding <script src>:', node.src);
-          } else if (node.textContent && node.textContent.trim()) {
-            console.error('appendChild adding inline <script>:', node.textContent.slice(0,200));
-            console.trace();
+        try {
+          if (node && node.tagName === 'SCRIPT' && (node.type === '' || node.type === 'text/javascript')) {
+            if (node.src) {
+              console.warn('appendChild adding <script src>:', node.src);
+            } else if (node.textContent && node.textContent.trim()) {
+              console.error('appendChild adding inline <script>:', node.textContent.slice(0,200));
+              console.trace();
+            }
           }
-        }
+        } catch (e) { /* ignore */ }
         return origAppend.call(this, node);
       };
 
       const origInsertBefore = Node.prototype.insertBefore;
       Node.prototype.insertBefore = function(node, ref) {
-        if (node && node.tagName === 'SCRIPT' && (node.type === '' || node.type === 'text/javascript')) {
-          if (node.src) {
-            console.warn('insertBefore adding <script src>:', node.src);
-          } else if (node.textContent && node.textContent.trim()) {
-            console.error('insertBefore adding inline <script>:', node.textContent.slice(0,200));
-            console.trace();
+        try {
+          if (node && node.tagName === 'SCRIPT' && (node.type === '' || node.type === 'text/javascript')) {
+            if (node.src) {
+              console.warn('insertBefore adding <script src>:', node.src);
+            } else if (node.textContent && node.textContent.trim()) {
+              console.error('insertBefore adding inline <script>:', node.textContent.slice(0,200));
+              console.trace();
+            }
           }
-        }
+        } catch (e) { /* ignore */ }
         return origInsertBefore.call(this, node, ref);
       };
     })();
