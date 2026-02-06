@@ -44,20 +44,18 @@ textarea, input {
     overflow-x: hidden;
 }
 
-html {
-    /* Safe boundary - No fancy positioning */
-    overflow-x: hidden;
-}
-
+/* 1. Base Settings */
 body {
-    -webkit-font-smoothing: antialiased;
-    margin: 0;
-    padding: 0;
-    min-height: 100vh; /* Forces the body to actually take up space */
-    width: 100%;
-    /* Re-enable all default browser touch/zoom behaviors */
-    touch-action: auto; 
-    overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  
+  /* Keeps the "bounce" away */
+  overscroll-behavior-x: none; 
+  
+  /* Stops elements from poking out */
+  overflow-x: hidden;
+  
+  /* FIX: Allows panning and pinching (zoom), but still prevents double-tap-to-zoom jitter */
+  touch-action: manipulation; 
 }
 
 textarea::-webkit-scrollbar { display: none; }
