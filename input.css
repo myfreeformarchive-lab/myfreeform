@@ -44,11 +44,6 @@ textarea, input {
     overflow-x: hidden;
 }
 
-div, section, header, footer, main, aside {
-  outline: 2px solid red !important;
-  outline-offset: -2px; /* This keeps the line INSIDE the box so it doesn't add width */
-}
-
 /* 1. Base Settings */
 html {
     /* This is the safest place to stop the side-to-side shake */
