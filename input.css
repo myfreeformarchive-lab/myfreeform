@@ -96,9 +96,12 @@ body {
     min-height: 101vh; 
     overflow-x: hidden;
     /* 'auto' allows the native Android overscroll glow (premium feel) */
-    overscroll-behavior-y: auto; 
+    /*overscroll-behavior-y: auto;*/ 
 	height: 100%;
 	min-height: 100.1vh;
+	overscroll-behavior-y: contain;
+	overscroll-behavior-x: none;
+	touch-action: manipulation;
 }
 
 * {
