@@ -44,19 +44,22 @@ textarea, input {
     overflow-x: hidden;
 }
 
-/* 1. Base Settings */
-body {
-  -webkit-font-smoothing: antialiased;
-  
-  /* This stops the browser from shaking/bouncing horizontally */
-    overscroll-behavior-x: none; 
-    
-    /* This ensures nothing "pokes out" to the right */
+html {
+    /* Safe boundary - No fancy positioning */
     overflow-x: hidden;
-    
-    /* This tells the browser: "I'll handle horizontal swipes, you handle vertical scrolls" */
-    touch-action: pan-y;
 }
+
+body {
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh; /* Forces the body to actually take up space */
+    width: 100%;
+    /* Re-enable all default browser touch/zoom behaviors */
+    touch-action: auto; 
+    overflow-x: hidden;
+}
+
 textarea::-webkit-scrollbar { display: none; }
 
 /* Hide scrollbar for Chrome/Safari/Opera */
