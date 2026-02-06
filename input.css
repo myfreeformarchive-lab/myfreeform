@@ -43,10 +43,14 @@ textarea, input {
     width: 100%;
     overflow-x: hidden;
 	min-height: 100vh;
+	height: calc(100vh - 112px);
 	-ms-overflow-style: none;
     scrollbar-width: none;
 	scroll-snap-type: y mandatory;
     overflow-y: scroll;
+	scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+	overscroll-behavior-y: contain;
 }
 #feedList::-webkit-scrollbar {
     display: none;
