@@ -75,7 +75,7 @@ body {
   
   /* Stops elements from poking out */
   overflow-x: hidden;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: contain;
   
   /* FIX: Allows panning and pinching (zoom), but still prevents double-tap-to-zoom jitter */
   touch-action: manipulation; 
