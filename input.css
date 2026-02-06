@@ -43,6 +43,22 @@ textarea, input {
     width: 100%;
     overflow-x: hidden;
 	min-height: 100vh;
+	-ms-overflow-style: none;
+    scrollbar-width: none;
+	scroll-snap-type: y mandatory;
+    overflow-y: scroll;
+}
+#feedList::-webkit-scrollbar {
+    display: none;
+}
+
+.feed-item {
+    /* This tells the element to align its top edge with the top of the screen */
+    scroll-snap-align: start;
+    
+    /* Adds a little 'buffer' so the post doesn't tuck under your sticky header */
+    scroll-snap-stop: always;
+    scroll-margin-top: 120px; /* Adjust this to match your header + tabs height */
 }
 
 header {
