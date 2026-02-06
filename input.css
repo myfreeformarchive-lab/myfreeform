@@ -44,19 +44,19 @@ textarea, input {
     overflow-x: hidden;
 }
 
-header { /* Or whatever your header class/ID is */
-    position: sticky; /* or fixed */
-    top: 0;
-    left: 0;
-    width: 100%;
-    
-    /* This is the magic line: it tells the browser to use the GPU 
-       to 'lock' the element in place, preventing that jittery bounce */
-    will-change: transform;
+header {
+    /* 1. Force Hardware Acceleration (The "Glue") */
+    -webkit-transform: translateZ(0);
     transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000;
+
+    /* 2. Re-enable touch but prevent "pull-to-bounce" triggers */
+    touch-action: pan-y pinch-zoom;
     
-    /* Prevents touch events on the header from triggering the body scroll bounce */
-    touch-action: none; 
+    /* 3. Ensure it stays at the top without shifting */
+    left: 0;
+    right: 0;
 }
 
 html {
