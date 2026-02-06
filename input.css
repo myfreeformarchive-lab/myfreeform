@@ -41,28 +41,26 @@ textarea, input {
 /* Ensure the feed doesn't stretch past the screen */
 #feedList {
     width: 100%;
-    overflow-x: hidden;
-	min-height: 100vh;
-	height: calc(100vh - 112px);
-	-ms-overflow-style: none;
+    /* Keep the height so the snap 'box' is defined */
+    height: calc(100vh - 112px); 
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    overscroll-behavior-y: contain;
+    /* This ensures the padding doesn't mess with the snap calc */
+    box-sizing: border-box; 
+    
+    /* Hide scrollbars */
     scrollbar-width: none;
-	scroll-snap-type: y mandatory;
-    overflow-y: scroll;
-	scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-	overscroll-behavior-y: contain;
-}
-#feedList::-webkit-scrollbar {
-    display: none;
+    -ms-overflow-style: none;
 }
 
 .feed-item {
-    /* This tells the element to align its top edge with the top of the screen */
     scroll-snap-align: start;
-    
-    /* Adds a little 'buffer' so the post doesn't tuck under your sticky header */
     scroll-snap-stop: always;
-    scroll-margin-top: 120px; /* Adjust this to match your header + tabs height */
+    
+    /* REDUCE THIS: Since #feedList already starts below the header, 
+       set this to 0 or a very small number (like 8px for a little breathing room) */
+    scroll-margin-top: 0px; 
 }
 
 header {
