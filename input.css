@@ -45,25 +45,18 @@ textarea, input {
 }
 
 /* 1. Base Settings */
-html {
-    /* This is the safest place to stop the side-to-side shake */
-    overflow-x: hidden;
-    width: 100%;
-}
-
 body {
-    -webkit-font-smoothing: antialiased;
-    width: 100%;
-    margin: 0;
-    /* We removed 'touch-action' and 'overscroll' from here to fix the white screen */
+  -webkit-font-smoothing: antialiased;
+  
+  /* This stops the browser from shaking/bouncing horizontally */
+    overscroll-behavior-x: none; 
+    
+    /* This ensures nothing "pokes out" to the right */
+    overflow-x: hidden;
+    
+    /* This tells the browser: "I'll handle horizontal swipes, you handle vertical scrolls" */
+    touch-action: pan-y;
 }
-
-img, svg, canvas, video {
-    max-width: 100%;
-	height: auto;
-    display: block;
-}
-
 textarea::-webkit-scrollbar { display: none; }
 
 /* Hide scrollbar for Chrome/Safari/Opera */
