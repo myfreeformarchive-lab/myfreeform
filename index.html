@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="A minimalist digital archive for your thoughts. Write freely, keep notes private on your device, or share them to the global discovery feed." />
 
- <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.gstatic.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://*.googleapis.com https://*.firebaseio.com https://apis.google.com; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; connect-src 'self' https://www.gstatic.com https://*.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com;">
+ <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://*.googleapis.com https://*.firebaseio.com https://apis.google.com; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; connect-src 'self' https://www.gstatic.com https://*.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com;">
 
   <meta property="og:title" content="My Freeform" />
   <meta property="og:description" content="A minimalist digital archive for your thoughts. Keep notes private or share them globally." />
@@ -60,116 +60,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/punycode@1.4.1/punycode.js"></script>
-
-<script>
-  (function() {
-    // Lightweight runtime detector for eval / Function / string timeouts
-    // and suspicious script-injection via innerHTML / insertAdjacentHTML / appendChild.
-    try {
-      const realEval = window.eval;
-      window.eval = function() {
-        console.error('EVAL CALLED', arguments);
-        console.trace();
-        return realEval.apply(this, arguments);
-      };
-    } catch (e) { /* ignore */ }
-
-    try {
-      const RealFunction = Function;
-      window.Function = function(...args) {
-        console.error('NEW Function() CALLED', args);
-        console.trace();
-        return RealFunction.apply(this, args);
-      };
-    } catch (e) { /* ignore */ }
-
-    // setTimeout / setInterval with string argument
-    (function() {
-      const origSetTimeout = window.setTimeout;
-      window.setTimeout = function(handler, ...rest) {
-        if (typeof handler === 'string') {
-          console.error('setTimeout called with STRING:', handler);
-          console.trace();
-        }
-        return origSetTimeout.call(this, handler, ...rest);
-      };
-
-      const origSetInterval = window.setInterval;
-      window.setInterval = function(handler, ...rest) {
-        if (typeof handler === 'string') {
-          console.error('setInterval called with STRING:', handler);
-          console.trace();
-        }
-        return origSetInterval.call(this, handler, ...rest);
-      };
-    })();
-
-    // innerHTML / insertAdjacentHTML script injection detector
-    (function() {
-      const desc = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
-      if (desc && desc.set) {
-        Object.defineProperty(Element.prototype, 'innerHTML', {
-          set(html) {
-            if (typeof html === 'string' && /<script[\s>]/i.test(html)) {
-              console.error('innerHTML setting includes <script> tag:', html);
-              console.trace();
-            }
-            return desc.set.call(this, html);
-          },
-          get() { return desc.get.call(this); },
-          configurable: true,
-          enumerable: desc.enumerable
-        });
-      }
-
-      const origInsertAdjacentHTML = Element.prototype.insertAdjacentHTML;
-      if (origInsertAdjacentHTML) {
-        Element.prototype.insertAdjacentHTML = function(position, text) {
-          if (typeof text === 'string' && /<script[\s>]/i.test(text)) {
-            console.error('insertAdjacentHTML includes <script> tag:', text);
-            console.trace();
-          }
-          return origInsertAdjacentHTML.call(this, position, text);
-        };
-      }
-    })();
-
-    // appendChild / insertBefore script element detector
-    (function() {
-      const origAppend = Node.prototype.appendChild;
-      Node.prototype.appendChild = function(node) {
-        try {
-          if (node && node.tagName === 'SCRIPT' && (node.type === '' || node.type === 'text/javascript')) {
-            if (node.src) {
-              console.warn('appendChild adding <script src>:', node.src);
-            } else if (node.textContent && node.textContent.trim()) {
-              console.error('appendChild adding inline <script>:', node.textContent.slice(0,200));
-              console.trace();
-            }
-          }
-        } catch (e) { /* ignore */ }
-        return origAppend.call(this, node);
-      };
-
-      const origInsertBefore = Node.prototype.insertBefore;
-      Node.prototype.insertBefore = function(node, ref) {
-        try {
-          if (node && node.tagName === 'SCRIPT' && (node.type === '' || node.type === 'text/javascript')) {
-            if (node.src) {
-              console.warn('insertBefore adding <script src>:', node.src);
-            } else if (node.textContent && node.textContent.trim()) {
-              console.error('insertBefore adding inline <script>:', node.textContent.slice(0,200));
-              console.trace();
-            }
-          }
-        } catch (e) { /* ignore */ }
-        return origInsertBefore.call(this, node, ref);
-      };
-    })();
-
-    console.info('Runtime CSP-eval detector installed');
-  })();
-</script>
 
 <script>
   (function() {
