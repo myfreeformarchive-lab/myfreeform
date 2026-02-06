@@ -64,6 +64,7 @@ html {
     width: 100%;
     margin: 0;
     padding: 0;
+	height: 100%;
 }
 
 /* 1. Base Settings */
@@ -79,6 +80,9 @@ body {
   
   /* FIX: Allows panning and pinching (zoom), but still prevents double-tap-to-zoom jitter */
   touch-action: manipulation; 
+  
+  height: 100%;
+  min-height: 100.1vh;
 }
 
 * {
