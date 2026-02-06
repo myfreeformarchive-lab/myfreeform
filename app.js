@@ -473,11 +473,15 @@ function applyFontPreference(font) {
 function switchTab(tab) {
   if (currentTab === tab) return;
   
-  // Add a quick fade-out to the list for a smoother transition
+  // 1. Start the fade/slide out
   DOM.list.style.opacity = '0';
   DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
   
   setTimeout(() => {
+      // 2. SNAP to top while the list is invisible
+      // This prevents the "landing at the bottom" glitch
+      window.scrollTo({ top: 0, behavior: 'instant' });
+
       currentTab = tab;
       localStorage.setItem('freeform_tab_pref', tab);
       currentLimit = BATCH_SIZE;
@@ -487,9 +491,13 @@ function switchTab(tab) {
       
       if (tab === 'public') setupInfiniteScroll();
 
-      // Fade it back in
-      DOM.list.style.opacity = '1';
-      DOM.list.style.transform = 'translateX(0)';
+      // 3. Fade it back in
+      // Adding a tiny micro-delay (requestAnimationFrame) ensures the scroll 
+      // is finished before the eye sees the new content
+      requestAnimationFrame(() => {
+          DOM.list.style.opacity = '1';
+          DOM.list.style.transform = 'translateX(0)';
+      });
   }, 100);
 }
 
@@ -1036,9 +1044,16 @@ function renderListItems(items) {
   DOM.list.innerHTML = ''; 
   
   if (items.length === 0) {
-    DOM.list.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-100 lg:border-slate-300 lg:border-[1.2px] rounded-xl"><p class="text-slate-500">No thoughts here yet.</p></div>`;
-    return;
-  }
+  DOM.list.innerHTML = `
+    <div class="flex flex-col items-center justify-center min-h-[70vh] w-full text-center py-12 border-2 border-dashed border-slate-100 rounded-xl">
+      <div class="mb-4 text-slate-300">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+      </div>
+      <p class="text-slate-500 font-medium">No thoughts here yet.</p>
+      <p class="text-slate-400 text-xs mt-2">Swipe back to Discover</p>
+    </div>`;
+  return;
+}
 
   items.forEach(item => {
     const postNode = createPostNode(item);
