@@ -83,7 +83,7 @@ html {
     scroll-behavior: smooth;
     /* 'manipulation' prevents accidental double-tap zooms but allows smooth scrolling */
     touch-action: manipulation; 
-	height: auto;
+	height: 100%;
 	min-height: 100%;
 }
 
