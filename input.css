@@ -62,10 +62,7 @@ body {
   /* FIX: Allows panning and pinching (zoom), but still prevents double-tap-to-zoom jitter */
   touch-action: manipulation; 
 }
-img, video, canvas {
-  max-width: 100%;
-  height: auto;
-}
+
 textarea::-webkit-scrollbar { display: none; }
 
 /* Hide scrollbar for Chrome/Safari/Opera */
