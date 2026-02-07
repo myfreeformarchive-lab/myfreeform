@@ -101,12 +101,19 @@ section.group {
   scroll-snap-align: start;
   scroll-snap-stop: always;
   
-  /* Use padding instead of margin to prevent "White Gaps" on Desktop */
-  padding-top: 15px; 
-  margin-top: 56px; /* Offset for Header only */
-  scroll-margin-top: 56px;
+  /* 1. The Visual Offset */
+  /* We use padding instead of margin-top to keep the "touch area" active */
+  padding-top: 70px; /* 56px (Header) + 14px (Breathing room) */
+  margin-top: -56px; /* The "Magic": This pulls the element UP under the header */
   
-  min-height: auto; /* Let it be as tall as it needs to be */
+  /* 2. The Snap Anchor */
+  /* This ensures that when it snaps, it stops exactly at the header line */
+  scroll-margin-top: 0px; 
+  
+  position: relative;
+  z-index: 10;
+  min-height: auto;
+  background: white;
 }
 
 .sticky {
