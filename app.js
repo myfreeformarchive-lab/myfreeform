@@ -492,47 +492,45 @@ function applyFontPreference(font) {
 }
 
 function switchTab(tab) {
+  // Exit early if switching to the same tab
   if (currentTab === tab) return;
 
-  // 1. Immediate Visual Feedback
+  // 1. Start fade/slide out animations
   DOM.list.style.opacity = '0';
+  DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
 
-  // 2. The Logic Switch
-  currentTab = tab;
-  localStorage.setItem('freeform_tab_pref', tab);
-  currentLimit = BATCH_SIZE;
-  updateTabClasses();
-  loadFeed();
+  setTimeout(() => {
+    // 2. Find the `mb-6` buffer margin and include it in the scroll logic
+    const tabsElement = document.querySelector('.sticky');
 
-  // 3. THE FORCE SCROLL (The Fix)
-  const tabsElement = document.querySelector('.sticky');
-  const headerHeight = 56; // Your fixed header height
-
-  if (tabsElement) {
-    // Get the absolute position of the tabs relative to the page
-    const tabsRect = tabsElement.getBoundingClientRect();
-    const absoluteTabsTop = tabsRect.top + window.pageYOffset;
-    
-    // Target position: Tabs top should align with Header bottom
-    const targetY = absoluteTabsTop - headerHeight;
-
-    // We use 'instant' first to break any snap-locks, then 'smooth' if you prefer
-    // But 'auto' (instant) is the only one that works 100% of the time on mobile
-    window.scrollTo({
-      top: targetY,
-      behavior: 'auto' 
+    // Scroll the feed area to include the buffer
+    const snapPosition = tabsElement.offsetTop;
+    tabsElement.scrollIntoView({
+      behavior: 'smooth', // Snap smoothly to the sticky tabs
+      block: 'start',
     });
-  }
 
-  // 4. Clean up and Show
-  requestAnimationFrame(() => {
-    DOM.list.style.opacity = '1';
-    DOM.list.style.transform = 'translateX(0)';
-    
-    // Refresh the "magnets" so the browser knows the new content is there
-    setTimeout(refreshSnap, 50);
-  });
+    // Save the current tab state locally
+    currentTab = tab;
+    localStorage.setItem('freeform_tab_pref', tab);
+
+    // Reset feed content for the new tab
+    currentLimit = BATCH_SIZE;
+    updateTabClasses();
+    loadFeed();
+
+    // Enable infinite scroll for public feed
+    if (tab === 'public') setupInfiniteScroll();
+
+    // 3. Fade the content back in after snapping
+    requestAnimationFrame(() => {
+      DOM.list.style.opacity = '1';
+      DOM.list.style.transform = 'translateX(0)';
+	  setTimeout(refreshSnap, 100);
+    });
+  }, 200); // Slight delay to allow animation to complete
 }
+
 
 function updateTabClasses() {
   const activeClass = "flex-1 pb-3 text-sm font-bold text-brand-600 border-b-2 border-brand-500 transition-all";
