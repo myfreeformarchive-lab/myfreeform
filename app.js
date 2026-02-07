@@ -19,34 +19,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-
-// 1. Create the Sanitizer Function
-function sanitizeContent(text) {
-  return DOMPurify.sanitize(text, {
-    ALLOWED_TAGS: [], // Nuclear option: No tags allowed
-    ALLOWED_ATTR: []
-  });
-}
-
-// 2. The Post Event
-DOM.btn.addEventListener('click', async () => {
-  const rawText = DOM.input.value; // What the user typed
-  
-  // THE STEP THAT BLOCKS LANGUAGES:
-  const safeText = sanitizeContent(rawText); 
-
-  if (!safeText.trim()) return;
-
-  // Now, when you send to Firebase, you send the SAFE version
-  await addDoc(collection(db, "posts"), {
-    content: safeText, // Cleaned of all syntax
-    userId: MY_USER_ID,
-    timestamp: serverTimestamp()
-  });
-
-  DOM.input.value = ''; // Clear the box
-});
-
 // ==========================================
 // 1. STATE & DOM
 // ==========================================
@@ -1259,11 +1231,22 @@ function loadMoreData() {
   }
 }
 
+function getSafeText(input) {
+  return DOMPurify.sanitize(input, {
+    ALLOWED_TAGS: ['#text'], // No HTML allowed (Nuclear Option)
+    ALLOWED_ATTR: [], // No attributes (onclick, etc) allowed
+    KEEP_CONTENT: true // Keeps the text inside the tags, just removes the tags themselves
+  });
+}
+
 async function handlePost() {
-  const text = DOM.input.value.trim();
+  // Sanitize input text
+  const rawText = DOM.input.value.trim();
+  const text = getSafeText(rawText);
   if (!text) return;
+
   const isPublic = DOM.toggle.checked;
-  
+
   // --- 🚦 SPAM GUARD START ---
   if (isPublic) {
     if (!checkSpamGuard(text)) {
@@ -1271,36 +1254,35 @@ async function handlePost() {
     }
   }
   // --- 🚦 SPAM GUARD END ---
-  
+
   DOM.btn.textContent = "...";
   DOM.btn.disabled = true;
 
   try {
     let firebaseId = null;
-	let uniqueTag = null;
+    let uniqueTag = null;
 
     if (isPublic) {
-		
-		uniqueTag = await getNextUniqueTag();
-		
+      uniqueTag = await getNextUniqueTag();
+
       const docRef = await addDoc(collection(db, "globalPosts"), { 
         content: text, 
         font: selectedFont, 
         authorId: MY_USER_ID,
-		uniqueTag: uniqueTag,
+        uniqueTag: uniqueTag,
         createdAt: serverTimestamp(),
         commentCount: 0,
-		likeCount: 0
+        likeCount: 0
       });
-      firebaseId = docRef.id; 
+      firebaseId = docRef.id;
     }
 
     const newPost = { 
       id: Date.now().toString(), 
       content: text, 
-      font: selectedFont, 
-	  uniqueTag: uniqueTag,
-      createdAt: new Date().toISOString(), 
+      font: selectedFont,
+      uniqueTag: uniqueTag,
+      createdAt: new Date().toISOString(),
       isFirebase: false,
       firebaseId: firebaseId,
       commentCount: 0
@@ -1318,7 +1300,7 @@ async function handlePost() {
       else { allPrivatePosts = posts.reverse(); renderPrivateBatch(); }
     }
     DOM.input.value = "";
-    setRandomPlaceholder(); 
+    setRandomPlaceholder();
 
   } catch (error) { 
     showToast("Error posting", "error");
