@@ -125,9 +125,7 @@ section.group {
   width: 100%;
   display: flex;
   flex-direction: column;
-  scroll-margin-top: 112px;
   padding-bottom: 20vh;
-  padding-top: 24px;
 }
 
 /* The Magnet for actual posts */
@@ -136,7 +134,7 @@ section.group {
   scroll-snap-align: start;
   scroll-snap-stop: always;
   /* 112px (Header+Tabs) + 24px (mb-6) = 136px */
-  scroll-margin-top: 112px; 
+  scroll-margin-top: calc(112px + 24px); 
 }
 
 /* 2. Feed Item Animation */
