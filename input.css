@@ -432,15 +432,3 @@ section.group {
     will-change: auto;
   }
 }
-
-/* Style your custom class */
-.jump-to-input {
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  transition: color 0.2s ease;
-}
-
-.jump-to-input:hover {
-  color: #475569; /* slate-600 */
-}
