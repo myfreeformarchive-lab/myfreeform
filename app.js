@@ -432,11 +432,10 @@ async function refillBufferRandomly(count = 1, silent = false) {
 }
 
 function injectSinglePost(item, position = 'top') {
-  // Debug: Log every injection attempt
   console.log(`injectSinglePost called: tab=${currentTab}, isFirebase=${item.isFirebase}, content=${item.content}`);
 
-  // 🚀 THE FIX: If we are in Private mode, DO NOT inject global posts into the list
-  if (currentTab === 'private' && item.isFirebase) {
+  // Only block immediately for non-delayed injection
+  if (position !== 'top' && currentTab === 'private' && item.isFirebase) {
     console.warn(`injectSinglePost: Blocking global post in private tab: ${item.content}`);
     return; 
   }
@@ -444,8 +443,13 @@ function injectSinglePost(item, position = 'top') {
   const postNode = createPostNode(item); 
   postNode.classList.add('animate-in', 'fade-in', 'slide-in-from-top-4', 'duration-500');
 
-    if (position === 'top') {
+  if (position === 'top') {
     setTimeout(() => {
+      // Re-check currentTab here, since it might have changed!
+      if (currentTab === 'private' && item.isFirebase) {
+        console.warn(`injectSinglePost: Blocking global post in private tab after delay: ${item.content}`);
+        return; 
+      }
       DOM.list.prepend(postNode);
       watchPostCounts(item.id);
     }, 1500); // 1.5 seconds delay
