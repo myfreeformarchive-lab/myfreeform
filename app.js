@@ -2211,3 +2211,38 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js')
     .then(() => console.log("Service Worker Registered"));
 }
+
+(function() {
+    const tracker = document.createElement('div');
+    tracker.style = "position:fixed;top:0;right:0;z-index:100000;background:rgba(0,0,0,0.9);color:#0f0;font-family:monospace;padding:10px;font-size:11px;pointer-events:none;border-left:2px solid #333;border-bottom:2px solid #333;min-width:180px;line-height:1.5";
+    document.body.appendChild(tracker);
+
+    const update = () => {
+        const input = document.getElementById('postInputSection') || document.querySelector('section.group');
+        const tabs = document.querySelector('.sticky');
+        const header = document.querySelector('header');
+        
+        const hHeight = header ? header.offsetHeight : 0;
+        const iRect = input ? input.getBoundingClientRect() : { top: 0, height: 0 };
+        const tRect = tabs ? tabs.getBoundingClientRect() : { top: 0 };
+
+        // Logic Check: Is the Input "Locked" to the Header?
+        const isStuck = Math.abs(iRect.top - hHeight) < 2;
+
+        tracker.innerHTML = `
+            <div style="color:#fff;border-bottom:1px solid #444;margin-bottom:5px;padding-bottom:2px">DEBUG: ${window.innerWidth < 768 ? 'MOBILE' : 'DESKTOP'}</div>
+            WIN_Y: ${Math.round(window.scrollY)}px<br>
+            HDR_H: ${hHeight}px<br>
+            <hr style="border:0;border-top:1px solid #333">
+            INPUT_Y: <span style="color:${isStuck ? '#ff4444' : '#0f0'}">${Math.round(iRect.top)}px</span> ${isStuck ? '⚠️ STUCK' : ''}<br>
+            TABS_Y: <span style="color:${Math.round(tRect.top) <= hHeight ? '#0f0' : '#ffaa00'}">${Math.round(tRect.top)}px</span><br>
+            <hr style="border:0;border-top:1px solid #333">
+            SNAP: ${getComputedStyle(document.body).scrollSnapType}<br>
+            FLOW: ${iRect.top < 0 ? 'HIDING ✅' : 'VISIBLE ❌'}
+        `;
+    };
+
+    window.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
+    setInterval(update, 200);
+})();
