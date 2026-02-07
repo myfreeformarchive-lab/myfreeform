@@ -61,57 +61,70 @@ img, video, canvas {
   height: auto;
 }
 
-/* 2. THE SNAP ENGINE */
+/* 2. THE SNAP ENGINE (The Viewport) */
 html {
   width: 100%;
-  height: 100%; /* Back to 100% to fix Desktop Snapping */
-  overflow: hidden; /* Prevent double scrollbars */
+  /* CHANGED: min-height instead of height: 100% unlocks the scroll */
+  min-height: 100%; 
+  overflow-x: hidden;
+  /* 'auto' is safer than 'scroll !important' for mobile height calculation */
+  overflow-y: auto; 
+  scroll-snap-type: y proximity; 
+  scroll-behavior: smooth;
+  touch-action: manipulation;
 }
 
+/* 3. THE SURFACE (The Canvas) */
 body {
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%; /* Must match HTML for snapping to work */
-  -webkit-font-smoothing: antialiased;
-  overflow-y: auto; /* This makes the BODY the master scroller */
+  /* The 100.1vh is the 'secret sauce' for Android touch activation */
+  min-height: 100.1vh; 
+  
+  /* IMPORTANT: Body must stay visible to avoid the 'Double Scrollbar' */
+  overflow-y: visible; 
   overflow-x: hidden;
-  scroll-snap-type: y mandatory; /* Mandatory is stronger for mobile */
-  scroll-behavior: smooth;
-  overscroll-behavior-y: contain;
-  touch-action: pan-y pinch-zoom;
+  
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: contain; 
+  overscroll-behavior-x: none;
+  touch-action: manipulation;
 }
 
-/* 3. THE HEADER & TABS (Pinned) */
+/* 4. THE HEADER (Fixed Anchor) */
 header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 100;
-  height: 112px; /* Total height of Header + Tabs */
-  background: white; /* Ensure it covers posts sliding under */
+  -webkit-transform: translateZ(0);
   transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000;
+  touch-action: pan-y pinch-zoom; 
 }
 
-/* 4. THE FEED CONTAINER */
+/* 5. THE FEED CONTAINER */
 #feedList {
   width: 100%;
   display: flex;
   flex-direction: column;
-  /* Instead of padding, we use a spacer or margin */
-  margin-top: 112px; 
-  min-height: calc(100vh - 112px);
-  padding-bottom: 20vh; /* Extra space at bottom to allow last post to snap */
+  gap: 16px;
+  /* Push the first item down so it's not hidden under the header */
+  padding-top: 112px;
+  padding-bottom: 80px; 
 }
 
-/* 5. THE POST CARDS */
+/* 6. THE POST CARDS (The Magnets) */
 .feed-item {
   width: 100%;
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  /* Matches the margin-top of the container */
+  /* Ensures the snap 'lands' below your header/tabs */
   scroll-margin-top: 112px; 
+  touch-action: auto; 
 }
 
 /* 2. Feed Item Animation */
