@@ -492,24 +492,25 @@ function applyFontPreference(font) {
 }
 
 function switchTab(tab) {
+  // Exit early if switching to the same tab
   if (currentTab === tab) return;
 
-  // 1. Start fade/slide out animations (Exactly as you had it)
+  // 1. Start fade/slide out animations
   DOM.list.style.opacity = '0';
   DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
 
   setTimeout(() => {
+    // 2. Find the sticky element
     const tabsElement = document.querySelector('.sticky');
-    
-    // 2. THE FIX: Accurate Pixel Math
-    // tabsElement.offsetTop gives the raw position. 
-    // Subtracting 56 ensures it doesn't hide behind the header.
+
+    // 🚀 THE FIX: Use 'auto' (instant) instead of 'smooth'.
+    // The fade animation handles the visual smoothness. 
+    // This locks the position INSTANTLY so the data swap doesn't break the scroll.
     if (tabsElement) {
-        const targetY = tabsElement.offsetTop - 56;
-        window.scrollTo({
-          top: targetY,
-          behavior: 'smooth'
-        });
+       tabsElement.scrollIntoView({
+         behavior: 'auto', 
+         block: 'start',
+       });
     }
 
     // Save the current tab state locally
@@ -521,15 +522,16 @@ function switchTab(tab) {
     updateTabClasses();
     loadFeed();
 
+    // Enable infinite scroll for public feed
     if (tab === 'public') setupInfiniteScroll();
 
-    // 3. Fade the content back in after snapping
+    // 3. Fade the content back in
     requestAnimationFrame(() => {
       DOM.list.style.opacity = '1';
       DOM.list.style.transform = 'translateX(0)';
       setTimeout(refreshSnap, 100);
     });
-  }, 200); 
+  }, 200); // Wait for the fade-out to finish
 }
 
 
