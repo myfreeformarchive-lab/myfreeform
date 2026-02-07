@@ -484,9 +484,17 @@ function switchTab(tab) {
   DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
   
   setTimeout(() => {
-      // 2. SNAP to top while the list is invisible
-      // This prevents the "landing at the bottom" glitch
-      window.scrollTo({ top: 0, behavior: 'instant' });
+      // 🚀 THE FIX: Calculate the snap point
+      // We want the Tabs to be at the top, right under the 56px Header.
+      // The Tabs container is the element with the "sticky" class.
+      const tabsElement = document.querySelector('.sticky');
+      const snapPosition = tabsElement.offsetTop - 56; 
+
+      // 2. SNAP to the Tabs instead of Top 0
+      window.scrollTo({ 
+          top: snapPosition, 
+          behavior: 'instant' 
+      });
 
       currentTab = tab;
       localStorage.setItem('freeform_tab_pref', tab);
@@ -498,8 +506,6 @@ function switchTab(tab) {
       if (tab === 'public') setupInfiniteScroll();
 
       // 3. Fade it back in
-      // Adding a tiny micro-delay (requestAnimationFrame) ensures the scroll 
-      // is finished before the eye sees the new content
       requestAnimationFrame(() => {
           DOM.list.style.opacity = '1';
           DOM.list.style.transform = 'translateX(0)';
