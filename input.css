@@ -103,7 +103,7 @@ section.group {
   
   /* 1. The Visual Offset */
   /* We use padding instead of margin-top to keep the "touch area" active */
-  padding-top: 70px; /* 56px (Header) + 14px (Breathing room) */
+  padding-top: 0px; /* 56px (Header) + 14px (Breathing room) */
   margin-top: -56px; /* The "Magic": This pulls the element UP under the header */
   
   /* 2. The Snap Anchor */
