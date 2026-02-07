@@ -1050,16 +1050,23 @@ function renderListItems(items) {
   DOM.list.innerHTML = ''; 
   
   if (items.length === 0) {
-  DOM.list.innerHTML = `
-    <div class="flex flex-col items-center justify-center min-h-[70vh] w-full text-center py-12 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl">
-      <div class="mb-4 text-slate-300">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-      </div>
-      <p class="text-slate-500 font-medium">Awaiting inspiration.</p>
-      <p class="text-slate-400 text-xs mt-2">The best ideas are the ones you write down.</p>
-    </div>`;
-  return;
-}
+    // We remove min-h-[70vh] and add snap alignment + scroll-margin
+    DOM.list.innerHTML = `
+      <div class="flex flex-col items-center justify-center w-full text-center py-20 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
+           style="scroll-snap-align: start; scroll-margin-top: 112px;">
+        <div class="mb-4 text-slate-300">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9"/>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+            <line x1="9" y1="9" x2="9.01" y2="9"/>
+            <line x1="15" y1="9" x2="15.01" y2="9"/>
+          </svg>
+        </div>
+        <p class="text-slate-500 font-medium tracking-tight">Awaiting inspiration.</p>
+        <p class="text-slate-400 text-xs mt-2">The best ideas are the ones you write down.</p>
+      </div>`;
+    return;
+  }
 
   items.forEach(item => {
     const postNode = createPostNode(item);
