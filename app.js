@@ -477,63 +477,43 @@ function applyFontPreference(font) {
 }
 
 function switchTab(tab) {
-
+  // Exit early if switching to the same tab
   if (currentTab === tab) return;
 
-  
-
-  // 1. Start the fade/slide out
-
+  // 1. Start fade/slide out animations
   DOM.list.style.opacity = '0';
-
   DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
 
-  
-
   setTimeout(() => {
+    // 2. Find the `mb-6` buffer margin and include it in the scroll logic
+    const tabsElement = document.querySelector('.sticky');
+    const tabMargin = parseFloat(getComputedStyle(tabsElement).marginBottom) || 0;
 
-      // 2. SNAP to top while the list is invisible
+    // Scroll the feed area to include the buffer
+    const snapPosition = tabsElement.offsetTop + tabMargin; // Include the bottom margin
+    tabsElement.scrollIntoView({
+      behavior: 'smooth', // Snap smoothly to the sticky tabs
+      block: 'start',
+    });
 
-      // This prevents the "landing at the bottom" glitch
+    // Save the current tab state locally
+    currentTab = tab;
+    localStorage.setItem('freeform_tab_pref', tab);
 
-      window.scrollTo({ top: 0, behavior: 'instant' });
+    // Reset feed content for the new tab
+    currentLimit = BATCH_SIZE;
+    updateTabClasses();
+    loadFeed();
 
+    // Enable infinite scroll for public feed
+    if (tab === 'public') setupInfiniteScroll();
 
-
-      currentTab = tab;
-
-      localStorage.setItem('freeform_tab_pref', tab);
-
-      currentLimit = BATCH_SIZE;
-
-      
-
-      updateTabClasses();
-
-      loadFeed();
-
-      
-
-      if (tab === 'public') setupInfiniteScroll();
-
-
-
-      // 3. Fade it back in
-
-      // Adding a tiny micro-delay (requestAnimationFrame) ensures the scroll 
-
-      // is finished before the eye sees the new content
-
-      requestAnimationFrame(() => {
-
-          DOM.list.style.opacity = '1';
-
-          DOM.list.style.transform = 'translateX(0)';
-
-      });
-
-  }, 100);
-
+    // 3. Fade the content back in after snapping
+    requestAnimationFrame(() => {
+      DOM.list.style.opacity = '1';
+      DOM.list.style.transform = 'translateX(0)';
+    });
+  }, 200); // Slight delay to allow animation to complete
 }
 
 function updateTabClasses() {
