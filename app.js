@@ -19,17 +19,33 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const rawInput = '<b onmouseover="alert(\'xss\')">Hello!</b> <script>doEvil()</script>';
 
-// Syntax Recognition: We only allow <b>, <i>, and <u> tags. 
-// No "on" events, no scripts, no styles.
-const cleanHTML = DOMPurify.sanitize(rawInput, {
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: [] // No attributes allowed at all for maximum safety
+// 1. Create the Sanitizer Function
+function sanitizeContent(text) {
+  return DOMPurify.sanitize(text, {
+    ALLOWED_TAGS: [], // Nuclear option: No tags allowed
+    ALLOWED_ATTR: []
+  });
+}
+
+// 2. The Post Event
+DOM.btn.addEventListener('click', async () => {
+  const rawText = DOM.input.value; // What the user typed
+  
+  // THE STEP THAT BLOCKS LANGUAGES:
+  const safeText = sanitizeContent(rawText); 
+
+  if (!safeText.trim()) return;
+
+  // Now, when you send to Firebase, you send the SAFE version
+  await addDoc(collection(db, "posts"), {
+    content: safeText, // Cleaned of all syntax
+    userId: MY_USER_ID,
+    timestamp: serverTimestamp()
+  });
+
+  DOM.input.value = ''; // Clear the box
 });
-
-document.getElementById('postInput').innerHTML = cleanHTML;
-// Result: <b>Hello!</b> (The rest is erased)
 
 // ==========================================
 // 1. STATE & DOM
