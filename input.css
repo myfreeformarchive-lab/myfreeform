@@ -132,7 +132,6 @@ section.group {
 .feed-item {
   width: 100%;
   scroll-snap-align: start;
-  scroll-snap-stop: always;
   /* 112px (Header+Tabs) + 24px (mb-6) = 136px */
   scroll-margin-top: calc(112px + 24px); 
 }
