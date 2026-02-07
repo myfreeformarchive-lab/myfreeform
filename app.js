@@ -712,7 +712,7 @@ async function subscribePublicFeed() {
           injectSinglePost(postObj, 'top');
           
           // Nice touch: smooth scroll to top to confirm to user their post is live
-          window.scrollTo({ top: 56, behavior: 'smooth' });
+          //window.scrollTo({ top: 56, behavior: 'smooth' });
         }
 
         if (change.type === "modified") {
