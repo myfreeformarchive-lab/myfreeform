@@ -441,7 +441,7 @@ function injectSinglePost(item, position = 'top') {
   }
 
   const postNode = createPostNode(item); 
-  postNode.classList.add('animate-in', 'fade-in', 'slide-in-from-top-4', 'duration-500');
+  postNode.classList.add('animate-in');
 
   logViewportAndFeedStatus(); // Log before injecting
 
