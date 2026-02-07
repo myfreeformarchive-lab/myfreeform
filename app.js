@@ -477,40 +477,41 @@ function applyFontPreference(font) {
 }
 
 function switchTab(tab) {
+  // Exit early if switching to the same tab
   if (currentTab === tab) return;
-  
-  // 1. Start the fade/slide out
+
+  // 1. Start fade/slide out animations
   DOM.list.style.opacity = '0';
   DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
-  
+
   setTimeout(() => {
-      // 🚀 THE FIX: Calculate the snap point
-      // We want the Tabs to be at the top, right under the 56px Header.
-      // The Tabs container is the element with the "sticky" class.
-      const tabsElement = document.querySelector('.sticky');
-      const snapPosition = tabsElement.offsetTop - 56; 
+    // 2. Find the proper snap position based on CSS scroll-snap alignment
+    const tabsElement = document.querySelector('.sticky');
+    
+    // With CSS scroll-snap, we don't need to manually calculate positions
+    tabsElement.scrollIntoView({
+      behavior: 'smooth', // Ensures a smooth snap aligns correctly to the `sticky` class
+      block: 'start',     // Aligns the tabs to the top
+    });
 
-      // 2. SNAP to the Tabs instead of Top 0
-      window.scrollTo({ 
-          top: snapPosition, 
-          behavior: 'instant' 
-      });
+    // Save the current tab state locally
+    currentTab = tab;
+    localStorage.setItem('freeform_tab_pref', tab);
 
-      currentTab = tab;
-      localStorage.setItem('freeform_tab_pref', tab);
-      currentLimit = BATCH_SIZE;
-      
-      updateTabClasses();
-      loadFeed();
-      
-      if (tab === 'public') setupInfiniteScroll();
+    // Reset feed data for new tab and apply appropriate logic
+    currentLimit = BATCH_SIZE;
+    updateTabClasses();
+    loadFeed();
 
-      // 3. Fade it back in
-      requestAnimationFrame(() => {
-          DOM.list.style.opacity = '1';
-          DOM.list.style.transform = 'translateX(0)';
-      });
-  }, 100);
+    // Public Tab: Infinite Scroll Configuration
+    if (tab === 'public') setupInfiniteScroll();
+
+    // 3. Fade content back in after snapping
+    requestAnimationFrame(() => {
+      DOM.list.style.opacity = '1';
+      DOM.list.style.transform = 'translateX(0)';
+    });
+  }, 200); // Animation buffer (increase slightly for longer animation cycles)
 }
 
 function updateTabClasses() {
