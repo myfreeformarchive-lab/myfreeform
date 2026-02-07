@@ -137,21 +137,12 @@ section.group {
   scroll-margin-top: calc(112px + 24px); 
 }
 
-/* 2. Feed Item Animation */
-/*
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.feed-item {
-  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-*/
 /* 3. Modal Animations */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
 #commentModal:not(.hidden) #closeModalOverlay {
   animation: fadeIn 0.3s ease-out forwards;
 }
@@ -382,4 +373,39 @@ section.group {
     75% { 
         transform: translateX(5px); 
     }
+}
+
+/* Fade-in animation */
+.fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Slide-in-from-top animation */
+.slide-in-from-top-4 {
+  animation: slideInFromTop 0.5s ease-out forwards;
+}
+
+@keyframes slideInFromTop {
+  from {
+    transform: translateY(-1rem); /* Tailwind spacing "4" = 1rem */
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* General animate-in animation for flexibility */
+.animate-in {
+  animation: fadeIn 0.5s ease-out forwards, slideInFromTop 0.5s ease-out forwards;
 }
