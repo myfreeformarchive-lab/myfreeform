@@ -1058,7 +1058,7 @@ function renderListItems(items) {
   if (items.length === 0) {
     DOM.list.innerHTML = `
       <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
-           style="scroll-snap-align: start; scroll-margin-top: 112px; min-height: calc(100vh - 136px);">
+           style="scroll-snap-align: start; scroll-margin-top: 112px; min-height: calc(100vh - 160px);">
         <div class="mb-4 text-slate-300">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9"/>
