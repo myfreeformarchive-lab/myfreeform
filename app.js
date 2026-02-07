@@ -455,7 +455,7 @@ function injectSinglePost(item, position = 'top') {
       }
 
       // 🚀 Preserve the current scroll position before prepending
-      const currentScrollTop = window.scrollY;
+      //const currentScrollTop = window.scrollY;
 
       // Prepend the new post
       DOM.list.prepend(postNode);
@@ -463,7 +463,7 @@ function injectSinglePost(item, position = 'top') {
 
       // 🚀 Restore the scroll position to prevent jumping
       requestAnimationFrame(() => {
-        window.scrollTo(0, currentScrollTop);
+      //  window.scrollTo(0, currentScrollTop);
 		requestAnimationFrame(refreshSnap);
       });
     }, 1500); // 1.5 seconds delay
