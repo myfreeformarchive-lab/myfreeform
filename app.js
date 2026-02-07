@@ -461,7 +461,7 @@ function injectSinglePost(item, position = 'top') {
 
       // 🚀 Restore the scroll position to prevent jumping
       requestAnimationFrame(() => {
-        window.scrollTo({ top: currentScrollTop });
+        window.scrollTo(0, currentScrollTop);
       });
     }, 1500); // 1.5 seconds delay
   } else {
@@ -469,26 +469,11 @@ function injectSinglePost(item, position = 'top') {
     DOM.list.appendChild(postNode);
     watchPostCounts(item.id);
   }
-  
-  updateScrollMarginTop();
 }
 
 // ==========================================
 // 3. CORE FUNCTIONS (Feed & Tabs)
 // ==========================================
-function updateScrollMarginTop() {
-  const headerHeight = document.querySelector('header').offsetHeight || 56; // Default to 56px
-  const tabsHeight = document.querySelector('.sticky').offsetHeight || 56; // Default to 56px
-  const marginBottom = 24; // Tailwind `mb-6`
-
-  // Dynamic calculation
-  const marginTop = headerHeight + tabsHeight + marginBottom;
-
-  // Apply dynamically
-  document.querySelectorAll('.feed-item').forEach((item) => {
-    item.style.scrollMarginTop = `${marginTop}px`;
-  });
-}
 
 function applyFontPreference(font) {
   DOM.input.classList.remove('font-sans', 'font-serif', 'font-mono', 'font-hand');
@@ -504,38 +489,42 @@ function applyFontPreference(font) {
 }
 
 function switchTab(tab) {
+  // Exit early if switching to the same tab
   if (currentTab === tab) return;
 
+  // 1. Start fade/slide out animations
   DOM.list.style.opacity = '0';
   DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
 
   setTimeout(() => {
-    if (tab === 'public') {
-      const firstFeedItem = DOM.list.querySelector('.feed-item');
-      if (firstFeedItem) {
-        // Use scrollIntoView to snap to the first feed item
-        firstFeedItem.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
-      }
-    }
+    // 2. Find the `mb-6` buffer margin and include it in the scroll logic
+    const tabsElement = document.querySelector('.sticky');
 
+    // Scroll the feed area to include the buffer
+    const snapPosition = tabsElement.offsetTop;
+    tabsElement.scrollIntoView({
+      behavior: 'smooth', // Snap smoothly to the sticky tabs
+      block: 'start',
+    });
+
+    // Save the current tab state locally
     currentTab = tab;
     localStorage.setItem('freeform_tab_pref', tab);
+
+    // Reset feed content for the new tab
     currentLimit = BATCH_SIZE;
     updateTabClasses();
     loadFeed();
+
+    // Enable infinite scroll for public feed
     if (tab === 'public') setupInfiniteScroll();
 
+    // 3. Fade the content back in after snapping
     requestAnimationFrame(() => {
       DOM.list.style.opacity = '1';
       DOM.list.style.transform = 'translateX(0)';
     });
-
-    // Update snapping margins after tab switch
-    updateScrollMarginTop();
-  }, 200);
+  }, 200); // Slight delay to allow animation to complete
 }
 
 function updateTabClasses() {
@@ -1078,11 +1067,11 @@ function showHeartAnimation(container) {
 }
 
 function renderListItems(items) {
-  DOM.list.innerHTML = '';
-
+  DOM.list.innerHTML = ''; 
+  
   if (items.length === 0) {
     DOM.list.innerHTML = `
-      <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%] feed-item"
+      <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
            style="scroll-snap-align: start; scroll-margin-top: calc(112px + 24px); min-height: calc(100vh - 112px);">
         <div class="mb-4 text-slate-300">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
@@ -1095,16 +1084,16 @@ function renderListItems(items) {
         <p class="text-slate-500 font-medium tracking-tight">Awaiting inspiration.</p>
         <p class="text-slate-400 text-xs mt-2">The best ideas are the ones you write down.</p>
       </div>`;
-  } else {
-    items.forEach(item => {
-      const postNode = createPostNode(item);
-      DOM.list.appendChild(postNode);
-      watchPostCounts(item.id);
-    });
+    return;
   }
 
-  // Update snapping logic after DOM updates
-  updateScrollMarginTop();
+  items.forEach(item => {
+    const postNode = createPostNode(item);
+    DOM.list.appendChild(postNode);
+    
+    // Start watching these initial posts
+    watchPostCounts(item.id);
+  });
 }
 
 // ==========================================
