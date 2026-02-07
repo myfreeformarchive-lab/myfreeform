@@ -434,26 +434,38 @@ async function refillBufferRandomly(count = 1, silent = false) {
 function injectSinglePost(item, position = 'top') {
   console.log(`injectSinglePost called: tab=${currentTab}, isFirebase=${item.isFirebase}, content=${item.content}`);
 
-  // Only block immediately for non-delayed injection
+  // Prevent injecting global posts into the private tab
   if (position !== 'top' && currentTab === 'private' && item.isFirebase) {
     console.warn(`injectSinglePost: Blocking global post in private tab: ${item.content}`);
     return; 
   }
 
   const postNode = createPostNode(item); 
-  //postNode.classList.add('animate-in', 'fade-in', 'slide-in-from-top-4', 'duration-500');
+  postNode.classList.add('animate-in', 'fade-in', 'slide-in-from-top-4', 'duration-500');
 
+  // Handle "top" and "bottom" injection cases
   if (position === 'top') {
     setTimeout(() => {
-      // Re-check currentTab here, since it might have changed!
+      // Double-check the current tab in case it changed
       if (currentTab === 'private' && item.isFirebase) {
         console.warn(`injectSinglePost: Blocking global post in private tab after delay: ${item.content}`);
         return; 
       }
+
+      // 🚀 Preserve the current scroll position before prepending
+      const currentScrollTop = window.scrollY;
+
+      // Prepend the new post
       DOM.list.prepend(postNode);
       watchPostCounts(item.id);
+
+      // 🚀 Restore the scroll position to prevent jumping
+      requestAnimationFrame(() => {
+        window.scrollTo(0, currentScrollTop);
+      });
     }, 1500); // 1.5 seconds delay
   } else {
+    // 🚀 Handle appending smoothly (no need to adjust scroll if appending at the bottom)
     DOM.list.appendChild(postNode);
     watchPostCounts(item.id);
   }
