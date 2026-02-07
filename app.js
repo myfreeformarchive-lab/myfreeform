@@ -477,41 +477,63 @@ function applyFontPreference(font) {
 }
 
 function switchTab(tab) {
-  // Exit early if switching to the same tab
+
   if (currentTab === tab) return;
 
-  // 1. Start fade/slide out animations
+  
+
+  // 1. Start the fade/slide out
+
   DOM.list.style.opacity = '0';
+
   DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
 
+  
+
   setTimeout(() => {
-    // 2. Find the proper snap position based on CSS scroll-snap alignment
-    const tabsElement = document.querySelector('.sticky');
-    
-    // With CSS scroll-snap, we don't need to manually calculate positions
-    tabsElement.scrollIntoView({
-      behavior: 'smooth', // Ensures a smooth snap aligns correctly to the `sticky` class
-      block: 'start',     // Aligns the tabs to the top
-    });
 
-    // Save the current tab state locally
-    currentTab = tab;
-    localStorage.setItem('freeform_tab_pref', tab);
+      // 2. SNAP to top while the list is invisible
 
-    // Reset feed data for new tab and apply appropriate logic
-    currentLimit = BATCH_SIZE;
-    updateTabClasses();
-    loadFeed();
+      // This prevents the "landing at the bottom" glitch
 
-    // Public Tab: Infinite Scroll Configuration
-    if (tab === 'public') setupInfiniteScroll();
+      window.scrollTo({ top: 0, behavior: 'instant' });
 
-    // 3. Fade content back in after snapping
-    requestAnimationFrame(() => {
-      DOM.list.style.opacity = '1';
-      DOM.list.style.transform = 'translateX(0)';
-    });
-  }, 200); // Animation buffer (increase slightly for longer animation cycles)
+
+
+      currentTab = tab;
+
+      localStorage.setItem('freeform_tab_pref', tab);
+
+      currentLimit = BATCH_SIZE;
+
+      
+
+      updateTabClasses();
+
+      loadFeed();
+
+      
+
+      if (tab === 'public') setupInfiniteScroll();
+
+
+
+      // 3. Fade it back in
+
+      // Adding a tiny micro-delay (requestAnimationFrame) ensures the scroll 
+
+      // is finished before the eye sees the new content
+
+      requestAnimationFrame(() => {
+
+          DOM.list.style.opacity = '1';
+
+          DOM.list.style.transform = 'translateX(0)';
+
+      });
+
+  }, 100);
+
 }
 
 function updateTabClasses() {
