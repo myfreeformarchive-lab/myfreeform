@@ -134,8 +134,8 @@ section.group {
   width: 100%;
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  /* Header(56) + Tabs(56) = 112px */
-  scroll-margin-top: 112px; 
+  /* 112px (Header+Tabs) + 24px (mb-6) = 136px */
+  scroll-margin-top: 136px; 
 }
 
 /* 2. Feed Item Animation */
