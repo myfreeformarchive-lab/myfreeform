@@ -1123,7 +1123,7 @@ function renderListItems(items) {
 }
 
 document.addEventListener('click', (e) => {
-  const trigger = e.target.closest('.jump-to-top');
+  const trigger = e.target.closest('.jump-to-input');
   if (trigger) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
