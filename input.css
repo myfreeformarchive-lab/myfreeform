@@ -99,25 +99,42 @@ header {
   touch-action: pan-y pinch-zoom; 
 }
 
-/* 5. THE FEED CONTAINER */
+section.group {
+  /* This tells the engine: "The input box is a resting point" */
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  
+  /* Give it room under the fixed header */
+  margin-top: 56px; 
+  scroll-margin-top: 56px; 
+  
+  /* Ensure it takes up enough space to be 'seen' by the snap engine */
+  min-height: 200px; 
+}
+
+.sticky {
+  z-index: 40;
+}
+
+/* 3. THE FEED CONTAINER */
 #feedList {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  /* Use margin instead of padding to prevent the 'Desktop Gap' */
-  margin-top: 113px; 
-  padding-bottom: 30vh; /* Extra room so the last post can actually snap up */
+  /* Remove the margin-top we added earlier; the Input Area handles the spacing now */
+  margin-top: 0; 
+  padding-bottom: 30vh;
 }
 
-/* 6. THE POST CARDS (The Magnets) */
+/* 4. THE POST CARDS */
 .feed-item {
   width: 100%;
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  /* EXACT MATCH to your pinned header + tabs (rounded up) */
-  scroll-margin-top: 113px; 
-  touch-action: auto; 
+  
+  /* THE MAGNET: Needs to account for Header (56px) + Tabs (56px) = 112px */
+  scroll-margin-top: 112px; 
 }
 
 /* 2. Feed Item Animation */
