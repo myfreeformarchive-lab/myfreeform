@@ -127,7 +127,7 @@ section.group {
   flex-direction: column;
   padding-bottom: 20vh;
   min-height: min-content;
-  overflow: hidden;
+  overflow: auto;
   scroll-snap-type: y mandatory;
 }
 
