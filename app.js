@@ -492,43 +492,46 @@ function applyFontPreference(font) {
 }
 
 function switchTab(tab) {
-  // Exit early if switching to the same tab
   if (currentTab === tab) return;
 
-  // 1. Start fade/slide out animations
+  // 1. Immediate Visual Feedback
   DOM.list.style.opacity = '0';
-  DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
 
-  setTimeout(() => {
-    // 2. Find the `mb-6` buffer margin and include it in the scroll logic
-    const tabsElement = document.querySelector('.sticky');
+  // 2. The Logic Switch
+  currentTab = tab;
+  localStorage.setItem('freeform_tab_pref', tab);
+  currentLimit = BATCH_SIZE;
+  updateTabClasses();
+  loadFeed();
 
-    // Scroll the feed area to include the buffer
-    const snapPosition = tabsElement.offsetTop;
-    tabsElement.scrollIntoView({
-      behavior: 'smooth', // Snap smoothly to the sticky tabs
-      block: 'start',
+  // 3. THE FORCE SCROLL (The Fix)
+  const tabsElement = document.querySelector('.sticky');
+  const headerHeight = 56; // Your fixed header height
+
+  if (tabsElement) {
+    // Get the absolute position of the tabs relative to the page
+    const tabsRect = tabsElement.getBoundingClientRect();
+    const absoluteTabsTop = tabsRect.top + window.pageYOffset;
+    
+    // Target position: Tabs top should align with Header bottom
+    const targetY = absoluteTabsTop - headerHeight;
+
+    // We use 'instant' first to break any snap-locks, then 'smooth' if you prefer
+    // But 'auto' (instant) is the only one that works 100% of the time on mobile
+    window.scrollTo({
+      top: targetY,
+      behavior: 'auto' 
     });
+  }
 
-    // Save the current tab state locally
-    currentTab = tab;
-    localStorage.setItem('freeform_tab_pref', tab);
-
-    // Reset feed content for the new tab
-    currentLimit = BATCH_SIZE;
-    updateTabClasses();
-    loadFeed();
-
-    // Enable infinite scroll for public feed
-    if (tab === 'public') setupInfiniteScroll();
-
-    // 3. Fade the content back in after snapping
-    requestAnimationFrame(() => {
-      DOM.list.style.opacity = '1';
-      DOM.list.style.transform = 'translateX(0)';
-	  setTimeout(refreshSnap, 100);
-    });
-  }, 200); // Slight delay to allow animation to complete
+  // 4. Clean up and Show
+  requestAnimationFrame(() => {
+    DOM.list.style.opacity = '1';
+    DOM.list.style.transform = 'translateX(0)';
+    
+    // Refresh the "magnets" so the browser knows the new content is there
+    setTimeout(refreshSnap, 50);
+  });
 }
 
 function updateTabClasses() {
@@ -2211,64 +2214,3 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js')
     .then(() => console.log("Service Worker Registered"));
 }
-
-(function() {
-    function initTracker() {
-        // Remove old one if it exists
-        const old = document.getElementById('universal-tracker');
-        if (old) old.remove();
-
-        const tracker = document.createElement('div');
-        tracker.id = 'universal-tracker';
-        // fixed, top: 0, high z-index, bright background
-        tracker.style.cssText = `
-            position: fixed !important;
-            top: 0 !important;
-            right: 0 !important;
-            width: 200px !important;
-            background: #000 !important;
-            color: #0f0 !important;
-            font-family: monospace !important;
-            font-size: 12px !important;
-            padding: 15px !important;
-            z-index: 9999999 !important;
-            border-bottom: 2px solid #0f0 !important;
-            border-left: 2px solid #0f0 !important;
-            pointer-events: none !important;
-            opacity: 1 !important;
-            display: block !important;
-        `;
-        document.body.appendChild(tracker);
-
-        const update = () => {
-            const input = document.getElementById('postInputSection') || document.querySelector('section.group');
-            const tabs = document.querySelector('.sticky');
-            const header = document.querySelector('header');
-            
-            const iRect = input ? input.getBoundingClientRect() : { top: 0 };
-            const tRect = tabs ? tabs.getBoundingClientRect() : { top: 0 };
-            const hHeight = header ? header.offsetHeight : 56;
-
-            tracker.innerHTML = `
-                <div style="color:white;font-weight:bold;margin-bottom:8px">DEBUGGER ACTIVE</div>
-                SCROLL_Y: ${Math.round(window.scrollY)}px<br>
-                INPUT_Y: ${Math.round(iRect.top)}px<br>
-                TABS_Y: ${Math.round(tRect.top)}px<br>
-                HDR_H: ${hHeight}px<br>
-                <hr style="border-color:#333">
-                STATUS: ${iRect.top < 0 ? 'HIDING' : 'STUCK'}
-            `;
-        };
-
-        window.addEventListener('scroll', update);
-        setInterval(update, 300);
-        console.log("Tracker Initialized");
-    }
-
-    // Run when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initTracker);
-    } else {
-        initTracker();
-    }
-})();
