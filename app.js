@@ -443,6 +443,8 @@ function injectSinglePost(item, position = 'top') {
   const postNode = createPostNode(item); 
   postNode.classList.add('animate-in', 'fade-in', 'slide-in-from-top-4', 'duration-500');
 
+  logViewportAndFeedStatus(); // Log before injecting
+
   // Handle "top" and "bottom" injection cases
   if (position === 'top') {
     setTimeout(() => {
@@ -462,6 +464,7 @@ function injectSinglePost(item, position = 'top') {
       // 🚀 Restore the scroll position to prevent jumping
       requestAnimationFrame(() => {
         window.scrollTo(0, currentScrollTop);
+		logViewportAndFeedStatus(); // Log after the post has been injected
       });
     }, 1500); // 1.5 seconds delay
   } else {
@@ -523,8 +526,31 @@ function switchTab(tab) {
     requestAnimationFrame(() => {
       DOM.list.style.opacity = '1';
       DOM.list.style.transform = 'translateX(0)';
+	  console.log(`[TabSwitch] Finished loading content for tab: ${tab}`);
+      logViewportAndFeedStatus(); // Log AFTER the switch
     });
   }, 200); // Slight delay to allow animation to complete
+}
+
+function logViewportAndFeedStatus() {
+  const feedList = document.getElementById('feedList');
+  const firstFeedItem = feedList.firstElementChild;
+
+  console.log('--- Logging Viewport and Feed Status ---');
+  console.log(`Viewport innerHeight: ${window.innerHeight}px`); // Actual size of the visible part of the viewport
+  console.log(`Viewport outerHeight: ${window.outerHeight}px`); // Full size of the screen
+  console.log(`Scroll position (Y): ${window.scrollY}px`);
+  console.log(`FeedList Height: ${feedList.offsetHeight}px`);
+  console.log(`FeedList Bounding Rect:`, feedList.getBoundingClientRect());
+  if (firstFeedItem) {
+    console.log(
+      `First Feed Item Dimensions - Offset Height: ${firstFeedItem.offsetHeight}px, Bounding Client Rect:`,
+      firstFeedItem.getBoundingClientRect()
+    );
+  } else {
+    console.log('No feed items found.');
+  }
+  console.log('----------------------------------------');
 }
 
 function updateTabClasses() {
