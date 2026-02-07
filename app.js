@@ -18,7 +18,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ==========================================
-// 1. STATE & DOM lalaa
+// 1. STATE & DOM
 // ==========================================
 const DOM = {
   input: document.getElementById('postInput'),
