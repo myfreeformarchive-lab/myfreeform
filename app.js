@@ -463,7 +463,7 @@ function injectSinglePost(item, position = 'top') {
 
       // 🚀 Restore the scroll position to prevent jumping
       requestAnimationFrame(() => {
-        window.scrollTo(56, currentScrollTop);
+        window.scrollTo(0, currentScrollTop + 56);
 		requestAnimationFrame(refreshSnap);
       });
     }, 1500); // 1.5 seconds delay
@@ -712,7 +712,7 @@ async function subscribePublicFeed() {
           injectSinglePost(postObj, 'top');
           
           // Nice touch: smooth scroll to top to confirm to user their post is live
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          window.scrollTo({ top: 56, behavior: 'smooth' });
         }
 
         if (change.type === "modified") {
