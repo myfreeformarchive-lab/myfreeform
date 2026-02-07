@@ -869,7 +869,11 @@ function createPostNode(item) {
   const cursorClass = item.isFirebase ? "" : "cursor-pointer";
   
   el.className = `feed-item block w-full bg-white px-4 py-3 mb-0 pb-6 border-b border-slate-100 lg:border-b-[1px] lg:border-slate-300 relative transition-colors ${cursorClass}`;
-  // 2. Logic: Time, Fonts, and Tags
+  el.style.scrollSnapAlign = "start";
+  el.style.scrollMarginTop = "calc(112px + 24px)";
+  el.style.minHeight = "calc(100vh - 112px)";  
+
+ // 2. Logic: Time, Fonts, and Tags
   const time = getRelativeTime(item.createdAt);
   const fontClass = item.font || 'font-sans'; 
   const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
