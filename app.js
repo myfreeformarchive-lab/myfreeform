@@ -1108,7 +1108,7 @@ function renderListItems(items) {
           </svg>
         </div>
         <p class="text-slate-500 font-medium tracking-tight">Awaiting inspiration.</p>
-        <p class="text-slate-400 text-xs mt-2">The best ideas are the ones you write down.</p>
+        <p class="text-slate-400 text-xs mt-2">The best ideas are the ones you <span class="jump-to-input">write down</span>.</p>
       </div>`;
     return;
   }
@@ -1121,6 +1121,12 @@ function renderListItems(items) {
     watchPostCounts(item.id);
   });
 }
+
+DOM.list.addEventListener('click', (e) => {
+  if (e.target.classList.contains('jump-to-top')) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+});
 
 // ==========================================
 // ENHANCED SHARE MENU LOGIC (with Priority)
