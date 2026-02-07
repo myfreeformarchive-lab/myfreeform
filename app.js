@@ -1088,7 +1088,7 @@ function renderListItems(items) {
         <p class="text-slate-500 font-medium tracking-tight">Awaiting inspiration.</p>
         <p class="text-slate-400 text-xs mt-2">
   The best ideas are the ones you 
-  <span onclick="document.getElementById('postInput').scrollIntoView({ behavior: 'smooth', block: 'start' })" 
+  <span onclick="document.getElementById('postInput').scrollIntoView({ behavior: 'smooth', block: 'center' })" 
       class="underline cursor-pointer hover:text-slate-600 transition-colors">
     write down
 </span>.
