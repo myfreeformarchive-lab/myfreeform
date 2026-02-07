@@ -526,6 +526,7 @@ function switchTab(tab) {
     requestAnimationFrame(() => {
       DOM.list.style.opacity = '1';
       DOM.list.style.transform = 'translateX(0)';
+	  setTimeout(refreshSnap, 100);
     });
   }, 200); // Slight delay to allow animation to complete
 }
@@ -1087,10 +1088,10 @@ function renderListItems(items) {
         <p class="text-slate-500 font-medium tracking-tight">Awaiting inspiration.</p>
         <p class="text-slate-400 text-xs mt-2">
   The best ideas are the ones you 
-  <span onclick="document.getElementById('postInput').scrollIntoView({ behavior: 'smooth', block: 'center' })" 
-        class="underline cursor-pointer hover:text-slate-600 transition-colors">
+  <span onclick="document.getElementById('postInput').scrollIntoView({ behavior: 'smooth', block: 'start' })" 
+      class="underline cursor-pointer hover:text-slate-600 transition-colors">
     write down
-  </span>.
+</span>.
 </p>
       </div>`;
     return;
