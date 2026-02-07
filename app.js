@@ -487,11 +487,9 @@ function switchTab(tab) {
   setTimeout(() => {
     // 2. Find the `mb-6` buffer margin and include it in the scroll logic
     const tabsElement = document.querySelector('.sticky');
-    const tabMargin = parseFloat(getComputedStyle(tabsElement).marginBottom) || 0;
-	const fineTuneOffset = -4;
 
     // Scroll the feed area to include the buffer
-    const snapPosition = tabsElement.offsetTop + tabMargin + fineTuneOffset;
+    const snapPosition = tabsElement.offsetTop;
     tabsElement.scrollIntoView({
       behavior: 'smooth', // Snap smoothly to the sticky tabs
       block: 'start',
