@@ -43,7 +43,7 @@ textarea, input {
   box-sizing: border-box;
 }
 
-/* Nuke scrollbars globally for that App feel */
+/* Nuke scrollbars globally */
 html, body, #feedList, textarea {
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
@@ -64,9 +64,11 @@ img, video, canvas {
 /* 2. THE SNAP ENGINE (The Viewport) */
 html {
   width: 100%;
-  height: 100%; /* Required for Snap calculations */
+  /* CHANGED: min-height instead of height: 100% unlocks the scroll */
+  min-height: 100%; 
   overflow-x: hidden;
-  overflow-y: scroll !important; /* Force scroll on the root */
+  /* 'auto' is safer than 'scroll !important' for mobile height calculation */
+  overflow-y: auto; 
   scroll-snap-type: y proximity; 
   scroll-behavior: smooth;
   touch-action: manipulation;
@@ -77,19 +79,20 @@ body {
   margin: 0;
   padding: 0;
   width: 100%;
-  min-height: 100.1vh; /* Keeps Android scroll engine 'awake' */
+  /* The 100.1vh is the 'secret sauce' for Android touch activation */
+  min-height: 100.1vh; 
   
-  /* IMPORTANT: Body must be visible so it doesn't create its own scrollbar */
+  /* IMPORTANT: Body must stay visible to avoid the 'Double Scrollbar' */
   overflow-y: visible; 
   overflow-x: hidden;
   
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior-y: contain; /* Prevents pull-to-refresh bounce */
+  overscroll-behavior-y: contain; 
   overscroll-behavior-x: none;
   touch-action: manipulation;
 }
 
-/* 4. THE HEADER (The Fixed Anchor) */
+/* 4. THE HEADER (Fixed Anchor) */
 header {
   position: fixed;
   top: 0;
@@ -109,7 +112,9 @@ header {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding-bottom: 80px; /* Space for the last item to snap */
+  /* Push the first item down so it's not hidden under the header */
+  padding-top: 112px;
+  padding-bottom: 80px; 
 }
 
 /* 6. THE POST CARDS (The Magnets) */
@@ -117,7 +122,7 @@ header {
   width: 100%;
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  /* Header (56px) + Tabs (56px) = 112px */
+  /* Ensures the snap 'lands' below your header/tabs */
   scroll-margin-top: 112px; 
   touch-action: auto; 
 }
