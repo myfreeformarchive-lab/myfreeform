@@ -1108,7 +1108,13 @@ function renderListItems(items) {
           </svg>
         </div>
         <p class="text-slate-500 font-medium tracking-tight">Awaiting inspiration.</p>
-        <p class="text-slate-400 text-xs mt-2">The best ideas are the ones you <span class="jump-to-input">write down</span>.</p>
+        <p class="text-slate-400 text-xs mt-2">
+          The best ideas are the ones you 
+          <span onclick="window.scrollTo({top: 0, behavior: 'smooth'})" 
+                class="underline cursor-pointer hover:text-slate-600 transition-colors">
+            write down
+          </span>.
+        </p>
       </div>`;
     return;
   }
@@ -1121,13 +1127,6 @@ function renderListItems(items) {
     watchPostCounts(item.id);
   });
 }
-
-document.addEventListener('click', (e) => {
-  const trigger = e.target.closest('.jump-to-input');
-  if (trigger) {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-});
 
 // ==========================================
 // ENHANCED SHARE MENU LOGIC (with Priority)
