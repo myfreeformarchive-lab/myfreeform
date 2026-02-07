@@ -1109,12 +1109,12 @@ function renderListItems(items) {
         </div>
         <p class="text-slate-500 font-medium tracking-tight">Awaiting inspiration.</p>
         <p class="text-slate-400 text-xs mt-2">
-          The best ideas are the ones you 
-          <span onclick="window.scrollTo({top: 0, behavior: 'smooth'})" 
-                class="underline cursor-pointer hover:text-slate-600 transition-colors">
-            write down
-          </span>.
-        </p>
+  The best ideas are the ones you 
+  <span onclick="this.closest('.flex').parentElement.scrollTo({top: 0, behavior: 'smooth'})" 
+        class="underline cursor-pointer hover:text-slate-600 transition-colors">
+    write down
+  </span>.
+</p>
       </div>`;
     return;
   }
