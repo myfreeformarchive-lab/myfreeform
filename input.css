@@ -126,7 +126,6 @@ section.group {
   display: flex;
   flex-direction: column;
   padding-bottom: 20vh;
-  scroll-snap-type: y mandatory;
 }
 
 /* The Magnet for actual posts */
