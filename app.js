@@ -464,6 +464,7 @@ function injectSinglePost(item, position = 'top') {
       // 🚀 Restore the scroll position to prevent jumping
       requestAnimationFrame(() => {
         window.scrollTo(0, currentScrollTop);
+		requestAnimationFrame(refreshSnap);
       });
     }, 1500); // 1.5 seconds delay
   } else {
@@ -1102,6 +1103,14 @@ function renderListItems(items) {
     // Start watching these initial posts
     watchPostCounts(item.id);
   });
+  refreshSnap()
+}
+
+function refreshSnap() {
+  // We use window because your 'body' is the Master Scroller
+  const scroller = window; 
+  scroller.scrollBy(0, 1);
+  scroller.scrollBy(0, -1);
 }
 
 // ==========================================
@@ -1809,6 +1818,11 @@ async function postComment() {
 // ==========================================
 // 7. UTILITIES
 // =========================================
+function applySnapProperties(post) {
+  post.style.scrollSnapAlign = 'start'; // Aligns the post at the start of the viewport
+  post.style.scrollMarginTop = 'calc(112px + 24px)'; // Accounts for sticky headers/tabs
+}
+
 function showToast(message, type = "success") {
   const container = document.getElementById('toast-container');
   if (!container) return;
