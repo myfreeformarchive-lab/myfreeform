@@ -932,12 +932,10 @@ function createPostNode(item) {
   const footerHtml = `<div class="mt-6 pt-5 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
 
   // 5. Inject HTML with animation container
-el.innerHTML = `
+  el.innerHTML = `
 <div class="animation-container absolute inset-0 flex items-center justify-center pointer-events-none z-30"></div>
-
-<div class="flex justify-between items-start mb-6" 
-     style="scroll-snap-align: start; scroll-margin-top: calc(112px + 48px); min-height: calc(100vh - 112px);">
-  <div class="flex items-center gap-2">
+ 
+<div class="flex justify-between items-start mb-6"> <div class="flex items-center gap-2">
     <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
       ${item.isFirebase ? 'Global' : 'Local'}
     </span>
@@ -945,9 +943,7 @@ el.innerHTML = `
   </div>
 </div>
 
-<p class="post-body text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] relative z-10 ${fontClass} break-keep break-words">
-  ${renderSmartText(item.content)}
-</p>
+<p class="post-body text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] relative z-10 ${fontClass} break-keep break-words">${renderSmartText(item.content)}</p>
 
 ${footerHtml}
 `;
