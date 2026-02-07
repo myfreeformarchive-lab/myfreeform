@@ -432,10 +432,3 @@ section.group {
     will-change: auto;
   }
 }
-
-.post-body {
-  border: 1px solid red;
-}
-.animation-container {
-  border: 1px dashed blue;
-}
