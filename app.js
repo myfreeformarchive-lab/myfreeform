@@ -492,23 +492,25 @@ function applyFontPreference(font) {
 }
 
 function switchTab(tab) {
-  // Exit early if switching to the same tab
   if (currentTab === tab) return;
 
-  // 1. Start fade/slide out animations
+  // 1. Start fade/slide out animations (Exactly as you had it)
   DOM.list.style.opacity = '0';
   DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
 
   setTimeout(() => {
-    // 2. Find the `mb-6` buffer margin and include it in the scroll logic
     const tabsElement = document.querySelector('.sticky');
-
-    // Scroll the feed area to include the buffer
-    const snapPosition = tabsElement.offsetTop;
-    tabsElement.scrollIntoView({
-      behavior: 'smooth', // Snap smoothly to the sticky tabs
-      block: 'start',
-    });
+    
+    // 2. THE FIX: Accurate Pixel Math
+    // tabsElement.offsetTop gives the raw position. 
+    // Subtracting 56 ensures it doesn't hide behind the header.
+    if (tabsElement) {
+        const targetY = tabsElement.offsetTop - 56;
+        window.scrollTo({
+          top: targetY,
+          behavior: 'smooth'
+        });
+    }
 
     // Save the current tab state locally
     currentTab = tab;
@@ -519,16 +521,15 @@ function switchTab(tab) {
     updateTabClasses();
     loadFeed();
 
-    // Enable infinite scroll for public feed
     if (tab === 'public') setupInfiniteScroll();
 
     // 3. Fade the content back in after snapping
     requestAnimationFrame(() => {
       DOM.list.style.opacity = '1';
       DOM.list.style.transform = 'translateX(0)';
-	  setTimeout(refreshSnap, 100);
+      setTimeout(refreshSnap, 100);
     });
-  }, 200); // Slight delay to allow animation to complete
+  }, 200); 
 }
 
 
