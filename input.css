@@ -61,35 +61,28 @@ img, video, canvas {
   height: auto;
 }
 
-/* 2. THE SNAP ENGINE (The Viewport) */
 html {
   width: 100%;
-  /* CHANGED: min-height instead of height: 100% unlocks the scroll */
-  min-height: 100%; 
-  overflow-x: hidden;
-  /* 'auto' is safer than 'scroll !important' for mobile height calculation */
-  overflow-y: auto; 
-  scroll-snap-type: y proximity; 
-  scroll-behavior: smooth;
-  touch-action: manipulation;
+  height: 100%; /* Lockdown the outer frame */
+  overflow: hidden; /* Prevent the double scrollbar war */
 }
 
-/* 3. THE SURFACE (The Canvas) */
+/* 3. THE MASTER SCROLLER (The Engine) */
 body {
   margin: 0;
   padding: 0;
   width: 100%;
-  /* The 100.1vh is the 'secret sauce' for Android touch activation */
-  min-height: 100.1vh; 
-  
-  /* IMPORTANT: Body must stay visible to avoid the 'Double Scrollbar' */
-  overflow-y: visible; 
+  height: 100%; /* Vital for snap calculations */
+  overflow-y: auto; /* Body becomes the ONLY scrollable element */
   overflow-x: hidden;
   
+  /* Snapping now lives here for better mobile support */
+  scroll-snap-type: y mandatory; 
+  scroll-behavior: smooth;
+  
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior-y: contain; 
-  overscroll-behavior-x: none;
-  touch-action: manipulation;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y pinch-zoom;
 }
 
 /* 4. THE HEADER (Fixed Anchor) */
@@ -112,9 +105,9 @@ header {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  /* Push the first item down so it's not hidden under the header */
-  padding-top: 112px;
-  padding-bottom: 80px; 
+  /* Use margin instead of padding to prevent the 'Desktop Gap' */
+  margin-top: 113px; 
+  padding-bottom: 30vh; /* Extra room so the last post can actually snap up */
 }
 
 /* 6. THE POST CARDS (The Magnets) */
@@ -122,8 +115,8 @@ header {
   width: 100%;
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  /* Ensures the snap 'lands' below your header/tabs */
-  scroll-margin-top: 112px; 
+  /* EXACT MATCH to your pinned header + tabs (rounded up) */
+  scroll-margin-top: 113px; 
   touch-action: auto; 
 }
 
