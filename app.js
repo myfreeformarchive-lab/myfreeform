@@ -5,7 +5,7 @@ import {
   writeBatch, getDocs, increment, setDoc, getDoc, runTransaction, where
 } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
 
-import DOMPurify from 'dompurify';
+import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.2.4/+esm';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBD-8hcoAuTFaAhgSy-WIyQX_iI37uokTw",
@@ -32,7 +32,7 @@ document.getElementById('postInput').innerHTML = cleanHTML;
 // Result: <b>Hello!</b> (The rest is erased)
 
 // ==========================================
-// 1. STATE & DOM lalaa
+// 1. STATE & DOM
 // ==========================================
 const DOM = {
   input: document.getElementById('postInput'),
