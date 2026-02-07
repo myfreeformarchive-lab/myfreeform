@@ -1122,8 +1122,9 @@ function renderListItems(items) {
   });
 }
 
-DOM.list.addEventListener('click', (e) => {
-  if (e.target.classList.contains('jump-to-top')) {
+document.addEventListener('click', (e) => {
+  const trigger = e.target.closest('.jump-to-top');
+  if (trigger) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 });
