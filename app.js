@@ -443,8 +443,6 @@ function injectSinglePost(item, position = 'top') {
   const postNode = createPostNode(item); 
   postNode.classList.add('animate-in');
 
-  logViewportAndFeedStatus(); // Log before injecting
-
   // Handle "top" and "bottom" injection cases
   if (position === 'top') {
     setTimeout(() => {
@@ -464,9 +462,8 @@ function injectSinglePost(item, position = 'top') {
       // 🚀 Restore the scroll position to prevent jumping
       requestAnimationFrame(() => {
         window.scrollTo(0, currentScrollTop);
-		logViewportAndFeedStatus(); // Log after the post has been injected
       });
-    }, 3000); // 3 seconds delay
+    }, 1500); // 1.5 seconds delay
   } else {
     // 🚀 Handle appending smoothly (no need to adjust scroll if appending at the bottom)
     DOM.list.appendChild(postNode);
@@ -526,31 +523,8 @@ function switchTab(tab) {
     requestAnimationFrame(() => {
       DOM.list.style.opacity = '1';
       DOM.list.style.transform = 'translateX(0)';
-	  console.log(`[TabSwitch] Finished loading content for tab: ${tab}`);
-      logViewportAndFeedStatus(); // Log AFTER the switch
     });
   }, 200); // Slight delay to allow animation to complete
-}
-
-function logViewportAndFeedStatus() {
-  const feedList = document.getElementById('feedList');
-  const firstFeedItem = feedList.firstElementChild;
-
-  console.log('--- Logging Viewport and Feed Status ---');
-  console.log(`Viewport innerHeight: ${window.innerHeight}px`); // Actual size of the visible part of the viewport
-  console.log(`Viewport outerHeight: ${window.outerHeight}px`); // Full size of the screen
-  console.log(`Scroll position (Y): ${window.scrollY}px`);
-  console.log(`FeedList Height: ${feedList.offsetHeight}px`);
-  console.log(`FeedList Bounding Rect:`, feedList.getBoundingClientRect());
-  if (firstFeedItem) {
-    console.log(
-      `First Feed Item Dimensions - Offset Height: ${firstFeedItem.offsetHeight}px, Bounding Client Rect:`,
-      firstFeedItem.getBoundingClientRect()
-    );
-  } else {
-    console.log('No feed items found.');
-  }
-  console.log('----------------------------------------');
 }
 
 function updateTabClasses() {
@@ -1110,7 +1084,7 @@ function renderListItems(items) {
         <p class="text-slate-500 font-medium tracking-tight">Awaiting inspiration.</p>
         <p class="text-slate-400 text-xs mt-2">
   The best ideas are the ones you 
-  <span onclick="this.closest('.flex').parentElement.scrollTo({top: 0, behavior: 'smooth'})" 
+  <span onclick="document.getElementById('postInput').scrollIntoView({ behavior: 'smooth', block: 'center' })" 
         class="underline cursor-pointer hover:text-slate-600 transition-colors">
     write down
   </span>.
