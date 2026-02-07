@@ -120,6 +120,13 @@ section.group {
   z-index: 40;
 }
 
+#postInputSection {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  /* This margin accounts for your 56px header so it doesn't get cut off */
+  scroll-margin-top: 56px; 
+}
+
 /* 3. THE FEED CONTAINER */
 #feedList {
   width: 100%;
