@@ -118,6 +118,7 @@ section.group {
 
 .sticky {
   z-index: 40;
+  scroll-margin-top: 56px !important;
 }
 
 /* 3. THE FEED CONTAINER */
