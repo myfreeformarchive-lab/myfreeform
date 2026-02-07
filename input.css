@@ -126,7 +126,7 @@ section.group {
   display: flex;
   flex-direction: column;
   padding-bottom: 20vh;
-  min-height: 5000px; /* Larger than the initial feed size */
+  min-height: min-content;
   overflow: hidden;
   scroll-snap-type: y mandatory;
 }
