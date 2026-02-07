@@ -463,7 +463,7 @@ function injectSinglePost(item, position = 'top') {
 
       // 🚀 Restore the scroll position to prevent jumping
       requestAnimationFrame(() => {
-        window.scrollTo(0, currentScrollTop + 56);
+        window.scrollTo(0, currentScrollTop);
 		requestAnimationFrame(refreshSnap);
       });
     }, 1500); // 1.5 seconds delay
