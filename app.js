@@ -1061,10 +1061,10 @@ function renderListItems(items) {
   if (items.length === 0) {
     DOM.list.innerHTML = `
       <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
-           style="scroll-snap-align: start; scroll-margin-top: 136px; min-height: calc(100vh - 112px);">
+           style="scroll-snap-align: start; scroll-margin-top: calc(136px + 24px); min-height: calc(100vh - 112px);">
         <div class="mb-4 text-slate-300">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9"/>
+            <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9-9-9-1.8-9 9 1.8-9 9 9"/>
             <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
             <line x1="9" y1="9" x2="9.01" y2="9"/>
             <line x1="15" y1="9" x2="15.01" y2="9"/>
@@ -1080,7 +1080,7 @@ function renderListItems(items) {
     const postNode = createPostNode(item);
     DOM.list.appendChild(postNode);
     
-    // 🚀 THE FIX: Start watching these initial posts too
+    // Start watching these initial posts
     watchPostCounts(item.id);
   });
 }
