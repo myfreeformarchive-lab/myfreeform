@@ -126,8 +126,6 @@ section.group {
   display: flex;
   flex-direction: column;
   padding-bottom: 20vh;
-  min-height: min-content;
-  overflow: auto;
   scroll-snap-type: y mandatory;
 }
 
