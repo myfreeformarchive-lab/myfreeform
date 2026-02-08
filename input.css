@@ -1,196 +1,249 @@
+/* input.css - Main CSS entry file for the My Freeform app */
+/* Imports Tailwind's layers and defines custom styles, variables, and overrides */
+
+/* ✅ TAILWIND IMPORTS: Pull in Tailwind's base styles, components, and utilities */
+/* These provide the foundation for utility classes used throughout the app */
 @import "tailwindcss";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-
+/* ✅ THEME VARIABLES: Define custom CSS properties for fonts and colors */
+/* These extend the design system, providing a full brand palette and font stacks */
+/* Accessible via CSS custom properties (e.g., var(--color-brand-500)) or Tailwind classes */
 @theme {
-  /* Fonts */
-  --font-sans: "Inter", ui-sans-serif, system-ui;
-  --font-serif: "Playfair Display", ui-serif, Georgia;
-  --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular;
-  --font-hand: "Dancing Script", cursive;
+  /* Fonts: Define font families with fallbacks for cross-platform compatibility */
+  --font-sans: "Inter", ui-sans-serif, system-ui;        /* Clean sans-serif for UI */
+  --font-serif: "Playfair Display", ui-serif, Georgia;   /* Elegant serif for headings */
+  --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular; /* Monospace for code/timestamps */
+  --font-hand: "Dancing Script", cursive;                 /* Handwritten cursive for emphasis */
 
-  /* Expanded Brand Palette (Indigo Base) */
-  --color-brand-50:  #eef2ff; /* The pale circle background */
-  --color-brand-100: #e0e7ff; /* Hover background */
-  --color-brand-200: #c7d2fe; /* The subtle desktop border */
-  --color-brand-300: #a5b4fc;
-  --color-brand-400: #818cf8;
-  --color-brand-500: #3f51b5; /* Main */
-  --color-brand-600: #303f9f; /* Darker/Hover */
-  --color-brand-700: #283593;
+  /* Expanded Brand Palette (Indigo Base): Full spectrum from light to dark */
+  --color-brand-50:  #eef2ff; /* Pale background (e.g., for subtle highlights) */
+  --color-brand-100: #e0e7ff; /* Light hover background (e.g., button hovers) */
+  --color-brand-200: #c7d2fe; /* Subtle borders (e.g., desktop focus rings) */
+  --color-brand-300: #a5b4fc; /* Medium accent */
+  --color-brand-400: #818cf8; /* Lighter brand shade */
+  --color-brand-500: #3f51b5; /* Primary brand color (main buttons, links) */
+  --color-brand-600: #303f9f; /* Darker for hovers/actives */
+  --color-brand-700: #283593; /* Deep accent for strong emphasis */
 }
 
+/* ✅ FORM ELEMENT OVERRIDES: Custom styles for textarea and input */
+/* Ensures consistent cursor (text insertion beam) and prevents word breaking for better UX */
 textarea, input {
+  /* Custom text cursor: Vertical beam icon for better visual feedback */
   cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="black" d="M10 2h2v1h-3v10h3v1h-8v-1h3V3H4V2h6z"/></svg>') 8 8, text;
+  /* Word-break: Keeps words intact to avoid awkward line breaks in input */
   word-break: keep-all; 
 }
 
+
+/* Continuing from the theme variables and form overrides... */
+
+/* ✅ LOAD TRIGGER: Styles for the infinite scroll trigger element */
+/* This is the element that detects when to load more posts */
+/* Hidden initially but takes up space to prevent layout shifts */
 #loadTrigger {
   width: 100%;
-  min-height: 50px; /* Crucial: Chrome needs to see height */
+  min-height: 50px; /* Crucial: Chrome needs to see height for proper detection */
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 0.3s;
-  /* Start hidden but with physical size */
+  transition: opacity 0.3s; /* Smooth fade in/out */
+  /* Start hidden but with physical size to maintain layout */
   visibility: hidden; 
 }
 
 /* 1. GLOBAL RESET & SCROLLBAR HIDING */
+/* Resets and hides scrollbars for a cleaner, mobile-like UI */
+
+/* Box-sizing reset: Ensures padding/borders are included in width calculations */
 * {
   box-sizing: border-box;
 }
 
-/* Nuke scrollbars globally */
+/* Hide scrollbars globally on all elements for a sleek look */
 html, body, #feedList, textarea {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;         /* Firefox */
+  -ms-overflow-style: none !important;      /* IE/Edge */
 }
 
 html::-webkit-scrollbar, 
 body::-webkit-scrollbar, 
 #feedList::-webkit-scrollbar, 
 textarea::-webkit-scrollbar {
-  display: none !important;
+  display: none !important; /* WebKit browsers (Chrome, Safari) */
 }
 
+/* Media elements: Responsive sizing to fit containers */
 img, video, canvas {
   max-width: 100%;
   height: auto;
 }
 
+/* HTML root: Full width, prevent forced scrolling for dynamic content */
 html {
   width: 100%;
-  overflow: visible !important;
-  height: auto !important;
+  overflow: visible !important; /* Allow content to expand naturally */
+  height: auto !important;      /* Dynamic height based on content */
 }
 
-/* 3. THE MASTER SCROLLER (The Engine) */
+/* 3. THE MASTER SCROLLER (The Engine): Body styles for smooth scrolling */
+/* Configures the main scroll container for the app's feed behavior */
 body {
   margin: 0;
   padding: 0;
   width: 100%;
   overflow: visible !important;
   height: auto !important;
-  
-  /* CHANGE: Proximity is better when you have large varying heights */
-  /* This prevents the "jumping" that hides your Section Area */
-  scroll-snap-type: y proximity; 
   scroll-behavior: smooth;
-  
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: contain;
   touch-action: pan-y pinch-zoom;
 }
 
-/* 4. THE HEADER (Fixed Anchor) */
+/* 4. THE HEADER (Fixed Anchor): Styles for the fixed top navigation */
+/* Keeps the header in place while content scrolls beneath it */
 header {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 100;
-  background: white; /* Ensures content doesn't ghost through */
-  height: 56px; 
+  background: white;
+  height: 56px;
+  /* FIX: Prevent shaking by hinting GPU and disabling transforms */
+  will-change: transform; /* Optimizes for fixed position */
+  transform: translateZ(0); /* Forces hardware acceleration */
+  backface-visibility: hidden; /* Reduces flicker */
 }
 
+/* Section Group: Styles for main content sections (e.g., input area, feed) */
 section.group {
   scroll-snap-align: start;
   scroll-snap-stop: always;
   
-  /* 1. The Visual Offset */
-  /* We use padding instead of margin-top to keep the "touch area" active */
-  padding-top: 70px; /* 56px (Header) + 14px (Breathing room) */
-  margin-top: -56px !important; /* The "Magic": This pulls the element UP under the header */
+  /* FIX: Reduced padding/margin for tighter hide behind header */
+  padding-top: 56px; /* Matches header height exactly */
+  margin-top: 0 !important; /* Removed negative margin to prevent overlap issues */
   
-  /* 2. The Snap Anchor */
-  /* This ensures that when it snaps, it stops exactly at the header line */
-  scroll-margin-top: 0px; 
+  scroll-margin-top: 0px;
   
   position: relative;
   z-index: 10;
   min-height: auto;
   background: white;
+  /* FIX: Add transition for smooth hide/show on tab switch */
+  transition: transform 0.3s ease; /* Allows JS to translateY(-100%) to hide */
 }
 
+/* Tabs Container: Becomes fixed below header when scrolling/active */
+/* Updated: Added fixed positioning logic for "float solid" behavior */
+
+/* Sticky Elements: General class for sticky positioning */
 .sticky {
-  z-index: 40;
+  z-index: 40; /* Lower than header/modal z-indexes for layering */
 }
 
-/* 3. THE FEED CONTAINER */
+/* 3. THE FEED CONTAINER: Styles for the main posts list */
+
 #feedList {
   width: 100%;
   display: flex;
   flex-direction: column;
   padding-bottom: 20vh;
+  /* FIX: Added scroll snapping to container for better post control */
+  scroll-snap-type: y proximity; /* Moved from body for per-element snapping */
 }
 
+/* FeedList Optimizations: Kept for performance */
 #feedList {
-  will-change: transform, opacity; /* Prepare GPU optimization */
-  transition: transform 0.3s ease, opacity 0.3s ease; /* Concise transitions */
-  backface-visibility: hidden; /* Prevent flickering on mobile */
+  will-change: transform, opacity;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  backface-visibility: hidden;
   transform-style: preserve-3d;
 }
 
-/* The Magnet for actual posts */
+/* Feed Item: Snapping for dynamic post sizes */
+/* Updated: Adjusted offset for fixed tabs below header */
 .feed-item {
   width: 100%;
   scroll-snap-align: start;
-  /* 112px (Header+Tabs) + 24px (mb-6) = 136px */
-  scroll-margin-top: calc(112px + 24px) !important; 
+  /* FIX: Updated for fixed tabs (header 56px + tabs 56px = 112px, no extra margin) */
+  scroll-margin-top: 112px !important; /* Accounts for fixed header + fixed tabs */
 }
 
-/* Adjust tabs for smaller mobile devices (if needed) */
+/* Responsive Adjustments: Tabs behavior on smaller screens */
 @media (max-width: 768px) {
   #tabs {
-    top: 0; /* Stick to the top of the mobile viewport */
-    z-index: 50; /* Ensure no overlap */
+    top: 56px; /* Still below header on mobile */
+    z-index: 50;
   }
 }
 
+/* Main Container: Ensures the main content area adapts properly */
 main.max-w-xl.mx-auto {
-  overflow: visible !important;
-  height: auto !important;
+  overflow: visible !important; /* Allows content to expand */
+  height: auto !important;      /* Dynamic height */
 }
 
+/* Tabs Container: Sticky positioning for tab navigation */
 #tabs {
-  position: sticky;  /* Enable sticky behavior */
-  z-index: 50;       /* Place above feed content */
-  background: white; /* Prevent overlap from feed */
-  top: auto;
+  /* FIX: Switch to fixed when active/scrolling to stay below header */
+  position: fixed; /* Changed from sticky for consistent below-header position */
+  top: 56px; /* Directly below header (56px) */
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: white;
+  height: 56px;
+  /* FIX: Prevent overlap/shaking */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  /* FIX: Removed top: auto; and sticky class conflicts */
 }
 
-/* 3. Modal Animations */
+/* 3. Modal Animations: Keyframes and triggers for modal appearance */
+/* Smooth fade and slide effects for better UX */
+
+/* Fade In: Simple opacity transition for overlays */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
+/* Trigger fade for modal overlay when visible */
 #commentModal:not(.hidden) #closeModalOverlay {
   animation: fadeIn 0.3s ease-out forwards;
 }
 
+/* Slide Up: Bottom-to-top entrance for modal content */
 @keyframes slideUp {
-  from { transform: translateY(100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-#commentModal:not(.hidden) #modalCard {
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  from { transform: translateY(100%); opacity: 0; } /* Starts below viewport */
+  to { transform: translateY(0); opacity: 1; }     /* Slides to center */
 }
 
-/* 4. Comment Bubbles */
+/* Trigger slide for modal card with easing */
+#commentModal:not(.hidden) #modalCard {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; /* Smooth, bouncy curve */
+}
+
+/* 4. Comment Bubbles: Animation for comment appearances */
 @keyframes popIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(0.95); } /* Slightly smaller and transparent */
+  to { opacity: 1; transform: scale(1); }      /* Full size and visible */
 }
+
+/* Apply pop-in animation to comment bubbles */
 .comment-bubble {
-  animation: popIn 0.2s ease-out forwards;
+  animation: popIn 0.2s ease-out forwards; /* Quick, subtle entrance */
 }
+
 
 /* =========================================
-   5. NEW SHARE SYSTEM 
+    SHARE SYSTEM 
    ========================================= */
 
 .share-trigger-btn {
@@ -265,7 +318,7 @@ main.max-w-xl.mx-auto {
 }
 
 /* =========================================
-   6. TOAST & DIALOG ANIMATIONS 
+   TOAST ANIMATIONS 
    ========================================= */
 
 .toast-glass {
@@ -302,7 +355,7 @@ main.max-w-xl.mx-auto {
 }
 
 /* =========================================
-   6. TOAST & DIALOG ANIMATIONS 
+   DIALOG ANIMATIONS 
    ========================================= */
 
 /* Ensure the overlay is invisible but ready */
@@ -328,6 +381,10 @@ main.max-w-xl.mx-auto {
   transform: scale(1) !important;
 }
 
+/* =========================================
+   Rotation Lock
+   ========================================= */
+
 /* 🚀 THE STUBBORN LOCK */
 /* Detects if the screen is wider than it is tall (Landscape) */
 @media (orientation: landscape) and (max-device-width: 932px) {
@@ -341,6 +398,10 @@ main.max-w-xl.mx-auto {
         display: none !important;
     }
 }
+
+/* =========================================
+   Modal Content
+   ========================================= */
 
 .post-body a {
   overflow-wrap: break-word;
@@ -378,6 +439,10 @@ main.max-w-xl.mx-auto {
     transition: all 0.2s;
 }
 
+/* =========================================
+   innerHTML design frames
+   ========================================= */
+
 /* Custom animations for bot-generated messages */
 @keyframes pulse {
     0%, 100% { 
@@ -399,6 +464,10 @@ main.max-w-xl.mx-auto {
         transform: translateX(5px); 
     }
 }
+
+/* =========================================
+   Injection Animation for Feed
+   ========================================= */
 
 /* Graceful Fade-In */
 .fade-in {
