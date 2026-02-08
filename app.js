@@ -491,50 +491,56 @@ function applyFontPreference(font) {
   });
 }
 
-function getStickyElement(tab) {
-  return document.querySelector('#tabs'); // Always return the #tabs element
-}
-
-function updateStickyClass(tab) {
-  const allStickyElements = document.querySelectorAll('[data-sticky]');
-  allStickyElements.forEach((el) => el.classList.remove('sticky'));
-
-  const stickyElement = getStickyElement(tab);
-  if (stickyElement) {
-    stickyElement.classList.add('sticky');
-  }
-}
-
 function switchTab(tab) {
   // Exit early if switching to the same tab
   if (currentTab === tab) return;
 
-  // 1. Scroll the sticky element into view
-  const stickyElement = getStickyElement(tab); // Dynamically get the sticky element
-  if (stickyElement) {
-    stickyElement.scrollIntoView({
-      behavior: 'smooth', // Use smooth scrolling for better UX
-      block: 'start',     // Align the sticky element to the top of the viewport
+  // 1. Force animation to restart
+  DOM.list.style.transition = 'none'; // Disable transitions momentarily
+  DOM.list.style.transform = ''; // Clear the transform
+  DOM.list.style.opacity = ''; // Reset opacity
+
+  // 🚀 Force browser reflow to ensure the animation resets
+  const _ = DOM.list.offsetHeight; // Trigger reflow via accessing layout property
+
+  // 2. Reapply the fade/slide-out animation
+  DOM.list.style.transition = 'transform 0.3s ease, opacity 0.3s ease'; // Restore transitions
+  DOM.list.style.opacity = '0';
+  DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
+
+  // 3. Use a timeout for the animation duration
+  setTimeout(() => {
+    // 4. Scroll the sticky element into view
+    const tabsElement = document.querySelector('.sticky');
+    if (tabsElement) {
+      tabsElement.scrollIntoView({
+        behavior: 'auto',
+        block: 'start',
+      });
+    }
+
+    // 5. Update the state to reflect the current tab
+    currentTab = tab;
+    localStorage.setItem('freeform_tab_pref', tab);
+
+    // 6. Reset feed content for the new tab
+    currentLimit = BATCH_SIZE;
+    updateTabClasses();
+    loadFeed();
+
+    // Enable infinite scroll for public feed
+    if (tab === 'public') setupInfiniteScroll();
+
+    // 7. Fade/slide the content back in
+    requestAnimationFrame(() => {
+      DOM.list.style.opacity = '1'; // Fade back in
+      DOM.list.style.transform = 'translateX(0)'; // Restore transform
+      setTimeout(refreshSnap, 100); // Make sure snapping works if applicable
     });
-  }
 
-  // 2. Update the current tab state and save preferences
-  currentTab = tab;
-  localStorage.setItem('freeform_tab_pref', tab);
-
-  // 3. Reset feed content for the selected tab
-  currentLimit = BATCH_SIZE; // Reset content batch limit
-  updateTabClasses();
-  loadFeed();
-
-  // 4. Enable infinite scroll for public feed
-  if (tab === 'public') {
-    setupInfiniteScroll();
-  }
-
-  // 5. OPTIONAL: Refresh snapping if required
-  // setTimeout(refreshSnap, 100);
+  }, 300); // Wait for the fade-out to finish
 }
+
 
 function updateTabClasses() {
   const activeClass = "flex-1 pb-3 text-sm font-bold text-brand-600 border-b-2 border-brand-500 transition-all";
