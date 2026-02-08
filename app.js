@@ -646,7 +646,10 @@ function subscribeArchiveSync() {
 // 3. THE SUBSCRIBER (Fixed Syntax)
 // ==========================================
 async function subscribePublicFeed() {
-  if (publicUnsubscribe) publicUnsubscribe();
+  if (publicUnsubscribe) {
+    publicUnsubscribe();
+    publicUnsubscribe = null;
+  }
 
   // 🛡️ THE FIX: Only reset state if we aren't just appending more posts
   if (!isAppending) {
