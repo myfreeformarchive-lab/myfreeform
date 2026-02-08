@@ -510,14 +510,14 @@ function switchTab(tab) {
 
   // 3. Use a timeout for the animation duration
   setTimeout(() => {
-    // 4. Scroll the sticky element into view
-    const tabsElement = document.querySelector('.sticky');
-    if (tabsElement) {
-      tabsElement.scrollIntoView({
-        behavior: 'auto',
-        block: 'start',
-      });
-    }
+    // REMOVED: scrollIntoView for fixed tabs (causes creeping on refresh)
+    // const tabsElement = document.querySelector('.sticky');
+    // if (tabsElement) {
+    //   tabsElement.scrollIntoView({
+    //     behavior: 'auto',
+    //     block: 'start',
+    //   });
+    // }
 
     // 5. Update the state to reflect the current tab
     currentTab = tab;
@@ -535,7 +535,7 @@ function switchTab(tab) {
     requestAnimationFrame(() => {
       DOM.list.style.opacity = '1'; // Fade back in
       DOM.list.style.transform = 'translateX(0)'; // Restore transform
-      setTimeout(refreshSnap, 100); // Make sure snapping works if applicable
+     // setTimeout(refreshSnap, 100); // Make sure snapping works if applicable
     });
 
   }, 300); // Wait for the fade-out to finish
