@@ -506,7 +506,7 @@ function switchTab(tab) {
   // 2. Reapply the fade/slide-out animation
   DOM.list.style.transition = 'transform 0.3s ease, opacity 0.3s ease'; // Restore transitions
   DOM.list.style.opacity = '0';
-  DOM.list.style.transform = tab === 'public' ? 'translateX(-8px)' : 'translateX(8px)';
+  DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
 
   // 3. Use a timeout for the animation duration
   setTimeout(() => {
@@ -1088,7 +1088,7 @@ function renderListItems(items) {
   if (items.length === 0) {
     DOM.list.innerHTML = `
       <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
-           style="scroll-snap-align: start; scroll-margin-top: calc(112px + 24px); min-height: calc(100vh - 112px);">
+           style="scroll-snap-align: start; scroll-margin-top: calc(112px + 24px); min-height: calc(100vh - 418px);">
         <div class="mb-4 text-slate-300">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9"/>
