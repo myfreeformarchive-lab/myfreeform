@@ -466,7 +466,7 @@ function injectSinglePost(item, position = 'top') {
         window.scrollTo(0, currentScrollTop);
 		requestAnimationFrame(refreshSnap);
       });
-    }, 1500); // 1.5 seconds delay
+    }, 4500); // 4.5 seconds delay
   } else {
     // 🚀 Handle appending smoothly (no need to adjust scroll if appending at the bottom)
     DOM.list.appendChild(postNode);
