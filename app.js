@@ -503,10 +503,10 @@ function switchTab(tab) {
   // 🚀 Force browser reflow to ensure the animation resets
   const _ = DOM.list.offsetHeight; // Trigger reflow via accessing layout property
 
-  // 2. Reapply the fade/slide-out animation
-  DOM.list.style.transition = 'transform 0.3s ease, opacity 0.3s ease'; // Restore transitions
+  // 2. Reapply the fade-out animation (NO X-axis movement)
+  DOM.list.style.transition = 'opacity 0.3s ease'; // Only fade, no transform
   DOM.list.style.opacity = '0';
-  DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
+  // REMOVED: DOM.list.style.transform = ... (eliminates X shift)
 
   // 3. Use a timeout for the animation duration
   setTimeout(() => {
@@ -515,7 +515,7 @@ function switchTab(tab) {
 
     // 5. Update the state to reflect the current tab
     currentTab = tab;
-    localStorage.setItem('freeform_tab_pref', tab);
+    localStorage.setItem('freeform_v2', tab); // Note: Changed to 'freeform_v2' to match your storage key
 
     // 6. Reset feed content for the new tab
     currentLimit = BATCH_SIZE;
@@ -525,10 +525,10 @@ function switchTab(tab) {
     // Enable infinite scroll for public feed
     if (tab === 'public') setupInfiniteScroll();
 
-    // 7. Fade/slide the content back in
+    // 7. Fade the content back in
     requestAnimationFrame(() => {
       DOM.list.style.opacity = '1'; // Fade back in
-      DOM.list.style.transform = 'translateX(0)'; // Restore transform
+      // REMOVED: DOM.list.style.transform = 'translateX(0)'; (no transform to reset)
       setTimeout(refreshSnap, 100); // Make sure snapping works if applicable
     });
 
