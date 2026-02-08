@@ -98,27 +98,26 @@ header {
 }
 
 section.group {
+  /* Maintain consistent spacing under header */
+  scroll-margin-top: 70px;
+  padding-top: 70px; /* 56px header + 14px breathing room */
+  margin-top: -56px !important;
+
+  /* Align sections to stop behind tabs properly */
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  
-  /* 1. The Visual Offset */
-  /* We use padding instead of margin-top to keep the "touch area" active */
-  padding-top: 70px; /* 56px (Header) + 14px (Breathing room) */
-  margin-top: -56px !important; /* The "Magic": This pulls the element UP under the header */
-  
-  /* 2. The Snap Anchor */
-  /* This ensures that when it snaps, it stops exactly at the header line */
-  scroll-margin-top: 0px; 
-  
-  position: relative;
-  z-index: 10;
-  min-height: auto;
+
+  z-index: 10; /* Ensure proper layer alignment */
   background: white;
+  position: relative;
 }
 
 .sticky {
-  z-index: 40;
-  scroll-margin-top: 56px !important;
+  z-index: 100; /* Higher than groups */
+  scroll-margin-top: 56px; /* Offset for snapping alignment */
+  background: white;
+  position: sticky; /* Lock header under tabs */
+  top: 14px; /* Exactly where it needs to stick */
 }
 
 /* 3. THE FEED CONTAINER */
@@ -132,7 +131,7 @@ section.group {
 /* The Magnet for actual posts */
 .feed-item {
   width: 100%;
-  scroll-snap-align: start !important;
+  scroll-snap-align: start;
   /* 112px (Header+Tabs) + 24px (mb-6) = 136px */
   scroll-margin-top: calc(112px + 24px) !important; 
 }
