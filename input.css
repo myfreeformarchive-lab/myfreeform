@@ -154,7 +154,7 @@ section.group {
   flex-direction: column;
   padding-bottom: 20vh;
   /* FIX: Added scroll snapping to container for better post control */
-   /* Moved from body for per-element snapping  scroll-snap-type y proximity;*/
+  scroll-snap-type: y proximity; /* Moved from body for per-element snapping */
 }
 
 /* FeedList Optimizations: Kept for performance */
@@ -186,6 +186,14 @@ section.group {
 main.max-w-xl.mx-auto {
   overflow: visible !important; /* Allows content to expand */
   height: auto !important;      /* Dynamic height */
+}
+
+@media (max-width: 768px) {
+  header {
+    /* Prevent any shaking or shifts from animations */
+    transform: none !important;
+    will-change: auto; /* Reset GPU hints that might cause issues */
+  }
 }
 
 /* Tabs Container: Sticky positioning for tab navigation */
