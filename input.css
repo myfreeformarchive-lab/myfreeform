@@ -128,6 +128,13 @@ section.group {
   padding-bottom: 20vh;
 }
 
+#feedList {
+  will-change: transform, opacity; /* Prepare GPU optimization */
+  transition: transform 0.3s ease, opacity 0.3s ease; /* Concise transitions */
+  backface-visibility: hidden; /* Prevent flickering on mobile */
+  transform-style: preserve-3d;
+}
+
 /* The Magnet for actual posts */
 .feed-item {
   width: 100%;
