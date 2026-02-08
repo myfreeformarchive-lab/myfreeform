@@ -281,27 +281,27 @@ if (DOM.desktopEmojiTrigger && DOM.desktopEmojiPopup) {
  */
 async function getNextUniqueTag() {
   const counterRef = doc(db, "metadata", "postCounter");
-
   try {
     const newCount = await runTransaction(db, async (transaction) => {
       const counterDoc = await transaction.get(counterRef);
-      
       if (!counterDoc.exists()) {
-        // Initialize if first time
         transaction.set(counterRef, { count: 1 });
         return 1;
       }
-
       const nextId = counterDoc.data().count + 1;
       transaction.update(counterRef, { count: nextId });
       return nextId;
     });
 
-    return `UID:${newCount}`;
+    // 🚀 THE FIX: Return an object with both the Number and the String
+    return {
+      num: newCount,
+      tag: `UID:${newCount}`
+    };
   } catch (e) {
-    console.error("Counter transaction failed: ", e);
-    // Fallback to timestamp if transaction fails to prevent blocking user
-    return `#temp${Date.now().toString().slice(-4)}`;
+    console.error("Counter failed: ", e);
+    const tempNum = Date.now();
+    return { num: tempNum, tag: `#temp${tempNum.toString().slice(-4)}` };
   }
 }
 
@@ -417,13 +417,19 @@ async function refillBufferRandomly(count = 1, silent = false) {
     const minId = Math.max(1, maxId - windowSize);
 
     let attempts = 0;
+	const MAX_ATTEMPTS = 10;
     // We try up to 15 times to find 'count' valid posts
-    while (postBuffer.length < count && attempts < 15) {
+    while (postBuffer.length < count && attempts < MAX_ATTEMPTS) {
       attempts++;
       const rand = Math.floor(Math.random() * (maxId - minId + 1) + minId);
-      const targetTag = `UID:${rand}`;
+      
+	  const q = query(
+        collection(db, "globalPosts"), 
+        where("serialId", ">=", rand), 
+        orderBy("serialId", "asc"), 
+        limit(1)
+      );
 
-      const q = query(collection(db, "globalPosts"), where("uniqueTag", "==", targetTag));
       const snap = await getDocs(q);
 
       if (!snap.empty) {
@@ -436,7 +442,9 @@ async function refillBufferRandomly(count = 1, silent = false) {
         if (!isDuplicate) {
           postBuffer.push(post);
         }
-      }
+      } else {
+		  break;
+		  }
     }
  
   } catch (err) {
@@ -1294,15 +1302,19 @@ async function handlePost() {
   try {
     let firebaseId = null;
     let uniqueTag = null;
+	let serialId = null;
 
     if (isPublic) {
-      uniqueTag = await getNextUniqueTag();
+      const idData = await getNextUniqueTag();
+      uniqueTag = idData.tag;
+	  serialId = idData.num;
 
       const docRef = await addDoc(collection(db, "globalPosts"), { 
         content: text, 
         font: selectedFont, 
         authorId: MY_USER_ID,
         uniqueTag: uniqueTag,
+		serialId: serialId,
         createdAt: serverTimestamp(),
         commentCount: 0,
         likeCount: 0
@@ -1315,10 +1327,12 @@ async function handlePost() {
       content: text, 
       font: selectedFont,
       uniqueTag: uniqueTag,
+	  serialId: serialId,
       createdAt: new Date().toISOString(),
       isFirebase: false,
       firebaseId: firebaseId,
-      commentCount: 0
+      commentCount: 0,
+	  likeCount: 0
     };
 
     const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
@@ -1360,13 +1374,14 @@ async function publishDraft(post) {
       
       // === 🟢 PUBLISH LOGIC STARTS HERE ===
       try {
-        const uniqueTag = await getNextUniqueTag();		
+        const idData = await getNextUniqueTag();		
         
         const docRef = await addDoc(collection(db, "globalPosts"), { 
           content: post.content, 
           font: post.font || 'font-sans', 
           authorId: MY_USER_ID,
-          uniqueTag: uniqueTag,
+          uniqueTag: idData.tag,
+		  serialId: idData.num,
           createdAt: serverTimestamp(),
           commentCount: 0,
           likeCount: 0 
@@ -1378,7 +1393,8 @@ async function publishDraft(post) {
         if (targetIndex !== -1) {
           // Link local post to the new global ID
           posts[targetIndex].firebaseId = docRef.id;
-          posts[targetIndex].uniqueTag = uniqueTag;
+          posts[targetIndex].uniqueTag = idData.tag;
+		  posts[targetIndex].serialId = idData.num;
           posts[targetIndex].commentCount = 0;
           posts[targetIndex].likeCount = 0;
           localStorage.setItem('freeform_v2', JSON.stringify(posts));
