@@ -136,7 +136,7 @@
   <header class="fixed top-0 w-full bg-white/80 backdrop-blur-md border-b border-slate-200 z-50">
     <div class="max-w-xl mx-auto px-4 h-14 flex items-center justify-between">
       <!-- App title: Clickable to scroll to top of page -->
-      <h1 class="text-xl font-bold text-brand-500 tracking-tight cursor-pointer" onclick="window.scrollTo(0,0)">Freeform</h1>
+      <h1 id="logoHome" class="text-xl font-bold text-brand-500 tracking-tight cursor-pointer">Freeform</h1>
       <!-- Storage info: Displays calculated storage usage (updated dynamically) -->
       <div class="text-xs text-slate-600 font-mono truncate" id="storageInfo">Calc...</div>
     </div>
@@ -151,8 +151,7 @@
   <div class="h-14"></div>
     
   <!-- 1. INPUT AREA: Main section for composing new posts -->
-  <section class="group bg-white p-4 border-slate-100 lg:border-slate-300 border-b mb-6 transition-all duration-300 cursor-text w-full"
-  onclick="document.getElementById('postInput').focus()">
+  <section id="inputSection" class="group bg-white p-4 border-slate-100 lg:border-slate-300 border-b mb-6 transition-all duration-300 cursor-text w-full">
     
     <div class="flex flex-col gap-2 mt-2">
       <!-- Textarea for user input: Auto-resizing, focused on click, with placeholder -->
@@ -213,7 +212,6 @@
   <div id="tabs" class="flex mb-6 h-14 border-b border-slate-200 lg:border-slate-300 sticky top-14 bg-white/95 backdrop-blur z-40 w-full" data-sticky>
     <!-- Public Tab: Displays global discovery feed of shared posts -->
     <button id="tabPublic" 
-      onclick="switchTab('public')"
       style="padding-top: 12px; padding-bottom: 12px;"
       class="flex-1 flex items-center justify-center text-sm font-semibold text-slate-500 hover:text-slate-700 border-b-2 border-b-transparent transition-all">
       Discover Global
@@ -221,7 +219,6 @@
 
     <!-- Private Tab: Displays user's personal archive (default active) -->
     <button id="tabPrivate" 
-      onclick="switchTab('private')" 
       style="padding-top: 12px; padding-bottom: 12px;"
       class="flex-1 flex items-center justify-center text-sm font-bold text-brand-600 border-b-2 border-b-brand-500 transition-all">
       My Archive
@@ -450,7 +447,7 @@
       </button>
 
       <!-- Cancel Button: Dismisses the dialog -->
-      <button onclick="closeDialog()" class="w-full py-3.5 text-slate-900 font-normal border-t border-slate-100 hover:bg-slate-50 transition-colors outline-none">
+      <button id="dialogCancel" class="w-full py-3.5 text-slate-900 font-normal border-t border-slate-100 hover:bg-slate-50 transition-colors outline-none">
         Cancel
       </button>
     </div>
@@ -472,9 +469,9 @@
         <!-- Action Buttons -->
         <div class="flex gap-3 justify-center">
             <!-- Cancel Button -->
-            <button onclick="closeExitModal()" class="modal-btn bg-gray-800 text-white hover:bg-gray-700">Go Back</button>
+            <button id="exitModalBack" class="modal-btn bg-gray-800 text-white hover:bg-gray-700">Go Back</button>
             <!-- Confirm Button: Links to external site -->
-            <a id="confirm-exit-btn" href="#" target="_blank" onclick="closeExitModal()" class="modal-btn bg-blue-600 text-white hover:bg-blue-500">Continue</a>
+            <a id="confirm-exit-btn" href="#" target="_blank" class="modal-btn bg-blue-600 text-white hover:bg-blue-500">Continue</a>
         </div>
     </div>
 </div>
