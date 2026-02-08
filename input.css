@@ -416,13 +416,17 @@ section.group {
     opacity: 0;
     will-change: transform, opacity;
   }
-  80% {
-    transform: translateY(0.2rem);
+  60% {
+    transform: translateY(0.2rem); /* Overshoot */
     opacity: 1;
     will-change: transform, opacity;
   }
+  80% {
+    transform: translateY(0.1rem); /* Start slowing down */
+    opacity: 1;
+  }
   100% {
-    transform: translateY(0);
+    transform: translateY(0); /* Rest at final position */
     opacity: 1;
     will-change: auto;
   }
