@@ -509,34 +509,31 @@ function switchTab(tab) {
   // Exit early if switching to the same tab
   if (currentTab === tab) return;
 
-  // 1. Update the sticky element dynamically
-  updateStickyClass(tab); // CHANGED: Add this to assign the correct "sticky" element
-
-  // 2. Scroll the sticky element into view
-  const stickyElement = getStickyElement(tab); // CHANGED: Dynamically get the sticky element
+  // 1. Scroll the sticky element into view
+  const stickyElement = getStickyElement(tab); // Dynamically get the sticky element
   if (stickyElement) {
     stickyElement.scrollIntoView({
-      behavior: 'smooth', // CHANGED: Use smooth scrolling for better UX
+      behavior: 'smooth', // Use smooth scrolling for better UX
       block: 'start',     // Align the sticky element to the top of the viewport
     });
   }
 
-  // 3. Update the current tab state and save preferences
-  currentTab = tab; // No changes
-  localStorage.setItem('freeform_tab_pref', tab); // No changes
+  // 2. Update the current tab state and save preferences
+  currentTab = tab;
+  localStorage.setItem('freeform_tab_pref', tab);
 
-  // 4. Reset feed content for the selected tab
-  currentLimit = BATCH_SIZE; // No changes
-  updateTabClasses(); // No changes
-  loadFeed(); // No changes
+  // 3. Reset feed content for the selected tab
+  currentLimit = BATCH_SIZE; // Reset content batch limit
+  updateTabClasses();
+  loadFeed();
 
-  // 5. Enable infinite scroll for public feed
+  // 4. Enable infinite scroll for public feed
   if (tab === 'public') {
-    setupInfiniteScroll(); // No changes
+    setupInfiniteScroll();
   }
 
-  // 6. OPTIONAL: Refresh snapping if required
- // setTimeout(refreshSnap, 100); // No changes
+  // 5. OPTIONAL: Refresh snapping if required
+  // setTimeout(refreshSnap, 100);
 }
 
 function updateTabClasses() {
