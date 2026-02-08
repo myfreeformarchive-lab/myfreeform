@@ -1,6 +1,4 @@
-if (window.chrome && chrome.runtime && chrome.runtime.id) {
-  document.body.classList.add('extension-view');
-}
+
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
 import { 
