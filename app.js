@@ -1149,7 +1149,9 @@ function renderListItems(items) {
           <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
         </div>`;
     } else {
-		
+		setTimeout(() => {
+            renderListItems(visiblePosts); 
+        }, 500);
       }
 	  }
     return;
