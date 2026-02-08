@@ -506,7 +506,7 @@ function switchTab(tab) {
   // 2. Reapply the fade/slide-out animation
   DOM.list.style.transition = 'transform 0.3s ease, opacity 0.3s ease'; // Restore transitions
   DOM.list.style.opacity = '0';
-  //DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
+  DOM.list.style.transform = tab === 'public' ? 'translateX(0px)' : 'translateX(0px)';
 
   // 3. Use a timeout for the animation duration
   setTimeout(() => {
@@ -528,7 +528,7 @@ function switchTab(tab) {
     // 7. Fade/slide the content back in
     requestAnimationFrame(() => {
       DOM.list.style.opacity = '1'; // Fade back in
-     // DOM.list.style.transform = 'translateX(0)'; // Restore transform
+      DOM.list.style.transform = 'translateX(0)'; // Restore transform
       setTimeout(refreshSnap, 100); // Make sure snapping works if applicable
     });
 
