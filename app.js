@@ -308,30 +308,37 @@ async function getNextUniqueTag() {
 // ==========================================
 // Drip Feed
 // ==========================================
+let currentDripId = 0;
+
 function startDripFeed() {
   if (dripTimeout) clearTimeout(dripTimeout);
+  
+  const myId = ++currentDripId;
 
   async function drip() {
     // 🚀 THE FIX: If the user switched tabs while we were waiting, STOP IMMEDIATELY
-    if (currentTab !== 'public') return;
+    if (currentTab !== 'public' || myId !== currentDripId) return;
 
     if (postBuffer.length === 0) {
       await refillBufferRandomly(1);
     }
 
     // Double check again after the 'await' finishes
-    if (currentTab !== 'public') return;
+    if (currentTab !== 'public' || myId !== currentDripId) return;
 
     if (postBuffer.length > 0) {
       const nextPost = postBuffer.shift();
-      visiblePosts.unshift(nextPost);
-      injectSinglePost(nextPost, 'top');
+	  
+	  if (!document.getElementById(`post-${nextPost.id}`)) {
+          visiblePosts.unshift(nextPost);
+          injectSinglePost(nextPost, 'top');
 
-      if (visiblePosts.length > 50) {
-        visiblePosts.pop();
-        if (DOM.list.lastElementChild) DOM.list.lastElementChild.remove();
+          if (visiblePosts.length > 50) {
+            visiblePosts.pop();
+            if (DOM.list.lastElementChild) DOM.list.lastElementChild.remove();
+          }
       }
-    }
+      }
     
     dripTimeout = setTimeout(drip, 20000); 
   }
