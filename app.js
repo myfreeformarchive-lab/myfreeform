@@ -2212,3 +2212,26 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js')
     .then(() => console.log("Service Worker Registered"));
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Scroll to Top
+    document.getElementById('logoHome')?.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // 2. Focus Textarea when clicking section
+    document.getElementById('inputSection')?.addEventListener('click', () => {
+        document.getElementById('postInput')?.focus();
+    });
+
+    // 3 & 4. Tabs
+    document.getElementById('tabPublic')?.addEventListener('click', () => switchTab('public'));
+    document.getElementById('tabPrivate')?.addEventListener('click', () => switchTab('private'));
+
+    // 5. Close Dialog
+    document.getElementById('dialogCancel')?.addEventListener('click', () => closeDialog());
+
+    // 6 & 7. Exit Modal
+    document.getElementById('exitModalBack')?.addEventListener('click', () => closeExitModal());
+    document.getElementById('confirm-exit-btn')?.addEventListener('click', () => closeExitModal());
+});
