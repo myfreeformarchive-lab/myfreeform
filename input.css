@@ -129,7 +129,7 @@ section.group {
   margin-top: 0 !important; /* Removed negative margin to prevent overlap issues */
   
   scroll-margin-top: 0px;
-  transform: none !important;
+  
   position: relative;
   z-index: 10;
   min-height: auto;
@@ -154,7 +154,7 @@ section.group {
   flex-direction: column;
   padding-bottom: 20vh;
   /* FIX: Added scroll snapping to container for better post control */
-  scroll-snap-type: y proximity; /* Moved from body for per-element snapping */
+   /* Moved from body for per-element snapping  scroll-snap-type y proximity;*/
 }
 
 /* FeedList Optimizations: Kept for performance */
@@ -200,7 +200,7 @@ main.max-w-xl.mx-auto {
   background: white;
   height: 56px;
   /* Stability fixes */
-  will-change: auto;
+  will-change: transform;
   backface-visibility: hidden;
 }
 
