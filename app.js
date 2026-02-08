@@ -1149,9 +1149,24 @@ function renderListItems(items) {
           <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
         </div>`;
     } else {
-		setTimeout(() => {
-           loadMoreData();
-        }, 500);
+		//setTimeout(() => {
+       //    subscribePublicFeed();
+      //  }, 500);
+	  
+	  //console.log
+	  
+	  // 🕵️ DEBUGGER: Why are we in the Silence Zone?
+        console.group("🔍 Render Trace");
+        console.log("Status: items.length is 0");
+        console.log("Tab:", currentTab);
+        console.log("Global Count:", totalGlobalPosts);
+        
+        // This line is the 'Teleport' — it shows you the function name
+        console.log("Triggered by:", new Error().stack.split("\n")[2].trim());
+        
+        console.groupEnd();
+
+        // return; // Keep this here for now
       }
 	  }
     return;
