@@ -1149,10 +1149,7 @@ function renderListItems(items) {
           <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
         </div>`;
     } else {
-		DOM.list.innerHTML = `
-          <div class="flex items-center justify-center min-h-[200px]">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-300"></div>
-          </div>`;
+		return;
       }
 	  }
     return;
