@@ -82,13 +82,13 @@ body {
   scroll-behavior: smooth;
   
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior-y: contain !important;
+  overscroll-behavior-y: contain;
   touch-action: pan-y pinch-zoom;
 }
 
 /* 4. THE HEADER (Fixed Anchor) */
 header {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -111,14 +111,13 @@ section.group {
   scroll-margin-top: 0px; 
   
   position: relative;
-  z-index: 10 !important;
+  z-index: 10;
   min-height: auto;
   background: white;
 }
 
 .sticky {
   z-index: 40;
-  scroll-margin-top: 56px !important;
 }
 
 /* 3. THE FEED CONTAINER */
