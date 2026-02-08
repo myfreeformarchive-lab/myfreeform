@@ -332,7 +332,7 @@ function startDripFeed() {
     dripTimeout = setTimeout(drip, 20000); 
   }
 
-  drip();
+  dripTimeout = setTimeout(drip, 20000);
 }
 
 function updateUISurgically(id, data) {
@@ -447,10 +447,9 @@ function injectSinglePost(item, position = 'top') {
 
   // Handle "top" and "bottom" injection cases
   if (position === 'top') {
-    setTimeout(() => {
-      // Double-check the current tab in case it changed
+      // Double-check the current tab in case it changed (Safety Check)
       if (currentTab === 'private' && item.isFirebase) {
-        console.warn(`injectSinglePost: Blocking global post in private tab after delay: ${item.content}`);
+        console.warn(`injectSinglePost: Blocking global post in private tab: ${item.content}`);
         return;
       }
 
@@ -473,8 +472,6 @@ function injectSinglePost(item, position = 'top') {
         
         requestAnimationFrame(refreshSnap);
       });
-
-    }, 1500); // 1.5 seconds delay
   } else {
     // Handle appending smoothly (no need to adjust scroll if appending at the bottom)
     DOM.list.appendChild(postNode);
