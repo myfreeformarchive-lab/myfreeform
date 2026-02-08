@@ -495,20 +495,18 @@ function switchTab(tab) {
   // Exit early if switching to the same tab
   if (currentTab === tab) return;
 
-  // 1. Start fade/slide out animations
+  // Smooth fade/slide out animations
   DOM.list.style.opacity = '0';
   DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
 
   setTimeout(() => {
-    // 2. Find the sticky element
+    // Locate the sticky element
     const tabsElement = document.querySelector('.sticky');
 
-    // 🚀 THE FIX: Use 'auto' (instant) instead of 'smooth'.
-    // The fade animation handles the visual smoothness. 
-    // This locks the position INSTANTLY so the data swap doesn't break the scroll.
+    // 🚀 FIX: Offset snap alignment and immediately adjust scroll position
     if (tabsElement) {
        tabsElement.scrollIntoView({
-         behavior: 'auto', 
+         behavior: 'auto', // Instant alignment
          block: 'start',
        });
     }
@@ -517,21 +515,24 @@ function switchTab(tab) {
     currentTab = tab;
     localStorage.setItem('freeform_tab_pref', tab);
 
-    // Reset feed content for the new tab
+    // Reset content and styles for the new tab
     currentLimit = BATCH_SIZE;
     updateTabClasses();
+
+    // Dynamically load the feed for the target tab
     loadFeed();
 
     // Enable infinite scroll for public feed
     if (tab === 'public') setupInfiniteScroll();
 
-    // 3. Fade the content back in
+    // Fade in animation with reset snap
     requestAnimationFrame(() => {
-      DOM.list.style.opacity = '1';
+      DOM.list.style.opacity = '1'; 
       DOM.list.style.transform = 'translateX(0)';
-      setTimeout(refreshSnap, 100);
+      setTimeout(refreshSnap, 100); // Add short delay to smooth snapping
     });
-  }, 200); // Wait for the fade-out to finish
+
+  }, 200); // Wait for fade-out animation to finish
 }
 
 
@@ -1113,10 +1114,13 @@ function renderListItems(items) {
 }
 
 function refreshSnap() {
-  // We use window because your 'body' is the Master Scroller
-  const scroller = window; 
-  scroller.scrollBy(0, 1);
-  scroller.scrollBy(0, -1);
+  // Force browser to recompute snap points
+  const snapPoints = [...document.querySelectorAll('section.group')];
+  snapPoints.forEach((section) => {
+    const rect = section.getBoundingClientRect();
+    // Small hack: Trigger layout recalculations by tweaking scroll offsets
+    section.style.marginTop = rect.height > 200 ? '-56px' : '0px';
+  });
 }
 
 // ==========================================
