@@ -74,6 +74,8 @@ let dripTimeout = null;
 let activePostListeners = new Map();
 let isAppending = false;
 
+let totalGlobalPosts = -1;
+
   // SVG Thought Bubble 
 function getThoughtBubbleSVG(className = "w-20 h-20") {
     return `<svg class="${className}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -410,8 +412,13 @@ async function refillBufferRandomly(count = 1, silent = false) {
     const counterRef = doc(db, "metadata", "postCounter");
     const counterSnap = await getDoc(counterRef);
     
-    if (!counterSnap.exists()) return;
+    if (!counterSnap.exists()) {
+      totalGlobalPosts = 0; // The counter doc doesn't even exist
+      return;
+    }
+	
     const maxId = counterSnap.data().count;
+	totalGlobalPosts = maxId;
 
     const windowSize = maxId < 50 ? maxId : 500;
     const minId = Math.max(1, maxId - windowSize);
@@ -1125,6 +1132,7 @@ function renderListItems(items) {
 </p>
       </div>`;
 	  }else {
+		  if (totalGlobalPosts === 0) {
       // 🍃 THE FALLEN LEAVES (PUBLIC EMPTY STATE)
       DOM.list.innerHTML = `
         <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
@@ -1140,7 +1148,13 @@ function renderListItems(items) {
           <p class="text-slate-500 font-medium tracking-tight">It's quiet here.</p>
           <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
         </div>`;
-    }
+    } else {
+		DOM.list.innerHTML = `
+          <div class="flex items-center justify-center min-h-[200px]">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-300"></div>
+          </div>`;
+      }
+	  }
     return;
   }
 
