@@ -1148,7 +1148,18 @@ function renderListItems(items) {
           <p class="text-slate-500 font-medium tracking-tight">It's quiet here.</p>
           <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
         </div>`;
-    } 
+    } else {
+		
+		items.forEach(item => {
+    const postNode = createPostNode(item);
+    DOM.list.appendChild(postNode);
+    
+    // Start watching these initial posts
+    watchPostCounts(item.id);
+  });
+  refreshSnap()
+		
+      }
 	  }
     return;
   }
