@@ -491,6 +491,8 @@ function applyFontPreference(font) {
   });
 }
 
+let currentTab = null;
+
 function getStickyElement(tab) {
   return document.querySelector('#tabs'); // Always return the #tabs element
 }
