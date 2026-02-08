@@ -497,20 +497,21 @@ function switchTab(tab) {
 
   // 1. Start fade/slide out animations
   DOM.list.style.opacity = '0';
+
+  // 🚀 Force reapply via reflow
+  DOM.list.style.transform = ''; // Clear the transform
+  void DOM.list.offsetWidth; // Trigger a reflow (forces the browser to finish layout updates)
   DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
 
   setTimeout(() => {
     // 2. Find the sticky element
     const tabsElement = document.querySelector('.sticky');
 
-    // 🚀 THE FIX: Use 'auto' (instant) instead of 'smooth'.
-    // The fade animation handles the visual smoothness. 
-    // This locks the position INSTANTLY so the data swap doesn't break the scroll.
     if (tabsElement) {
-       tabsElement.scrollIntoView({
-         behavior: 'auto', 
-         block: 'start',
-       });
+      tabsElement.scrollIntoView({
+        behavior: 'auto',
+        block: 'start',
+      });
     }
 
     // Save the current tab state locally
@@ -525,13 +526,13 @@ function switchTab(tab) {
     // Enable infinite scroll for public feed
     if (tab === 'public') setupInfiniteScroll();
 
-    // 3. Fade the content back in
+    // 3. Reapply fade/slide back in
     requestAnimationFrame(() => {
       DOM.list.style.opacity = '1';
       DOM.list.style.transform = 'translateX(0)';
-      setTimeout(refreshSnap, 100);
+      setTimeout(refreshSnap, 100); // Make sure snapping works
     });
-  }, 200); // Wait for the fade-out to finish
+  }, 200);
 }
 
 
