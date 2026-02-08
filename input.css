@@ -73,7 +73,7 @@ body {
   padding: 0;
   width: 100%;
   height: 100%;
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
   
   /* CHANGE: Proximity is better when you have large varying heights */
@@ -147,7 +147,21 @@ section.group {
   #tabs {
     top: 0; /* Stick directly to the top of the viewport */
     background: white; /* Ensure a consistent background on mobile */
+	z-index: 50;
   }
+}
+
+main {
+  overflow-y: visible; /* Ensure #tabs is not clipped */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  position: relative; /* Set the context for sticky */
+}
+
+#tabs {
+  position: sticky;   /* Enable sticky positioning */
+  top: 0;             /* Stick it to the top in both desktop and mobile */
+  z-index: 50;        /* Ensure it's above all other content */
+  background: white;  /* Prevent content from overlapping */
 }
 
 /* 3. Modal Animations */
