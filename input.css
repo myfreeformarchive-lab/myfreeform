@@ -129,7 +129,7 @@ section.group {
   margin-top: 0 !important; /* Removed negative margin to prevent overlap issues */
   
   scroll-margin-top: 0px;
-  
+  transform: none !important;
   position: relative;
   z-index: 10;
   min-height: auto;
@@ -200,7 +200,7 @@ main.max-w-xl.mx-auto {
   background: white;
   height: 56px;
   /* Stability fixes */
-  will-change: transform;
+  will-change: auto;
   backface-visibility: hidden;
 }
 
