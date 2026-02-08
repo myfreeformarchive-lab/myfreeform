@@ -445,43 +445,42 @@ async function refillBufferRandomly(count = 1, silent = false) {
 }
 
 function injectSinglePost(item, position = 'top') {
-  console.log(`injectSinglePost called: tab=${currentTab}, isFirebase=${item.isFirebase}, content=${item.content}`);
+  // 1. IMMEDIATE SHIELD: If it's already in the DOM, kill it instantly.
+  if (document.getElementById(`post-${item.id}`)) return;
 
-  // Prevent injecting global posts into the private tab
-  if (position !== 'top' && currentTab === 'private' && item.isFirebase) {
-    console.warn(`injectSinglePost: Blocking global post in private tab: ${item.content}`);
-    return; 
-  }
+  // 2. Prevent injecting global posts into the private tab (Static check)
+  if (currentTab === 'private' && item.isFirebase) return;
 
   const postNode = createPostNode(item); 
   postNode.classList.add('animate-in');
 
-  // Handle "top" and "bottom" injection cases
   if (position === 'top') {
+    // 🚀 We wait for the "drip" timing...
     setTimeout(() => {
-      // Double-check the current tab in case it changed
-      if (currentTab === 'private' && item.isFirebase) {
-        console.warn(`injectSinglePost: Blocking global post in private tab after delay: ${item.content}`);
+      // 3. TAB LOCKDOWN: Re-check currentTab and existence after the 4.5s delay
+      // If the user switched tabs or the post was added by a listener while we waited, STOP.
+      if (currentTab !== 'public' || document.getElementById(`post-${item.id}`)) {
+        console.warn(`Injection blocked: Tab changed or post already exists.`);
         return; 
       }
 
-      // 🚀 Preserve the current scroll position before prepending
       const currentScrollTop = window.scrollY;
 
-      // Prepend the new post
       DOM.list.prepend(postNode);
       watchPostCounts(item.id);
 
-      // 🚀 Restore the scroll position to prevent jumping
       requestAnimationFrame(() => {
         window.scrollTo(0, currentScrollTop);
-		requestAnimationFrame(refreshSnap);
+        requestAnimationFrame(refreshSnap);
       });
-    }, 4500); // 4.5 seconds delay
+    }, 4500); 
+
   } else {
-    // 🚀 Handle appending smoothly (no need to adjust scroll if appending at the bottom)
-    DOM.list.appendChild(postNode);
-    watchPostCounts(item.id);
+    // 4. BOTTOM SHIELD: Even for appending, check for duplicates
+    if (!document.getElementById(`post-${item.id}`)) {
+      DOM.list.appendChild(postNode);
+      watchPostCounts(item.id);
+    }
   }
 }
 
@@ -883,6 +882,7 @@ async function sharePost(text, platform) {
 function createPostNode(item) {
   // 1. Create the base container
   const el = document.createElement('div');
+  el.id = `post-${item.id}`;
   el.setAttribute('data-id', item.id);
   const cursorClass = item.isFirebase ? "" : "cursor-pointer";
   
