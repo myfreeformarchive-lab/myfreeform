@@ -495,18 +495,20 @@ function switchTab(tab) {
   // Exit early if switching to the same tab
   if (currentTab === tab) return;
 
-  // Smooth fade/slide out animations
+  // 1. Start fade/slide out animations
   DOM.list.style.opacity = '0';
   DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
 
   setTimeout(() => {
-    // Locate the sticky element
+    // 2. Find the sticky element
     const tabsElement = document.querySelector('.sticky');
 
-    // 🚀 FIX: Offset snap alignment and immediately adjust scroll position
+    // 🚀 THE FIX: Use 'auto' (instant) instead of 'smooth'.
+    // The fade animation handles the visual smoothness. 
+    // This locks the position INSTANTLY so the data swap doesn't break the scroll.
     if (tabsElement) {
        tabsElement.scrollIntoView({
-         behavior: 'auto', // Instant alignment
+         behavior: 'auto', 
          block: 'start',
        });
     }
@@ -515,24 +517,21 @@ function switchTab(tab) {
     currentTab = tab;
     localStorage.setItem('freeform_tab_pref', tab);
 
-    // Reset content and styles for the new tab
+    // Reset feed content for the new tab
     currentLimit = BATCH_SIZE;
     updateTabClasses();
-
-    // Dynamically load the feed for the target tab
     loadFeed();
 
     // Enable infinite scroll for public feed
     if (tab === 'public') setupInfiniteScroll();
 
-    // Fade in animation with reset snap
+    // 3. Fade the content back in
     requestAnimationFrame(() => {
-      DOM.list.style.opacity = '1'; 
+      DOM.list.style.opacity = '1';
       DOM.list.style.transform = 'translateX(0)';
-      setTimeout(refreshSnap, 100); // Add short delay to smooth snapping
+      setTimeout(refreshSnap, 100);
     });
-
-  }, 200); // Wait for fade-out animation to finish
+  }, 200); // Wait for the fade-out to finish
 }
 
 
@@ -1114,13 +1113,10 @@ function renderListItems(items) {
 }
 
 function refreshSnap() {
-  // Force browser to recompute snap points
-  const snapPoints = [...document.querySelectorAll('section.group')];
-  snapPoints.forEach((section) => {
-    const rect = section.getBoundingClientRect();
-    // Small hack: Trigger layout recalculations by tweaking scroll offsets
-    section.style.marginTop = rect.height > 200 ? '-56px' : '0px';
-  });
+  // We use window because your 'body' is the Master Scroller
+  const scroller = window; 
+  scroller.scrollBy(0, 1);
+  scroller.scrollBy(0, -1);
 }
 
 // ==========================================
