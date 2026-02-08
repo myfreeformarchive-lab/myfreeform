@@ -1,4 +1,6 @@
-
+if (window.chrome && chrome.runtime && chrome.runtime.id) {
+  document.body.classList.add('extension-view');
+}
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
 import { 
@@ -1079,6 +1081,17 @@ function showHeartAnimation(container) {
 }
 
 function renderListItems(items) {
+	
+	// --- DEBUG START ---
+  console.group("%cList Render Debugger", "color: #007bff; font-weight: bold;");
+  console.log("Target Element:", DOM.list);
+  console.log("Target ID:", DOM.list ? DOM.list.id : "NO ID FOUND");
+  console.log("Number of Items:", items ? items.length : "undefined");
+  console.log("Data Content:", items);
+  console.trace("Call Stack (Who called me?)");
+  console.groupEnd();
+  // --- DEBUG END ---
+	
   DOM.list.innerHTML = ''; 
   
   if (items.length === 0) {
