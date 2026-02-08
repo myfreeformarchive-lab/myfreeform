@@ -1124,7 +1124,23 @@ function renderListItems(items) {
 </span>.
 </p>
       </div>`;
-	  }
+	  }else {
+      // 🍃 THE FALLEN LEAVES (PUBLIC EMPTY STATE)
+      DOM.list.innerHTML = `
+        <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
+             style="scroll-snap-align: start; scroll-margin-top: calc(112px + 24px); min-height: calc(100vh - 418px);">
+          <div class="mb-4 text-slate-300 animate-pulse">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.39 6.23L7 9s.5 4 4 5c1 0 3-1 3-1l3.5-3.5S14 6 10.39 6.23z" />
+              <path d="M7 9c3 3 7 1.5 7 1.5" />
+              <path d="M19 15.5c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5c0-2.5 2-4.5 4.5-4.5s-4.5-2-4.5-4.5z" opacity="0.5" />
+              <path d="M2 12h4m10 0h6" stroke-dasharray="4 4" />
+            </svg>
+          </div>
+          <p class="text-slate-500 font-medium tracking-tight">It's quiet here.</p>
+          <p class="text-slate-400 text-xs mt-2">Just a few fallen leaves in the wind.</p>
+        </div>`;
+    }
     return;
   }
 
