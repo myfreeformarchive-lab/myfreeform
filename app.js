@@ -1083,13 +1083,29 @@ function showHeartAnimation(container) {
 function renderListItems(items) {
 	
 	// --- DEBUG START ---
+  // --- ENHANCED DEBUG START ---
   console.group("%cList Render Debugger", "color: #007bff; font-weight: bold;");
-  console.log("Target Element:", DOM.list);
-  console.log("Target ID:", DOM.list ? DOM.list.id : "NO ID FOUND");
-  console.log("Number of Items:", items ? items.length : "undefined");
-  console.log("Data Content:", items);
-  console.trace("Call Stack (Who called me?)");
+  
+  if (DOM.list) {
+    const currentContent = DOM.list.innerHTML.trim();
+    const hasSVG = DOM.list.querySelector('svg') !== null;
+    const firstChild = DOM.list.firstElementChild;
+
+    console.log("Target ID:", DOM.list.id);
+    console.log("Current Content Preview:", currentContent.substring(0, 100) + "...");
+    console.log("Is Private SVG currently present?:", hasSVG);
+    
+    if (firstChild) {
+      console.log("First Child Classes:", firstChild.className);
+    }
+  } else {
+    console.error("DOM.list is MISSING");
+  }
+
+  console.log("New Items count to be rendered:", items ? items.length : 0);
+  console.trace("Trace to find the caller:");
   console.groupEnd();
+  // --- ENHANCED DEBUG END ---
   // --- DEBUG END ---
 	
   DOM.list.innerHTML = ''; 
