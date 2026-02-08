@@ -1831,11 +1831,6 @@ async function postComment() {
 // ==========================================
 // 7. UTILITIES
 // =========================================
-function applySnapProperties(post) {
-  post.style.scrollSnapAlign = 'start'; // Aligns the post at the start of the viewport
-  post.style.scrollMarginTop = 'calc(112px + 24px)'; // Accounts for sticky headers/tabs
-}
-
 function showToast(message, type = "success") {
   const container = document.getElementById('toast-container');
   if (!container) return;
