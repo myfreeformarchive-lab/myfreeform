@@ -492,19 +492,7 @@ function applyFontPreference(font) {
 }
 
 function getStickyElement(tab) {
-  const isMobile = window.innerWidth < 768;
-
-  if (isMobile) {
-    return document.querySelector('#mobileSticky');
-  }
-
-  if (tab === 'public') {
-    return document.querySelector('#publicSticky');
-  } else if (tab === 'private') {
-    return document.querySelector('#privateSticky');
-  }
-
-  return null;
+  return document.querySelector('#tabs'); // Always return the #tabs element
 }
 
 function updateStickyClass(tab) {
