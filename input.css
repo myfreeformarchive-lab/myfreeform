@@ -153,7 +153,6 @@ section.group {
 main.max-w-xl.mx-auto {
   overflow: visible !important;
   height: auto !important;
-  padding-top: 56px;
 }
 
 #tabs {
