@@ -495,18 +495,23 @@ function switchTab(tab) {
   // Exit early if switching to the same tab
   if (currentTab === tab) return;
 
-  // 1. Start fade/slide out animations
-  DOM.list.style.opacity = '0';
-
-  // 🚀 Force reapply via reflow
+  // 1. Force animation to restart
+  DOM.list.style.transition = 'none'; // Disable transitions momentarily
   DOM.list.style.transform = ''; // Clear the transform
-  void DOM.list.offsetWidth; // Trigger a reflow (forces the browser to finish layout updates)
+  DOM.list.style.opacity = ''; // Reset opacity
+
+  // 🚀 Force browser reflow to ensure the animation resets
+  const _ = DOM.list.offsetHeight; // Trigger reflow via accessing layout property
+
+  // 2. Reapply the fade/slide-out animation
+  DOM.list.style.transition = 'transform 0.3s ease, opacity 0.3s ease'; // Restore transitions
+  DOM.list.style.opacity = '0';
   DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
 
+  // 3. Use a timeout for the animation duration
   setTimeout(() => {
-    // 2. Find the sticky element
+    // 4. Scroll the sticky element into view
     const tabsElement = document.querySelector('.sticky');
-
     if (tabsElement) {
       tabsElement.scrollIntoView({
         behavior: 'auto',
@@ -514,11 +519,11 @@ function switchTab(tab) {
       });
     }
 
-    // Save the current tab state locally
+    // 5. Update the state to reflect the current tab
     currentTab = tab;
     localStorage.setItem('freeform_tab_pref', tab);
 
-    // Reset feed content for the new tab
+    // 6. Reset feed content for the new tab
     currentLimit = BATCH_SIZE;
     updateTabClasses();
     loadFeed();
@@ -526,15 +531,15 @@ function switchTab(tab) {
     // Enable infinite scroll for public feed
     if (tab === 'public') setupInfiniteScroll();
 
-    // 3. Reapply fade/slide back in
+    // 7. Fade/slide the content back in
     requestAnimationFrame(() => {
-      DOM.list.style.opacity = '1';
-      DOM.list.style.transform = 'translateX(0)';
-      setTimeout(refreshSnap, 100); // Make sure snapping works
+      DOM.list.style.opacity = '1'; // Fade back in
+      DOM.list.style.transform = 'translateX(0)'; // Restore transform
+      setTimeout(refreshSnap, 100); // Make sure snapping works if applicable
     });
-  }, 200);
-}
 
+  }, 300); // Wait for the fade-out to finish
+}
 
 function updateTabClasses() {
   const activeClass = "flex-1 pb-3 text-sm font-bold text-brand-600 border-b-2 border-brand-500 transition-all";
