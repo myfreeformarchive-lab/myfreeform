@@ -1150,7 +1150,7 @@ function renderListItems(items) {
         </div>`;
     } else {
 		setTimeout(() => {
-            renderListItems(visiblePosts); 
+           loadMoreData();
         }, 500);
       }
 	  }
