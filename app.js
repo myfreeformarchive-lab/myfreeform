@@ -511,13 +511,7 @@ function switchTab(tab) {
   // 3. Use a timeout for the animation duration
   setTimeout(() => {
     // 4. Scroll the sticky element into view
-    const tabsElement = document.querySelector('.sticky');
-    if (tabsElement) {
-      tabsElement.scrollIntoView({
-        behavior: 'auto',
-        block: 'start',
-      });
-    }
+    
 
     // 5. Update the state to reflect the current tab
     currentTab = tab;
