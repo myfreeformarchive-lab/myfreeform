@@ -143,25 +143,25 @@ section.group {
   scroll-margin-top: calc(112px + 24px) !important; 
 }
 
+/* Adjust tabs for smaller mobile devices (if needed) */
 @media (max-width: 768px) {
   #tabs {
-    top: 0; /* Stick directly to the top of the viewport */
-    background: white; /* Ensure a consistent background on mobile */
-	z-index: 50;
+    top: 0; /* Stick to the top of the mobile viewport */
+    z-index: 50; /* Ensure no overlap */
   }
 }
 
 main {
-  overflow-y: visible; /* Ensure #tabs is not clipped */
-  overflow-x: hidden; /* Prevent horizontal scrolling */
-  position: relative; /* Set the context for sticky */
+  overflow-x: hidden; /* Prevents horizontal scrolling */
+  overflow-y: auto; /* Enables vertical scrolling */
 }
 
 #tabs {
-  position: sticky;   /* Enable sticky positioning */
-  top: 0;             /* Stick it to the top in both desktop and mobile */
-  z-index: 50;        /* Ensure it's above all other content */
-  background: white;  /* Prevent content from overlapping */
+  position: sticky;  /* Enable sticky behavior */
+  top: 0;            /* Stick to the top of the viewport */
+  z-index: 50;       /* Place above feed content */
+  background: white; /* Prevent overlap from feed */
+  background: red!important;
 }
 
 /* 3. Modal Animations */
