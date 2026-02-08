@@ -2298,3 +2298,53 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('exitModalBack')?.addEventListener('click', () => closeExitModal());
     document.getElementById('confirm-exit-btn')?.addEventListener('click', () => closeExitModal());
 });
+
+
+/* ================================================================================
+📊 FIREBASE "BILLING BRAKE" & USAGE LEDGER 
+--------------------------------------------------------------------------------
+This logic tracks session-based reads and writes to visualize costs.
+Copy/Paste this into the top of your main JS file.
+
+CATEGORIES TO LOG:
+- initial_load_public / initial_load_private
+- tab_switch_click / tab_switch_swipe
+- idle_public / idle_private
+- like_icon / like_double_tap
+- comment_modal_open
+- infinite_scroll
+- write_public_post
+================================================================================
+
+const Ledger = {
+  reads: 0,
+  writes: 0,
+  categories: {},
+
+  log: function(category, r = 0, w = 0) {
+    this.reads += r;
+    this.writes += w;
+    
+    if (!this.categories[category]) {
+      this.categories[category] = { reads: 0, writes: 0 };
+    }
+    
+    this.categories[category].reads += r;
+    this.categories[category].writes += w;
+
+    // Financial math: Google charges approx $0.06 per 100,000 reads
+    const estCost = ((this.reads / 100000) * 0.06).toFixed(5);
+    
+    console.groupCollapsed(`💰 Ledger Update: [${category}] +${r}R/+${w}W`);
+    console.log(`Session Totals: ${this.reads} Reads | ${this.writes} Writes`);
+    console.log(`Estimated Session Cost: $${estCost}`);
+    console.table(this.categories);
+    console.groupEnd();
+  }
+};
+
+USAGE EXAMPLES:
+- Inside refillBuffer:   Ledger.log('idle_public', 2, 0);
+- Inside switchTab:      Ledger.log('tab_switch_click', 1, 0);
+- Inside doubleTapLike:  Ledger.log('like_double_tap', 0, 1);
+*/
