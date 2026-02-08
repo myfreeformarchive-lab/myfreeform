@@ -439,10 +439,10 @@ function injectSinglePost(item, position = 'top') {
   // Prevent injecting global posts into the private tab
   if (position !== 'top' && currentTab === 'private' && item.isFirebase) {
     console.warn(`injectSinglePost: Blocking global post in private tab: ${item.content}`);
-    return; 
+    return;
   }
 
-  const postNode = createPostNode(item); 
+  const postNode = createPostNode(item);
   postNode.classList.add('animate-in');
 
   // Handle "top" and "bottom" injection cases
@@ -451,24 +451,32 @@ function injectSinglePost(item, position = 'top') {
       // Double-check the current tab in case it changed
       if (currentTab === 'private' && item.isFirebase) {
         console.warn(`injectSinglePost: Blocking global post in private tab after delay: ${item.content}`);
-        return; 
+        return;
       }
 
-      // 🚀 Preserve the current scroll position before prepending
-      //const currentScrollTop = window.scrollY;
+      // 1. FREEZE THE SNAP ENGINE 🥶
+      // We temporarily disable snapping so the browser doesn't mistakenly snap 
+      // to the NEW element (index 0) which would jerk the screen up.
+      document.documentElement.style.scrollSnapType = 'none';
+      document.body.style.scrollSnapType = 'none';
 
-      // Prepend the new post
+      // 2. PREPEND (Browser natively handles scroll anchoring here)
       DOM.list.prepend(postNode);
       watchPostCounts(item.id);
 
-      // 🚀 Restore the scroll position to prevent jumping
+      // 3. RESTORE SNAP ENGINE 🌡️
+      // We wait for the next frame so the layout shift is calculated and locked in.
       requestAnimationFrame(() => {
-      //  window.scrollTo(0, currentScrollTop);
-		requestAnimationFrame(refreshSnap);
+        // Remove the inline style to let CSS take over again
+        document.documentElement.style.scrollSnapType = ''; 
+        document.body.style.scrollSnapType = '';
+        
+        requestAnimationFrame(refreshSnap);
       });
+
     }, 1500); // 1.5 seconds delay
   } else {
-    // 🚀 Handle appending smoothly (no need to adjust scroll if appending at the bottom)
+    // Handle appending smoothly (no need to adjust scroll if appending at the bottom)
     DOM.list.appendChild(postNode);
     watchPostCounts(item.id);
   }
