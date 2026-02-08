@@ -1109,16 +1109,7 @@ function renderListItems(items) {
 	
   DOM.list.innerHTML = ''; 
   
-  // 2. SUCCESS: If we have cargo, deliver it and EXIT.
-  if (items.length > 0) {
-    items.forEach(item => {
-      const postNode = createPostNode(item);
-      DOM.list.appendChild(postNode);
-      watchPostCounts(item.id);
-    });
-    refreshSnap();
-    return; // Kick out of the function here
-  }
+  if (items.length === 0) {
 	  if (currentTab === 'private') {
     DOM.list.innerHTML = `
       <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
@@ -1140,8 +1131,7 @@ function renderListItems(items) {
 </span>.
 </p>
       </div>`;
-	  return; // Kick out
-	  }
+	  }else {
 		  if (totalGlobalPosts === 0) {
       // 🍃 THE FALLEN LEAVES (PUBLIC EMPTY STATE)
       DOM.list.innerHTML = `
@@ -1158,9 +1148,22 @@ function renderListItems(items) {
           <p class="text-slate-500 font-medium tracking-tight">It's quiet here.</p>
           <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
         </div>`;
-		return;
-    } 
+    } else {
+		
+      }
 	  }
+    return;
+  }
+
+  items.forEach(item => {
+    const postNode = createPostNode(item);
+    DOM.list.appendChild(postNode);
+    
+    // Start watching these initial posts
+    watchPostCounts(item.id);
+  });
+  refreshSnap()
+}
 
 function refreshSnap() {
   // We use window because your 'body' is the Master Scroller
