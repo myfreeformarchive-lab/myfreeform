@@ -159,6 +159,7 @@ main.max-w-xl.mx-auto {
   position: sticky;  /* Enable sticky behavior */
   z-index: 50;       /* Place above feed content */
   background: white; /* Prevent overlap from feed */
+  top: auto;
 }
 
 /* 3. Modal Animations */
