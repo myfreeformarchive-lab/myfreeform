@@ -506,7 +506,7 @@ function switchTab(tab) {
   // 2. Reapply the fade/slide-out animation
   DOM.list.style.transition = 'transform 0.3s ease, opacity 0.3s ease'; // Restore transitions
   DOM.list.style.opacity = '0';
-  DOM.list.style.transform = tab === 'public' ? 'translateX(-10px)' : 'translateX(10px)';
+  DOM.list.style.transform = tab === 'public' ? 'translateX(-8px)' : 'translateX(8px)';
 
   // 3. Use a timeout for the animation duration
   setTimeout(() => {
