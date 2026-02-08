@@ -111,7 +111,7 @@ section.group {
   scroll-margin-top: 0px; 
   
   position: relative;
-  z-index: -1 !important;
+  z-index: 10 !important;
   min-height: auto;
   background: white;
 }
