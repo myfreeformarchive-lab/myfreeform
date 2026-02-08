@@ -103,6 +103,12 @@ body {
   touch-action: pan-y pinch-zoom;
 }
 
+body.extension-view {
+  width: 420px;
+  height: 600px;
+  margin: 0;
+  overflow-x: hidden;
+}
 /* 4. THE HEADER (Fixed Anchor): Styles for the fixed top navigation */
 /* Keeps the header in place while content scrolls beneath it */
 header {
