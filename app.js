@@ -1082,35 +1082,10 @@ function showHeartAnimation(container) {
 
 function renderListItems(items) {
 	
-	// --- DEBUG START ---
-  // --- ENHANCED DEBUG START ---
-  console.group("%cList Render Debugger", "color: #007bff; font-weight: bold;");
-  
-  if (DOM.list) {
-    const currentContent = DOM.list.innerHTML.trim();
-    const hasSVG = DOM.list.querySelector('svg') !== null;
-    const firstChild = DOM.list.firstElementChild;
-
-    console.log("Target ID:", DOM.list.id);
-    console.log("Current Content Preview:", currentContent.substring(0, 100) + "...");
-    console.log("Is Private SVG currently present?:", hasSVG);
-    
-    if (firstChild) {
-      console.log("First Child Classes:", firstChild.className);
-    }
-  } else {
-    console.error("DOM.list is MISSING");
-  }
-
-  console.log("New Items count to be rendered:", items ? items.length : 0);
-  console.trace("Trace to find the caller:");
-  console.groupEnd();
-  // --- ENHANCED DEBUG END ---
-  // --- DEBUG END ---
-	
   DOM.list.innerHTML = ''; 
   
   if (items.length === 0) {
+	  if (currentTab === 'private') {
     DOM.list.innerHTML = `
       <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
            style="scroll-snap-align: start; scroll-margin-top: calc(112px + 24px); min-height: calc(100vh - 418px);">
@@ -1131,6 +1106,7 @@ function renderListItems(items) {
 </span>.
 </p>
       </div>`;
+	  }
     return;
   }
 
