@@ -98,19 +98,17 @@ header {
 }
 
 section.group {
-	/*
   scroll-snap-align: start;
   scroll-snap-stop: always;
   
   /* 1. The Visual Offset */
   /* We use padding instead of margin-top to keep the "touch area" active */
- /* padding-top: 70px; /* 56px (Header) + 14px (Breathing room) */
- /* margin-top: -56px !important; /* The "Magic": This pulls the element UP under the header */
+  padding-top: 70px; /* 56px (Header) + 14px (Breathing room) */
+  margin-top: -56px !important; /* The "Magic": This pulls the element UP under the header */
   
   /* 2. The Snap Anchor */
   /* This ensures that when it snaps, it stops exactly at the header line */
- /* scroll-margin-top: 0px; */
-  
+  scroll-margin-top: 0px; 
   
   position: relative;
   z-index: 10;
@@ -143,6 +141,13 @@ section.group {
   scroll-snap-align: start;
   /* 112px (Header+Tabs) + 24px (mb-6) = 136px */
   scroll-margin-top: calc(112px + 24px) !important; 
+}
+
+@media (max-width: 768px) {
+  #tabs {
+    top: 0; /* Stick directly to the top of the viewport */
+    background: white; /* Ensure a consistent background on mobile */
+  }
 }
 
 /* 3. Modal Animations */
