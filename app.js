@@ -294,6 +294,7 @@ async function getNextUniqueTag() {
       transaction.update(counterRef, { count: nextId });
       return nextId;
     });
+	Ledger.log("getNextUniqueTag", 1, 1, 0);
     return {
       num: newCount,
       tag: `UID:${newCount}`
@@ -318,6 +319,7 @@ function startDripFeed() {
     if (currentTab !== 'public' || myId !== currentDripId) return;
     if (postBuffer.length === 0) {
       await refillBufferRandomly(1);
+	  Ledger.log("refillBuffer", 1, 0, 0);
     }
     if (currentTab !== 'public' || myId !== currentDripId) return;
     if (postBuffer.length > 0) {
@@ -364,6 +366,7 @@ function watchPostCounts(postId) {
     if (docSnap.exists()) {
       const data = docSnap.data();
       updateUISurgically(postId, data);
+	  Ledger.log("watchPostCounts", 1, 0, 0);
     } 
     else {
       if (activePostListeners.has(postId)) {
@@ -398,6 +401,7 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
       totalGlobalPosts = 0; 
       return;
     }
+	Ledger.log("refillBufferRandomly", 1, 0, 0);
     const maxId = counterSnap.data().count;
     totalGlobalPosts = maxId;
     const windowSize = maxId < 50 ? maxId : 500;
@@ -429,6 +433,7 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
             }
           }	  
         }
+		Ledger.log("refillBufferRandomly", 1, 0, 0);
       } else {
         continue; 
       }
@@ -591,6 +596,7 @@ function subscribeArchiveSync() {
         if (commentSpan) commentSpan.textContent = data.commentCount || 0;
       }
     });
+	Ledger.log("subscribeArchiveSync", snapshot.docs.length, 0, 0);
   }, (error) => {
     
   });
@@ -622,6 +628,7 @@ async function subscribePublicFeed() {
         processedIds.add(doc.id);
       }
     });
+	Ledger.log("subscribePublicFeed", initialSnap.docs.length, 0, 0);
     if (isAppending) {
         newItems.forEach(p => {
             visiblePosts.push(p);
@@ -662,6 +669,7 @@ async function subscribePublicFeed() {
           updateUISurgically(docId, data);
         }
       });
+	   Ledger.log("subscribePublicFeed", snapshot.docs.length, 0, 0);
     });
 
   } catch (err) {
@@ -1292,6 +1300,7 @@ async function handlePost() {
         likeCount: 0
       });
       firebaseId = docRef.id;
+	   Ledger.log("handlePost", 0, 1, 0);
     }
 
     const newPost = { 
@@ -1357,6 +1366,8 @@ async function publishDraft(post) {
           commentCount: 0,
           likeCount: 0 
         });
+		
+		Ledger.log("publishDraft", 0, 1, 0);
 
         const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
         const targetIndex = posts.findIndex(p => p.id === post.id);
@@ -1409,13 +1420,16 @@ async function deleteLocal(id) {
 
           // Clean up sub-collections first
           const commentsSnapshot = await getDocs(commentsRef);
+		  Ledger.log("deleteLocal", commentsSnapshot.size, 0, 0);
           commentsSnapshot.forEach(doc => batch.delete(doc.ref));
           
           const likesSnapshot = await getDocs(likesRef);
+		  Ledger.log("deleteLocal", likesSnapshot.size, 0, 0);
           likesSnapshot.forEach(doc => batch.delete(doc.ref));
 
           batch.delete(postRef);
           await batch.commit();
+		  Ledger.log("deleteLocal", 0, 0, commentsSnapshot.size + likesSnapshot.size + 1);
         } catch(e) {
      
         }
@@ -1452,12 +1466,14 @@ async function deleteGlobal(postId) {
         
         // 2. Queue up Comment deletions
         const commentsSnapshot = await getDocs(commentsRef);
+		Ledger.log("deleteGlobal", commentsSnapshot.size, 0, 0);
         commentsSnapshot.forEach((commentDoc) => {
           batch.delete(commentDoc.ref);
         });
 
         // 3. Queue up Like deletions (New)
         const likesSnapshot = await getDocs(likesRef);
+		Ledger.log("deleteGlobal", likesSnapshot.size, 0, 0);
         likesSnapshot.forEach((likeDoc) => {
            batch.delete(likeDoc.ref);
         });
@@ -1467,6 +1483,8 @@ async function deleteGlobal(postId) {
 
         // 5. Commit all changes at once
         await batch.commit();
+		
+		Ledger.log("deleteGlobal", 0, 0, commentsSnapshot.size + likesSnapshot.size + 1);
 		
 		// --- 🚀 START OF THE FIX ---
 
@@ -1581,9 +1599,11 @@ async function toggleLike(event, postId) {
     if (currentlyLiked) {
       await deleteDoc(likeRef);
       await updateDoc(postRef, { likeCount: increment(-1) });
+	  Ledger.log("toggleLike", 0, 2, 0);
     } else {
       await setDoc(likeRef, { createdAt: serverTimestamp() });
       await updateDoc(postRef, { likeCount: increment(1) });
+	  Ledger.log("toggleLike", 0, 2, 0);
     }
   } catch (error) {
     showToast("Connection failed. Like not saved.");
@@ -1608,7 +1628,7 @@ async function deleteComment(postId, commentId) {
         await updateDoc(postRef, {
             commentCount: increment(-1)
         });
-		
+		Ledger.log("deleteComment", 0, 1, 1);
         showToast("Comment deleted");
 
       } catch (e) {
@@ -1657,6 +1677,7 @@ function openModal(post) {
             serverData.commentCount || 0, 
             serverData.likeCount || 0
         );
+		Ledger.log("openModal", 1, 0, 0);
       } 
       // 🚀 THE FIX: If someone else deletes the post while the modal is open
       else {
@@ -1717,6 +1738,7 @@ function openModal(post) {
         }
         DOM.commentList.appendChild(div);
       });
+	  Ledger.log("openModal", snapshot.docs.length, 0, 0);
     });
 
   } else {
@@ -1795,6 +1817,8 @@ async function postComment() {
 
     const postRef = doc(db, "globalPosts", activePostId);
     await updateDoc(postRef, { commentCount: increment(1) });
+	
+	Ledger.log("postComment", 0, 2, 0);
 
     DOM.commentInput.value = '';
     showToast("Comment added");
@@ -2209,51 +2233,40 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-/* ================================================================================
-📊 FIREBASE "BILLING BRAKE" & USAGE LEDGER 
---------------------------------------------------------------------------------
-This logic tracks session-based reads and writes to visualize costs.
-Copy/Paste this into the top of your main JS file.
-
-CATEGORIES TO LOG:
-- initial_load_public / initial_load_private
-- tab_switch_click / tab_switch_swipe
-- idle_public / idle_private
-- like_icon / like_double_tap
-- comment_modal_open
-- infinite_scroll
-- write_public_post
-================================================================================
-
 const Ledger = {
   reads: 0,
   writes: 0,
+  deletes: 0,
   categories: {},
 
-  log: function(category, r = 0, w = 0) {
+  log: function(category, r = 0, w = 0, d = 0) {
     this.reads += r;
     this.writes += w;
-    
+    this.deletes += d;
+
     if (!this.categories[category]) {
-      this.categories[category] = { reads: 0, writes: 0 };
+      this.categories[category] = { reads: 0, writes: 0, deletes: 0 };
     }
-    
+
     this.categories[category].reads += r;
     this.categories[category].writes += w;
+    this.categories[category].deletes += d;
 
-    // Financial math: Google charges approx $0.06 per 100,000 reads
-    const estCost = ((this.reads / 100000) * 0.06).toFixed(5);
-    
-    console.groupCollapsed(`💰 Ledger Update: [${category}] +${r}R/+${w}W`);
-    console.log(`Session Totals: ${this.reads} Reads | ${this.writes} Writes`);
+    // Firebase Pricing (approx): Reads: $0.06/100k, Writes: $0.18/100k, Deletes: $0.02/100k
+    const cost = (
+      (this.reads / 100000) * 0.06 +
+      (this.writes / 100000) * 0.18 +
+      (this.deletes / 100000) * 0.02
+    ).toFixed(5);
+
+    console.groupCollapsed(`💰 Ledger: [${category}] +${r}R/+${w}W/+${d}D`);
+    console.log(`Session Totals: ${this.reads}R | ${this.writes}W | ${this.deletes}D`);
     console.log(`Estimated Session Cost: $${estCost}`);
     console.table(this.categories);
     console.groupEnd();
   }
 };
 
-USAGE EXAMPLES:
-- Inside refillBuffer:   Ledger.log('idle_public', 2, 0);
-- Inside switchTab:      Ledger.log('tab_switch_click', 1, 0);
-- Inside doubleTapLike:  Ledger.log('like_double_tap', 0, 1);
-*/
+// publicUnsubscribe, commentsUnsubscribe, activePostListeners
+// runMigration, loadFeed, updateMeter, switchTab, postComment, handlePost, 
+// handleSwipeGesture for desktop vs mobile logging
