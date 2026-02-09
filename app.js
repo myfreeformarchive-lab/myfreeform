@@ -76,14 +76,6 @@ let isAppending = false;
 
 let totalGlobalPosts = -1;
 
- 
-
-// 🚀 MOVE THE BRIDGES HERE (After they are defined)
-window.db = db;
-window.visiblePosts = visiblePosts;
-window.postBuffer = postBuffer;
-window.processedIds = processedIds;
-
   // SVG Thought Bubble 
 function getThoughtBubbleSVG(className = "w-20 h-20") {
     return `<svg class="${className}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -1158,7 +1150,11 @@ function renderListItems(items) {
         </div>`;
     } else {
     DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
-    
+    setTimeout(async () => {
+        if (visiblePosts.length === 0) {
+     switchTab();
+        }
+    }, 500);
       }
   }
     return;
