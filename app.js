@@ -631,28 +631,52 @@ function renderPrivateBatch() {
 function subscribeArchiveSync() {
   if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
 
-  const q = query(
-    collection(db, "globalPosts"), 
-    where("authorId", "==", MY_USER_ID)
-  );
+  // Supabase real-time channel for your posts
+  const channel = _supabase
+    .channel('user_posts_sync')
+    .on('postgres_changes', {
+      event: '*',  // Listen for INSERT, UPDATE, DELETE
+      schema: 'public',
+      table: 'posts',
+      filter: `author_id=eq.${MY_USER_ID}`  // Only your posts
+    }, async (payload) => {
+      const id = payload.new?.id || payload.old?.id;  // Post ID
+      if (!id) return;
 
-  publicUnsubscribe = onSnapshot(q, (snapshot) => {
-    snapshot.docs.forEach(doc => {
-      const data = doc.data();
-      const id = doc.id;
-      updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
-      const postEl = document.querySelector(`[data-id="${id}"]`);
-      if (postEl) {
-        const likeSpan = postEl.querySelector(`.count-like-${id}`);
-        if (likeSpan) likeSpan.textContent = data.likeCount || 0;
-        const commentSpan = postEl.querySelector(`.count-comment-${id}`);
-        if (commentSpan) commentSpan.textContent = data.commentCount || 0;
+      try {
+        // Fetch latest counts from Supabase
+        const { data, error } = await _supabase
+          .from('posts')
+          .select('like_count, comment_count')
+          .eq('id', id)
+          .single();
+
+        if (error) throw error;
+
+        const likeCount = data?.like_count || 0;
+        const commentCount = data?.comment_count || 0;
+
+        // Update localStorage (like the original)
+        updateLocalPostWithServerData(id, commentCount, likeCount);
+
+        // Update UI elements
+        const postEl = document.querySelector(`[data-id="${id}"]`);
+        if (postEl) {
+          const likeSpan = postEl.querySelector(`.count-like-${id}`);
+          if (likeSpan) likeSpan.textContent = likeCount;
+          const commentSpan = postEl.querySelector(`.count-comment-${id}`);
+          if (commentSpan) commentSpan.textContent = commentCount;
+        }
+
+        Ledger.log("subscribeArchiveSync", 1, 0, 0);  // Log per change
+      } catch (error) {
+        console.error('Sync error:', error);
       }
-    });
-	Ledger.log("subscribeArchiveSync", snapshot.docs.length, 0, 0);
-  }, (error) => {
-    
-  });
+    })
+    .subscribe();
+
+  // Store unsubscribe function
+  publicUnsubscribe = () => _supabase.removeChannel(channel);
 }
 
 // ==========================================
