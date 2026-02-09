@@ -2262,7 +2262,7 @@ const Ledger = {
 
     console.groupCollapsed(`💰 Ledger: [${category}] +${r}R/+${w}W/+${d}D`);
     console.log(`Session Totals: ${this.reads}R | ${this.writes}W | ${this.deletes}D`);
-    console.log(`Estimated Session Cost: $${estCost}`);
+    console.log(`Estimated Session Cost: $${cost}`);
     console.table(this.categories);
     console.groupEnd();
   }
