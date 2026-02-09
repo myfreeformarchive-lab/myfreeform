@@ -1152,6 +1152,8 @@ function renderListItems(items) {
         // 🛠️ BRUTE FORCE FETCH
         DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
         console.log("🛠️ BRUTE FORCE: List empty but DB has posts. Fetching now...");
+		
+		processedIds.clear();
 
         if (!window.isBruteFetching) {
           window.isBruteFetching = true;
