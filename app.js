@@ -1107,6 +1107,19 @@ function renderListItems(items) {
 
 
 function showPublicPlaceholder(type) {
+  // 🛑 SAFETY CHECK: 
+  // Before we wipe the list, check if there are already real posts there.
+  const hasContent = DOM.list.children.length > 0;
+  const isShowingPlaceholder = document.getElementById('public-placeholder');
+
+  // If the list has content, AND that content is NOT a placeholder (meaning it's real posts)...
+  // Then STOP immediately. Do not overwrite the user's data.
+  if (hasContent && !isShowingPlaceholder) {
+      // Optional log to confirm it saved you
+      // console.log("[showPublicPlaceholder] 🛡️ Aborted. Real posts are on screen.");
+      return;
+  }
+
   let html = '';
   if (type === 'empty') {
     html = `
@@ -1128,6 +1141,7 @@ function showPublicPlaceholder(type) {
         Scanning the horizon...
       </div>`;
   }
+  
   DOM.list.innerHTML = html;
 }
 
