@@ -74,7 +74,7 @@ let dripTimeout = null;
 let activePostListeners = new Map();
 let isAppending = false;
 
-let totalGlobalPosts = -1;
+let totalGlobalPosts = 0;
 
   // SVG Thought Bubble 
 function getThoughtBubbleSVG(className = "w-20 h-20") {
