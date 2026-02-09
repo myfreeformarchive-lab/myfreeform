@@ -673,6 +673,7 @@ async function subscribePublicFeed() {
     });
 
   } catch (err) {
+	  console.error("Error in subscribePublicFeed:", err);
     if(!isAppending) DOM.list.innerHTML = `<div class="text-center py-12">Feed offline.</div>`;
   }
 }
