@@ -1160,7 +1160,7 @@ function renderListItems(items) {
             window.isRecovering = true;
             console.log("🚀 [Recovery] Triggering switchTab...");
             
-            switchTab(currentTab);
+            switchTab();
 
             // Reset the lock after 3 seconds to allow future legit recoveries
             setTimeout(() => { window.isRecovering = false; }, 3000);
