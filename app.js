@@ -301,10 +301,9 @@ async function getNextUniqueTag() {
       tag: `UID:${newCount}`
     };
   } catch (e) {
-    console.error("Counter failed: ", e);
-    const tempNum = Date.now();
-    return { num: tempNum, tag: `#temp${tempNum.toString().slice(-4)}` };
-  }
+  const tempNum = Date.now();
+  return { num: tempNum, tag: `#temp${tempNum.toString().slice(-4)}` };
+}
 }
 
 // ==========================================
@@ -342,7 +341,16 @@ function startDripFeed() {
       }
       }
     
-    dripTimeout = setTimeout(drip, 20000); 
+    const getRandomDelay = (minSecs, maxSecs) => {
+  return Math.floor(Math.random() * (maxSecs - minSecs + 1) + minSecs) * 1000;
+};
+
+// --- Inside your drip logic ---
+const Variable = getRandomDelay(20, 40);
+
+console.log(`⏱️ Drip interval set: ${Variable / 1000}s`);
+
+dripTimeout = setTimeout(drip, Variable);
   }
 
   drip();
@@ -401,7 +409,7 @@ function watchPostCounts(postId) {
       }
     }
   }, (err) => {
-    console.warn("Post watch lost connection:", err);
+    
   });
 
   activePostListeners.set(postId, unsubscribe);
@@ -457,18 +465,14 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
 		  
 		  // --- START OF YOUR VARIABLES (The Eviction) ---
           if (placeholder) {
-            console.log("🎯 Sampler Found Content. Removing Placeholder:", {
-                id: placeholder.id,
-                isConnected: placeholder.isConnected
-            });
 
             placeholder.remove();
             
             if (document.getElementById('public-placeholder')) {
-                console.warn("⚠️ Sampler: Placeholder survived .remove(), nuking outerHTML.");
+            
                 document.getElementById('public-placeholder').outerHTML = ''; 
             } else {
-                console.log("✅ Sampler: Placeholder evicted.");
+                
             }
           }
           // --- END OF YOUR VARIABLES ---
@@ -476,13 +480,11 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
 		  
         }
       } else {
-        // If query returns nothing, the rand might be too high. 
-        // We continue to next attempt instead of breaking to increase find-rate.
         continue; 
       }
     }
   } catch (err) {
-    console.error("Sampler failed:", err);
+	  
   }
 }
 
@@ -502,7 +504,6 @@ function injectSinglePost(item, position = 'top') {
       // 3. TAB LOCKDOWN: Re-check currentTab and existence after the 4.5s delay
       // If the user switched tabs or the post was added by a listener while we waited, STOP.
       if (currentTab !== 'public' || document.getElementById(`post-${item.id}`)) {
-        console.warn(`Injection blocked: Tab changed or post already exists.`);
         return; 
       }
 
@@ -686,7 +687,7 @@ function subscribeArchiveSync() {
       }
     });
   }, (error) => {
-    console.error("Archive sync failed:", error);
+    
   });
 }
 
@@ -706,7 +707,6 @@ async function subscribePublicFeed() {
     processedIds.clear();
     if (dripTimeout) clearTimeout(dripTimeout);
     showPublicPlaceholder('scanning');
-	console.log("🔭 [Horizon] Source: Initial Tab Load");
   }
 
   try {
@@ -782,7 +782,6 @@ async function subscribePublicFeed() {
     });
 
   } catch (err) {
-    console.error("Critical Load Error:", err);
     if(!isAppending) DOM.list.innerHTML = `<div class="text-center py-12">Feed offline.</div>`;
   }
 }
@@ -877,19 +876,14 @@ async function sharePost(text, platform) {
   
   const urlText = encodeURIComponent(cleanText);
   const urlLink = encodeURIComponent(currentUrl);
-
-  // === 📋 COPY TO CLIPBOARD LOGIC ===
+  
   if (platform === 'copy') {
     try {
       await navigator.clipboard.writeText(`${cleanText}\n\n${currentUrl}`);
       
-      // ✅ SUCCESS: Sleek Toast instead of Alert
       showToast("Copied to clipboard");
       
     } catch (err) {
-      console.error('Failed to copy', err);
-      
-      // ❌ ERROR: Red Toast
       showToast("Manual copy required", "error");
     }
     return;
@@ -1182,25 +1176,19 @@ function renderListItems(items) {
 // RENDER ITEMS (If items.length > 0)
   items.forEach(item => {
     if (placeholder) {
-      console.log("🎯 Placeholder Found:", {
-        id: placeholder.id,
-        text: placeholder.innerText.trim(),
-        isConnected: placeholder.isConnected,
-        html: placeholder.outerHTML
-      });
 
       // Forced eviction
       placeholder.remove();
       
       // Check if it's STILL there after removal attempt
       if (document.getElementById('public-placeholder')) {
-        console.warn("⚠️ WARNING: Placeholder still exists in DOM after .remove()!");
+
         document.getElementById('public-placeholder').outerHTML = ''; // Final nuke
       } else {
-        console.log("✅ Placeholder successfully evicted.");
+      
       }
     } else {
-      console.log("🔍 No placeholder detected on screen.");
+    
     }
 
     const postNode = createPostNode(item);
@@ -1244,14 +1232,13 @@ async function handleBruteForce() {
   if (window.isBruteFetching) return;
   
   window.isBruteFetching = true;
-  console.log("🛠️ BRUTE FORCE: List empty but DB has posts. Fetching now...");
 
   try {
     // 2. Clear IDs so the sampler doesn't ignore the 11 posts
     processedIds.clear(); 
     
 	if (placeholder) {
-        console.log("🎯 Brute Force: Removing placeholder to make room for results.");
+       
         placeholder.remove();
         
         // Final nuke check
@@ -1264,7 +1251,6 @@ async function handleBruteForce() {
     await refillBufferRandomly(5, false, true);
 
     if (postBuffer.length > 0) {
-      console.log(`✅ Brute Force Success! Found ${postBuffer.length} posts.`);
 	  
       // 4. Move from buffer to visiblePosts
       while (postBuffer.length > 0) {
@@ -1277,13 +1263,13 @@ async function handleBruteForce() {
       // 5. Trigger the render with the new data
       renderListItems(visiblePosts);
     } else {
-      console.log("⚠️ Brute Force failed to find items despite count > 0.");
+     
       // Optional: If after brute force it's still empty, show the leaves
       totalGlobalPosts = 0; 
       renderListItems([]);
     }
   } catch (err) {
-    console.error("❌ Brute Force Error:", err);
+	  
   } finally {
     // 6. Release the lock after a cooldown
     setTimeout(() => { 
@@ -1505,7 +1491,6 @@ async function handlePost() {
 
   } catch (error) { 
     showToast("Error posting", "error");
-    console.error(error); 
   } finally { 
     DOM.btn.textContent = "Post"; 
     DOM.btn.disabled = false; 
@@ -1565,7 +1550,6 @@ async function publishDraft(post) {
         }
 
       } catch (e) {
-        console.error("Error publishing draft:", e);
         showToast("Could not publish. Check connection.", "error");
       }
     }
@@ -1601,7 +1585,7 @@ async function deleteLocal(id) {
           batch.delete(postRef);
           await batch.commit();
         } catch(e) {
-          console.warn("Global version already gone or unreachable:", e);
+     
         }
       }
 
@@ -1672,7 +1656,7 @@ async function deleteGlobal(postId) {
         
         // --- 🏁 END OF THE FIX ---
         
-        console.log(`Successfully deleted post ${postId}, comments, and likes.`);
+       
 
         // 6. Update Local Storage (Remove "Global" status)
         let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
@@ -1703,7 +1687,6 @@ async function deleteGlobal(postId) {
         showToast("Post deleted from global feed");
 
       } catch (e) {
-        console.error("Error during batch delete:", e);
         showToast("Delete failed. Check connection.", "error");
       }
     }
@@ -1771,9 +1754,7 @@ async function toggleLike(event, postId) {
       await updateDoc(postRef, { likeCount: increment(1) });
     }
   } catch (error) {
-    console.error("Like failed:", error);
-    // Optional: Revert UI here if you really want to be safe
-    alert("Connection failed. Like not saved.");
+    showToast("Connection failed. Like not saved.");
   }
 }
 window.toggleLike = toggleLike;
@@ -1795,19 +1776,12 @@ async function deleteComment(postId, commentId) {
         await updateDoc(postRef, {
             commentCount: increment(-1)
         });
-
-        console.log("Comment deleted successfully");
-        
-        // 2. Success! Show the toast instead of just a console log
+		
         showToast("Comment deleted");
 
       } catch (e) {
-        console.error("Error deleting comment:", e);
-        
-        // 3. Swap 'alert()' for a toast or dialog
         showToast("Could not delete comment", "error");
       }
-      // --- ALL YOUR ORIGINAL LOGIC ENDS HERE ---
     }
   );
 }
@@ -1997,7 +1971,7 @@ async function postComment() {
     if (scrollArea) scrollArea.scrollTop = 0; 
 
   } catch (e) { 
-    console.error(e); 
+
   } finally { 
     // Re-enable UI after keyboard animation finishes
     setTimeout(() => {
@@ -2034,7 +2008,7 @@ function showToast(message, type = "success") {
 }
 
 function showDialog(title, message, confirmText, onConfirm) {
-  console.log("🔵 showDialog called:", { title, message, confirmText });
+ 
   
   const overlay = document.getElementById('custom-dialog');
   const titleEl = document.getElementById('dialog-title');
@@ -2042,15 +2016,7 @@ function showDialog(title, message, confirmText, onConfirm) {
   const confirmBtn = document.getElementById('dialog-confirm-btn');
 
   // Check if elements exist
-  if (!overlay || !titleEl || !msgEl || !confirmBtn) {
-    console.error("❌ Dialog elements missing:", {
-      overlay: !!overlay,
-      titleEl: !!titleEl,
-      msgEl: !!msgEl,
-      confirmBtn: !!confirmBtn
-    });
-    return;
-  }
+  if (!overlay || !titleEl || !msgEl || !confirmBtn) return;
 
   // 1. Set Content
   titleEl.textContent = title;
@@ -2085,7 +2051,6 @@ function showDialog(title, message, confirmText, onConfirm) {
   confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
   
   newBtn.onclick = () => {
-    console.log("🖱️ Confirm button clicked");
     
     // Store current dialog state
     const wasOpen = !overlay.classList.contains('hidden');
@@ -2105,23 +2070,14 @@ function showDialog(title, message, confirmText, onConfirm) {
 }
 
 function closeDialog() {
-  console.log("🔶 closeDialog called");
-  console.trace("📍 Call stack:"); // This will show us WHO is calling closeDialog
-  
   const overlay = document.getElementById('custom-dialog');
   
-  if (!overlay) {
-    console.error("❌ Can't close - overlay not found");
-    return;
-  }
+  if (!overlay) return;
   
-  console.log("📂 Closing dialog, current classes:", overlay.className);
   overlay.classList.remove('dialog-open'); 
   
-  // Reduced from 200 to 150 to match the CSS speed
   setTimeout(() => {
     overlay.classList.add('hidden');
-    console.log("🔒 Dialog hidden after 150ms delay");
   }, 150); 
 }
 
@@ -2147,7 +2103,6 @@ function checkSpamGuard(newContent) {
   if (now < history.jailReleaseTime) {
     let minutesLeft = Math.ceil((history.jailReleaseTime - now) / 60000);
     
-    // 🚨 REPLACED ALERT WITH DIALOG
     showDialog(
       "Penalty Box ❄️",
       `You are currently blocked from posting. Please wait ${minutesLeft} more minutes.`,
@@ -2178,7 +2133,6 @@ function checkSpamGuard(newContent) {
     history.jailReleaseTime = now + (COOLDOWN_MINUTES * 60 * 1000);
     localStorage.setItem('spam_guard', JSON.stringify(history));
     
-    // 🚨 REPLACED ALERT WITH DIALOG
     showDialog(
       "Spam Detected 🚨",
       "You posted the exact same thing 3 times. You are taking a 30-minute break.",
@@ -2396,8 +2350,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js')
-    .then(() => console.log("Service Worker Registered"));
+  navigator.serviceWorker.register('sw.js');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
