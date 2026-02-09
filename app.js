@@ -81,6 +81,8 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 // Use _supabase (with an underscore) to avoid clashing with the library name
 const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
+window.pendingPostUpdates = 0;
+
   // SVG Thought Bubble 
 function getThoughtBubbleSVG(className = "w-20 h-20") {
     return `<svg class="${className}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -364,12 +366,13 @@ function updateUISurgically(id, data) {
 
 function watchPostCounts(postId) {
   // 1. If we are already watching, stop.
-  if (activePostListeners.has(postId)) return;
+  if (activePostListeners.has(postId)){
+	window.pendingPostUpdates--;  
+  return;
+  }
 
-  // 2. STOP THE HANG:
-  // If this ID is a pure number (Private Post timestamp), ignore it. 
-  // Private posts don't exist in Supabase, so querying them causes errors + delays.
   if (!isNaN(postId) && postId.length > 10) {
+	  window.pendingPostUpdates--;
       return; 
   }
 
@@ -381,7 +384,12 @@ function watchPostCounts(postId) {
     .eq('id', postId)
     .maybeSingle()
     .then(({ data, error }) => {
-		console.log(`[${Date.now()}] 📨 Supabase Data ARRIVED for ${postId}`);
+		window.pendingPostUpdates--;
+		
+		if (window.pendingPostUpdates === 0) {
+             console.log(`[watchPostCounts] 🟢 GREEN LIGHT. All updates finished.`);
+        }
+		
         if (data) {
             const uiData = {
                 id: data.id, 
@@ -1039,8 +1047,12 @@ function showHeartAnimation(container) {
 }
 
 function renderListItems(items) {
-	console.time("RenderLoop"); // Start a timer
-  console.log(`[${Date.now()}] 🏁 renderListItems STARTED with ${items.length} items`);
+	
+	if (window.pendingPostUpdates > 0) {
+      console.log(`[renderListItems] 🚦 RED LIGHT. Waiting for ${window.pendingPostUpdates} updates to finish.`);
+      return; 
+  }
+
 	const placeholder = document.getElementById('public-placeholder');
 	
   if (items.length === 0) {
@@ -1093,15 +1105,13 @@ function renderListItems(items) {
     }
     const postNode = createPostNode(item);
     DOM.list.appendChild(postNode);
+	window.pendingPostUpdates++;
     watchPostCounts(item.id);
   });
-  console.log(`[${Date.now()}] 🏁 renderListItems FINISHED`);
-  console.timeEnd("RenderLoop"); // Stop timer
   refreshSnap();
 }
 
 function showPublicPlaceholder(type) {
-	console.log(`[${Date.now()}] 🚜 showPublicPlaceholder CALLED with type: ${type}`);
   let html = '';
   if (type === 'empty') {
     html = `
