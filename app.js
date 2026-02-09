@@ -1595,10 +1595,10 @@ async function deleteGlobal(postId) {
 		
 		Ledger.log("deleteGlobal", 0, 0, commentsSnapshot.size + likesSnapshot.size + 1);
 		
-		// 🚀 NEW: Reset counts in Supabase (outsources the local reset)
+		// 🚀 NEW: Delete from Supabase (full removal)
         const { error } = await _supabase
           .from('posts')
-          .update({ like_count: 0, comment_count: 0 })
+          .delete()
           .eq('id', postId);
 
         if (error) throw error;
