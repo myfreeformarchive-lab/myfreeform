@@ -396,49 +396,71 @@ function updateUISurgically(id, data) {
  // activePostListeners.set(postId, unsubscribe);
 // }
 
-function watchPostCounts(postId) {
+async function watchPostCounts(postId) {
   if (activePostListeners.has(postId)) return;
 
-  // Create a channel for real-time changes on the posts table, filtered by postId
-  const channel = supabase.channel(`posts-${postId}`)
-    .on('postgres_changes', {
-      event: '*', // Listen for all events: INSERT, UPDATE, DELETE
-      schema: 'public',
-      table: 'posts',
-      filter: `id=eq.${postId}` // Targets the 'id' column (primary key)
-    }, (payload) => {
-      if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-        // Record exists or was updated (payload.new contains { id, like_count, comment_count })
-        if (payload.new) {
-          updateUISurgically(postId, payload.new);
-          Ledger.log("watchPostCounts", 1, 0, 0);
-        }
-      } else if (payload.eventType === 'DELETE') {
-        // Record was deleted
-        if (activePostListeners.has(postId)) {
-          activePostListeners.delete(postId);
-        }
-        if (currentTab === 'public') {
-          visiblePosts = visiblePosts.filter(p => p.id !== postId && p.firebaseId !== postId);
-          const elToRemove = document.querySelector(`[data-id="${postId}"]`);
-          if (elToRemove) {
-            elToRemove.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-500');
-            setTimeout(() => elToRemove.remove(), 500);
-          }
-        }
-      }
-    })
-    .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        // Successfully subscribed
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-        // Handle errors (similar to Firebase's error callback)
-        console.error('Subscription error for postId:', postId, status);
-      }
-    });
+  // 1. Initial Fetch (Get current values once)
+  // We use .maybeSingle() to avoid the 406 error if the post is missing in Supabase
+  const { data } = await _supabase
+    .from('posts')
+    .select('like_count, comment_count')
+    .eq('id', postId)
+    .maybeSingle();
 
-  // Store the channel for later cleanup
-  activePostListeners.set(postId, channel);
+  if (data) {
+    updateUISurgically(postId, { 
+      likeCount: data.like_count, 
+      commentCount: data.comment_count 
+    });
+    Ledger.log("watchPostCounts", 1, 0, 0);
+  }
+
+  // 2. The Realtime Listener
+  const channel = _supabase
+    .channel(`public:posts:${postId}`)
+    .on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'posts', 
+      filter: `id=eq.${postId}` 
+    }, (payload) => {
+
+      // --- SECTION: UPDATE (Replaces docSnap.exists) ---
+      if (payload.eventType === 'UPDATE') {
+        updateUISurgically(postId, { 
+          likeCount: payload.new.like_count, 
+          commentCount: payload.new.comment_count 
+        });
+        Ledger.log("watchPostCounts", 1, 0, 0);
+      }
+
+      // --- SECTION: DELETE (Replaces the 'else' block) ---
+      if (payload.eventType === 'DELETE') {
+        if (activePostListeners.has(postId)) {
+           // We have to define 'unsubscribe' below so we can call it here if needed
+           const unsub = activePostListeners.get(postId);
+           if (unsub) unsub(); 
+           activePostListeners.delete(postId);
+        }
+
+        if (currentTab === 'public') {
+           visiblePosts = visiblePosts.filter(p => p.id !== postId && p.firebaseId !== postId);
+           
+           const elToRemove = document.querySelector(`[data-id="${postId}"]`);
+           if (elToRemove) {
+             elToRemove.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-500');
+             setTimeout(() => elToRemove.remove(), 500);
+           }
+        }
+      }
+
+    })
+    .subscribe();
+
+  // 3. Define and Store the Unsubscribe Function
+  const unsubscribe = () => { _supabase.removeChannel(channel); };
+  
+  activePostListeners.set(postId, unsubscribe);
 }
 
 async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed = false) {
