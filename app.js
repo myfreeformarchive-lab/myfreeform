@@ -1152,7 +1152,7 @@ function renderListItems(items) {
     DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
     setTimeout(async () => {
         if (visiblePosts.length === 0) {
-         switchTab();
+     loadFeed();
         }
     }, 500);
       }
