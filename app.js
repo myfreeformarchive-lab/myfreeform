@@ -1157,7 +1157,7 @@ function renderListItems(items) {
           window.isBruteFetching = true;
           (async () => {
             try {
-              await refillBufferRandomly(10);
+              await refillBufferRandomly(15);
               if (postBuffer.length > 0) {
                 while (postBuffer.length > 0) {
                   visiblePosts.push(postBuffer.shift());
