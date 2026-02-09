@@ -23,11 +23,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-window.db = db;
-window.visiblePosts = visiblePosts;
-window.postBuffer = postBuffer;
-window.processedIds = processedIds;
-
 // ==========================================
 // 1. STATE & DOM
 // ==========================================
@@ -80,6 +75,17 @@ let activePostListeners = new Map();
 let isAppending = false;
 
 let totalGlobalPosts = -1;
+
+
+let visiblePosts = [];   
+let postBuffer = [];      
+let processedIds = new Set(); 
+
+// 🚀 MOVE THE BRIDGES HERE (After they are defined)
+window.db = db;
+window.visiblePosts = visiblePosts;
+window.postBuffer = postBuffer;
+window.processedIds = processedIds;
 
   // SVG Thought Bubble 
 function getThoughtBubbleSVG(className = "w-20 h-20") {
@@ -412,7 +418,7 @@ function watchPostCounts(postId) {
   activePostListeners.set(postId, unsubscribe);
 }
 
-async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed = false) {
+async function refillBufferRandomly(count = 1, silent = false) {
   try {
     const counterRef = doc(db, "metadata", "postCounter");
     const counterSnap = await getDoc(counterRef);
@@ -434,8 +440,6 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
     while (postBuffer.length < count && attempts < MAX_ATTEMPTS) {
       attempts++;
       const rand = Math.floor(Math.random() * (maxId - minId + 1) + minId);
-	  // 🕵️ THE SMOKING GUN LOGS
-    console.log(`Attempt ${attempts}: Searching for serialId >= ${rand} (Range: ${minId}-${maxId})`);
       
 	  const q = query(
         collection(db, "globalPosts"), 
@@ -451,7 +455,7 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
         const post = { id: docData.id, ...docData.data(), isFirebase: true };
         
         // Ensure it's not already on screen OR already in the buffer
-        const isDuplicate = (!ignoreProcessed && processedIds.has(post.id)) || postBuffer.some(p => p.id === post.id);
+        const isDuplicate = processedIds.has(post.id) || postBuffer.some(p => p.id === post.id);
         
         if (!isDuplicate) {
           postBuffer.push(post);
@@ -1156,61 +1160,22 @@ function renderListItems(items) {
           <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
         </div>`;
     } else {
-        // 🛠️ BRUTE FORCE FETCH
-        DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
-        console.log("🛠️ BRUTE FORCE: List empty but DB has posts. Fetching now...");
+    DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
+    
+      }
+  }
+    return;
 
-        // Inside your renderListItems Brute Force block
-if (!window.isBruteFetching) {
-    window.isBruteFetching = true;
-    (async () => {
-        try {
-            processedIds.clear();
-            
-            // 🚀 THE NEW PLAN: If the random sampler is stuck, 
-            // we just fetch the newest 10 posts directly.
-            const emergencyQuery = query(
-                collection(db, "globalPosts"), 
-                limit(10)
-            );
-            const emergencySnap = await getDocs(emergencyQuery);
-            
-            console.log(`🛰️ Emergency Fetch found ${emergencySnap.size} posts.`);
-
-            emergencySnap.forEach(doc => {
-                const post = { id: doc.id, ...doc.data(), isFirebase: true };
-                if (!postBuffer.some(p => p.id === post.id)) {
-                    postBuffer.push(post);
-                }
-            });
-
-            console.log("📦 Buffer status:", postBuffer.length);
-            
-            if (postBuffer.length > 0) {
-                while (postBuffer.length > 0) {
-                    visiblePosts.push(postBuffer.shift());
-                }
-                renderListItems(visiblePosts);
-            }
-        } catch (err) {
-            console.error("❌ Brute Force Error:", err);
-        } finally {
-            setTimeout(() => { window.isBruteFetching = false; }, 2000);
-        }
-    })();
-}
-      } // <--- Added this missing closing brace for the inner else
-    }
-    return; // Exit if items was 0
   }
 
-  // RENDER ITEMS (If items.length > 0)
   items.forEach(item => {
     const postNode = createPostNode(item);
     DOM.list.appendChild(postNode);
+    
+    // Start watching these initial posts
     watchPostCounts(item.id);
   });
-  refreshSnap();
+  refreshSnap()
 }
 
 function refreshSnap() {
