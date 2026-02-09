@@ -362,41 +362,36 @@ function updateUISurgically(id, data) {
   }
 }
 
-async function watchPostCounts(postId) {
+function watchPostCounts(postId) {
+  // 1. STOP if we are already watching this post
   if (activePostListeners.has(postId)) return;
 
-  console.log(`[${postId}] Starting Watcher...`);
+  // 2. GUARD: If this is a Private Post (Local ID is a long number), ignore it.
+  // This stops the "Post not found" errors and prevents the "Hanging" on private tab.
+  if (!isNaN(postId) && postId.length > 10) {
+      return; 
+  }
 
-  // --- 1. INITIAL FETCH ---
-  const { data, error } = await _supabase
+  // 3. FIRE-AND-FORGET FETCH (Removed 'await' to fix the hanging bug)
+  // This runs in the background while your site keeps loading
+  _supabase
     .from('posts')
     .select('id, like_count, comment_count')
     .eq('id', postId)
-    .maybeSingle();
+    .maybeSingle()
+    .then(({ data, error }) => {
+        if (data) {
+            const uiData = {
+                id: data.id, 
+                likeCount: data.like_count, 
+                commentCount: data.comment_count 
+            };
+            updateUISurgically(postId, uiData);
+            Ledger.log("watchPostCounts", 1, 0, 0);
+        }
+    });
 
-  if (error) {
-    console.error(`[${postId}] ❌ Supabase Error:`, error);
-    return;
-  }
-
-  if (!data) {
-    console.warn(`[${postId}] ⚠️ Post not found in Supabase (Data is null)`);
-  } else {
-    // TRANSLATE
-    const uiData = {
-        id: data.id, 
-        likeCount: data.like_count, 
-        commentCount: data.comment_count
-    };
-
-    // 🔍 DEBUG LOG: Check exactly what we are sending
-    console.log(`[${postId}] ⚡ Sending to UI (Fetch):`, uiData);
-    
-    updateUISurgically(postId, uiData);
-    Ledger.log("watchPostCounts", 1, 0, 0);
-  }
-
-  // --- 2. LIVE LISTENER ---
+  // 4. SETUP LISTENER (Runs immediately, no waiting)
   const channel = _supabase
     .channel(`public:posts:${postId}`)
     .on('postgres_changes', { 
@@ -406,29 +401,34 @@ async function watchPostCounts(postId) {
         filter: `id=eq.${postId}` 
     }, (payload) => {
 
-      console.log(`[${postId}] 🔔 Event Received:`, payload.eventType);
-
       if (payload.eventType === 'UPDATE') {
         const uiData = {
             id: payload.new.id,
             likeCount: payload.new.like_count,
             commentCount: payload.new.comment_count
         };
-        
-        // 🔍 DEBUG LOG: Check exactly what we are sending on update
-        console.log(`[${postId}] ⚡ Sending to UI (Update):`, uiData);
-
         updateUISurgically(postId, uiData);
         Ledger.log("watchPostCounts", 1, 0, 0);
       } 
-      
       else if (payload.eventType === 'DELETE') {
-        console.log(`[${postId}] 🗑️ Post Deleted`);
-        // ... (Your delete logic here) ...
+        if (activePostListeners.has(postId)) {
+           const unsub = activePostListeners.get(postId);
+           if (unsub) unsub();
+           activePostListeners.delete(postId);
+        }
+        if (currentTab === 'public') {
+           visiblePosts = visiblePosts.filter(p => p.id !== postId && p.firebaseId !== postId);
+           const elToRemove = document.querySelector(`[data-id="${postId}"]`);
+           if (elToRemove) {
+             elToRemove.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-500');
+             setTimeout(() => elToRemove.remove(), 500);
+           }
+        }
       }
     })
     .subscribe();
 
+  // 5. CLEANUP
   const unsubscribe = () => _supabase.removeChannel(channel);
   activePostListeners.set(postId, unsubscribe);
 }
