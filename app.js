@@ -1156,6 +1156,7 @@ function renderListItems(items) {
     // We don't need a timeout. We just fire the reset engine.
     console.log("Empty state detected. Re-syncing tab...");
     switchTab(); 
+	return; 
 }
 	  }
     return;
