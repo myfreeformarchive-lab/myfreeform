@@ -1150,13 +1150,19 @@ function renderListItems(items) {
         </div>`;
     } else {
     DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
-    setTimeout(async () => {
-        if (visiblePosts.length === 0) {
-         injectSinglePost();
-        }
-    }, 500);
-      }
+    refillBufferRandomly(5, true).then(() => {
+      if (postBuffer.length === 0) {
+          // If randomizer found nothing, fallback to chronological
+          isAppending = true;
+          subscribePublicFeed().then(() => {
+              isLoadingMore = false;
+              isAppending = false;
+              DOM.loadTrigger.style.visibility = 'hidden';
+		  
+          });
+	  }
   }
+	}
     return;
 
   }
