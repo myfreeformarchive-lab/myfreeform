@@ -1149,35 +1149,42 @@ function renderListItems(items) {
           <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
         </div>`;
     } else {
-    DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
-    refillBufferRandomly(5, true).then(() => {
-      if (postBuffer.length === 0) {
-          // If randomizer found nothing, fallback to chronological
-          isAppending = true;
-          subscribePublicFeed().then(() => {
-              isLoadingMore = false;
-              isAppending = false;
-              DOM.loadTrigger.style.visibility = 'hidden';
-		  
-          });
-	  }
-  });
-	}
-    return;
+        // 🛠️ BRUTE FORCE FETCH
+        DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
+        console.log("🛠️ BRUTE FORCE: List empty but DB has posts. Fetching now...");
 
-  }
+        if (!window.isBruteFetching) {
+          window.isBruteFetching = true;
+          (async () => {
+            try {
+              await refillBufferRandomly(10);
+              if (postBuffer.length > 0) {
+                while (postBuffer.length > 0) {
+                  visiblePosts.push(postBuffer.shift());
+                }
+                console.log("✅ Brute Force Success!");
+                renderListItems(visiblePosts);
+              }
+            } catch (err) {
+              console.error("❌ Brute Force Error:", err);
+            } finally {
+              setTimeout(() => { window.isBruteFetching = false; }, 2000);
+            }
+          })();
+        }
+      } // <--- Added this missing closing brace for the inner else
+    }
+    return; // Exit if items was 0
   }
 
+  // RENDER ITEMS (If items.length > 0)
   items.forEach(item => {
     const postNode = createPostNode(item);
     DOM.list.appendChild(postNode);
-    
-    // Start watching these initial posts
     watchPostCounts(item.id);
   });
-  refreshSnap()
+  refreshSnap();
 }
-
 
 function refreshSnap() {
   // We use window because your 'body' is the Master Scroller
@@ -2309,3 +2316,53 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('exitModalBack')?.addEventListener('click', () => closeExitModal());
     document.getElementById('confirm-exit-btn')?.addEventListener('click', () => closeExitModal());
 });
+
+
+/* ================================================================================
+📊 FIREBASE "BILLING BRAKE" & USAGE LEDGER 
+--------------------------------------------------------------------------------
+This logic tracks session-based reads and writes to visualize costs.
+Copy/Paste this into the top of your main JS file.
+
+CATEGORIES TO LOG:
+- initial_load_public / initial_load_private
+- tab_switch_click / tab_switch_swipe
+- idle_public / idle_private
+- like_icon / like_double_tap
+- comment_modal_open
+- infinite_scroll
+- write_public_post
+================================================================================
+
+const Ledger = {
+  reads: 0,
+  writes: 0,
+  categories: {},
+
+  log: function(category, r = 0, w = 0) {
+    this.reads += r;
+    this.writes += w;
+    
+    if (!this.categories[category]) {
+      this.categories[category] = { reads: 0, writes: 0 };
+    }
+    
+    this.categories[category].reads += r;
+    this.categories[category].writes += w;
+
+    // Financial math: Google charges approx $0.06 per 100,000 reads
+    const estCost = ((this.reads / 100000) * 0.06).toFixed(5);
+    
+    console.groupCollapsed(`💰 Ledger Update: [${category}] +${r}R/+${w}W`);
+    console.log(`Session Totals: ${this.reads} Reads | ${this.writes} Writes`);
+    console.log(`Estimated Session Cost: $${estCost}`);
+    console.table(this.categories);
+    console.groupEnd();
+  }
+};
+
+USAGE EXAMPLES:
+- Inside refillBuffer:   Ledger.log('idle_public', 2, 0);
+- Inside switchTab:      Ledger.log('tab_switch_click', 1, 0);
+- Inside doubleTapLike:  Ledger.log('like_double_tap', 0, 1);
+*/
