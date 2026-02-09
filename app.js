@@ -1149,17 +1149,16 @@ function renderListItems(items) {
           <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
         </div>`;
     } else {
-    // 1. Set the "Scanning" text once
     DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
-
-    // 2. Immediate Teleport
-    // We don't need a timeout. We just fire the reset engine.
-    console.log("Empty state detected. Re-syncing tab...");
-    switchTab(); 
-	return; 
-}
-	  }
+    setTimeout(async () => {
+        if (visiblePosts.length === 0) {
+         switchTab();
+        }
+    }, 500);
+      }
+  }
     return;
+
   }
 
   items.forEach(item => {
