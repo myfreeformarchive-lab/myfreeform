@@ -1233,7 +1233,7 @@ async function handleBruteForce() {
     if (postBuffer.length > 0) {
       console.log(`✅ Brute Force Success! Found ${postBuffer.length} posts.`);
       
-
+ placeholder.remove();
 	  
       // 4. Move from buffer to visiblePosts
       while (postBuffer.length > 0) {
