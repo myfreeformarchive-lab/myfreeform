@@ -1198,6 +1198,7 @@ function showPublicPlaceholder(type) {
 }
 
 async function handleBruteForce() {
+	const placeholder = document.getElementById('public-placeholder');
   // 1. Double check we aren't already fetching
   if (window.isBruteFetching) return;
   
@@ -1214,6 +1215,10 @@ async function handleBruteForce() {
     if (postBuffer.length > 0) {
       console.log(`✅ Brute Force Success! Found ${postBuffer.length} posts.`);
       
+	  if (placeholder) {
+    placeholder.remove(); 
+  }
+	  
       // 4. Move from buffer to visiblePosts
       while (postBuffer.length > 0) {
         const post = postBuffer.shift();
