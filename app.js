@@ -1159,6 +1159,7 @@ function renderListItems(items) {
   
   if (placeholder) {
     placeholder.remove(); 
+	placeholder.outerHTML = '';
   }
   
   // RENDER ITEMS (If items.length > 0)
@@ -1217,6 +1218,7 @@ async function handleBruteForce() {
       
 	  if (placeholder) {
     placeholder.remove(); 
+	placeholder.outerHTML = '';
   }
 	  
       // 4. Move from buffer to visiblePosts
