@@ -1149,24 +1149,33 @@ function renderListItems(items) {
           <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
         </div>`;
     } else {
-		//setTimeout(() => {
-       //    subscribePublicFeed();
-      //  }, 500);
-	  
-	  //console.log
-	  
-	  // 🕵️ DEBUGGER: Why are we in the Silence Zone?
-        console.group("🔍 Render Trace");
-        console.log("Status: items.length is 0");
-        console.log("Tab:", currentTab);
-        console.log("Global Count:", totalGlobalPosts);
-        
-        // This line is the 'Teleport' — it shows you the function name
-        console.log("Triggered by:", new Error().stack.split("\n")[2].trim());
-        
-        console.groupEnd();
+		
+		// 1. Show your spinner animation immediately
+    DOM.list.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-20">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-300 mb-4"></div>
+            <p class="text-slate-400 text-xs animate-pulse">Whispering to the wind...</p>
+        </div>`;
 
-        // return; // Keep this here for now
+    // 2. The Teleport: Go get the posts so the spinner can die
+    setTimeout(async () => {
+        // Only run if the feed is still empty
+        if (visiblePosts.length === 0) {
+            console.log("Spinner active - fetching cargo to clear it.");
+            
+            // Fetch 10 to fill the screen
+            await refillBufferRandomly(5); 
+
+            // Dump buffer into the master list
+            while (postBuffer.length > 0) {
+                visiblePosts.push(postBuffer.shift());
+            }
+
+            // This call will overwrite the spinner with the actual posts
+            renderListItems(visiblePosts);
+        }
+    }, 1500); // 1.5s gives the spinner time to look "intentional"
+		
       }
 	  }
     return;
