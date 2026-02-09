@@ -499,27 +499,21 @@ function injectSinglePost(item, position = 'top') {
   postNode.classList.add('animate-in');
 
   if (position === 'top') {
-    // 🚀 We wait for the "drip" timing...
+	const randomDelay = Math.floor(Math.random() * (4500 - 1500 + 1) + 1500);  
     setTimeout(() => {
-      // 3. TAB LOCKDOWN: Re-check currentTab and existence after the 4.5s delay
-      // If the user switched tabs or the post was added by a listener while we waited, STOP.
       if (currentTab !== 'public' || document.getElementById(`post-${item.id}`)) {
         return; 
       }
-
       const currentScrollTop = window.scrollY;
-
       DOM.list.prepend(postNode);
       watchPostCounts(item.id);
-
       requestAnimationFrame(() => {
         window.scrollTo(0, currentScrollTop);
         requestAnimationFrame(refreshSnap);
       });
-    }, 4500); 
+    }, randomDelay); 
 
   } else {
-    // 4. BOTTOM SHIELD: Even for appending, check for duplicates
     if (!document.getElementById(`post-${item.id}`)) {
       DOM.list.appendChild(postNode);
       watchPostCounts(item.id);
