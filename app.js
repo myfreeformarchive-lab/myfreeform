@@ -363,17 +363,18 @@ function updateUISurgically(id, data) {
 }
 
 function watchPostCounts(postId) {
-  // 1. STOP if we are already watching this post
+  // 1. If we are already watching, stop.
   if (activePostListeners.has(postId)) return;
 
-  // 2. GUARD: If this is a Private Post (Local ID is a long number), ignore it.
-  // This stops the "Post not found" errors and prevents the "Hanging" on private tab.
+  // 2. STOP THE HANG:
+  // If this ID is a pure number (Private Post timestamp), ignore it. 
+  // Private posts don't exist in Supabase, so querying them causes errors + delays.
   if (!isNaN(postId) && postId.length > 10) {
       return; 
   }
 
-  // 3. FIRE-AND-FORGET FETCH (Removed 'await' to fix the hanging bug)
-  // This runs in the background while your site keeps loading
+  // 3. FIRE-AND-FORGET (No 'await')
+  // We trigger the fetch, but we do NOT pause the code here.
   _supabase
     .from('posts')
     .select('id, like_count, comment_count')
@@ -391,7 +392,7 @@ function watchPostCounts(postId) {
         }
     });
 
-  // 4. SETUP LISTENER (Runs immediately, no waiting)
+  // 4. SETUP LIVE LISTENER (Standard)
   const channel = _supabase
     .channel(`public:posts:${postId}`)
     .on('postgres_changes', { 
@@ -410,6 +411,7 @@ function watchPostCounts(postId) {
         updateUISurgically(postId, uiData);
         Ledger.log("watchPostCounts", 1, 0, 0);
       } 
+      
       else if (payload.eventType === 'DELETE') {
         if (activePostListeners.has(postId)) {
            const unsub = activePostListeners.get(postId);
