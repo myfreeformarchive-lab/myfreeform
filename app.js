@@ -1181,7 +1181,7 @@ function renderListItems(items) {
     }
     return; // Exit if items was 0
   }
-
+  }
   // RENDER ITEMS (If items.length > 0)
   items.forEach(item => {
     const postNode = createPostNode(item);
