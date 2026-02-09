@@ -1163,16 +1163,12 @@ function renderListItems(items) {
         if (visiblePosts.length === 0) {
             console.log("Spinner active - fetching cargo to clear it.");
             
-            // Fetch 10 to fill the screen
-            await refillBufferRandomly(5); 
-
-            // Dump buffer into the master list
-            while (postBuffer.length > 0) {
-                visiblePosts.push(postBuffer.shift());
-            }
-
-            // This call will overwrite the spinner with the actual posts
-            renderListItems(visiblePosts);
+			const postNode = createPostNode(item);
+    DOM.list.appendChild(postNode);
+    
+    // Start watching these initial posts
+    watchPostCounts(item.id);
+            
         }
     }, 1500); // 1.5s gives the spinner time to look "intentional"
 		
