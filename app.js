@@ -1163,6 +1163,7 @@ function renderListItems(items) {
                   visiblePosts.push(postBuffer.shift());
                 }
                 console.log("✅ Brute Force Success!");
+				DOM.list.innerHTML = '';
                 renderListItems(visiblePosts);
               }
             } catch (err) {
