@@ -1678,9 +1678,9 @@ async function toggleLike(event, postId) {
 try {
     // Update like_count in the posts table: +1 if not liked, -1 if liked
     const incrementValue = currentlyLiked ? -1 : 1;
-    const { error } = await supabase
+    const { error } = await _supabase
       .from('posts')
-      .update({ like_count: supabase.raw(`like_count + ${incrementValue}`) })  // Atomic increment via raw SQL
+      .update({ like_count: _supabase.raw(`like_count + ${incrementValue}`) })  // Atomic increment via raw SQL
       .eq('id', postId);
 
     if (error) throw error;
@@ -1704,9 +1704,9 @@ async function deleteComment(postId, commentId) {
         await deleteDoc(commentRef);
 
         // Swap to Supabase: Decrement comment_count in posts table
-        const { error } = await supabase
+        const { error } = await _supabase
           .from('posts')
-          .update({ comment_count: supabase.raw('comment_count - 1') })
+          .update({ comment_count: _supabase.raw('comment_count - 1') })
           .eq('id', postId);
 
         if (error) throw error;
@@ -1900,9 +1900,9 @@ async function postComment() {
     });
 
     // Swap to Supabase: Increment comment_count in posts table
-    const { error } = await supabase
+    const { error } = await _supabase
       .from('posts')
-      .update({ comment_count: supabase.raw('comment_count + 1') })
+      .update({ comment_count: _supabase.raw('comment_count + 1') })
       .eq('id', activePostId);
 
     if (error) throw error;
