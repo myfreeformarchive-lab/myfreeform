@@ -683,7 +683,7 @@ async function subscribePublicFeed() {
     postBuffer = []; 
     processedIds.clear();
     if (dripTimeout) clearTimeout(dripTimeout);
-    DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
+    showPublicPlaceholder('scanning');
 	console.log("🔭 [Horizon] Source: Initial Tab Load");
   }
 
