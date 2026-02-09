@@ -1158,11 +1158,7 @@ function renderListItems(items) {
   }
   
   if (placeholder) {
-    placeholder.remove();
-    // If the list only contained the placeholder, it's now empty, so we don't need a full wipe
-  } else {
-    // If there was no placeholder (e.g., initial load or refresh), clear the whole thing
-    DOM.list.innerHTML = ''; 
+    placeholder.remove(); 
   }
   
   // RENDER ITEMS (If items.length > 0)
