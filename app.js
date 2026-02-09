@@ -362,104 +362,74 @@ function updateUISurgically(id, data) {
   }
 }
 
-//function watchPostCounts(postId) {
- // if (activePostListeners.has(postId)) return;
-
- // const postRef = doc(db, "globalPosts", postId);
-  
- // const unsubscribe = onSnapshot(postRef, (docSnap) => {
-  //  if (docSnap.exists()) {
-  //    const data = docSnap.data();
- //     updateUISurgically(postId, data);
-//	  Ledger.log("watchPostCounts", 1, 0, 0);
-  //  } 
-   // else {
-  //    if (activePostListeners.has(postId)) {
-  //      const unsub = activePostListeners.get(postId);
-  //      if (unsub) unsub();
- //       activePostListeners.delete(postId);
-  //    }
-   //   if (currentTab === 'public') {
-  //      visiblePosts = visiblePosts.filter(p => p.id !== postId && p.firebaseId !== postId);
-
-  //      const elToRemove = document.querySelector(`[data-id="${postId}"]`);
-    //    if (elToRemove) {
-    //      elToRemove.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-500');
-     //     setTimeout(() => elToRemove.remove(), 500);
-   //     }
-  //    }
-  //  }
- // }, (err) => {
-    
- // });
-
- // activePostListeners.set(postId, unsubscribe);
-// }
-
 async function watchPostCounts(postId) {
   if (activePostListeners.has(postId)) return;
 
-  // 1. Initial Fetch (Get current values once)
-  // We use .maybeSingle() to avoid the 406 error if the post is missing in Supabase
-  const { data } = await _supabase
+  console.log(`[${postId}] Starting Watcher...`);
+
+  // --- 1. INITIAL FETCH ---
+  const { data, error } = await _supabase
     .from('posts')
-    .select('like_count, comment_count')
+    .select('id, like_count, comment_count')
     .eq('id', postId)
     .maybeSingle();
 
-  if (data) {
-    updateUISurgically(postId, { 
-      likeCount: data.like_count, 
-      commentCount: data.comment_count 
-    });
+  if (error) {
+    console.error(`[${postId}] ❌ Supabase Error:`, error);
+    return;
+  }
+
+  if (!data) {
+    console.warn(`[${postId}] ⚠️ Post not found in Supabase (Data is null)`);
+  } else {
+    // TRANSLATE
+    const uiData = {
+        id: data.id, 
+        likeCount: data.like_count, 
+        commentCount: data.comment_count
+    };
+
+    // 🔍 DEBUG LOG: Check exactly what we are sending
+    console.log(`[${postId}] ⚡ Sending to UI (Fetch):`, uiData);
+    
+    updateUISurgically(postId, uiData);
     Ledger.log("watchPostCounts", 1, 0, 0);
   }
 
-  // 2. The Realtime Listener
+  // --- 2. LIVE LISTENER ---
   const channel = _supabase
     .channel(`public:posts:${postId}`)
     .on('postgres_changes', { 
-      event: '*', 
-      schema: 'public', 
-      table: 'posts', 
-      filter: `id=eq.${postId}` 
+        event: '*', 
+        schema: 'public', 
+        table: 'posts', 
+        filter: `id=eq.${postId}` 
     }, (payload) => {
 
-      // --- SECTION: UPDATE (Replaces docSnap.exists) ---
+      console.log(`[${postId}] 🔔 Event Received:`, payload.eventType);
+
       if (payload.eventType === 'UPDATE') {
-        updateUISurgically(postId, { 
-          likeCount: payload.new.like_count, 
-          commentCount: payload.new.comment_count 
-        });
+        const uiData = {
+            id: payload.new.id,
+            likeCount: payload.new.like_count,
+            commentCount: payload.new.comment_count
+        };
+        
+        // 🔍 DEBUG LOG: Check exactly what we are sending on update
+        console.log(`[${postId}] ⚡ Sending to UI (Update):`, uiData);
+
+        updateUISurgically(postId, uiData);
         Ledger.log("watchPostCounts", 1, 0, 0);
+      } 
+      
+      else if (payload.eventType === 'DELETE') {
+        console.log(`[${postId}] 🗑️ Post Deleted`);
+        // ... (Your delete logic here) ...
       }
-
-      // --- SECTION: DELETE (Replaces the 'else' block) ---
-      if (payload.eventType === 'DELETE') {
-        if (activePostListeners.has(postId)) {
-           // We have to define 'unsubscribe' below so we can call it here if needed
-           const unsub = activePostListeners.get(postId);
-           if (unsub) unsub(); 
-           activePostListeners.delete(postId);
-        }
-
-        if (currentTab === 'public') {
-           visiblePosts = visiblePosts.filter(p => p.id !== postId && p.firebaseId !== postId);
-           
-           const elToRemove = document.querySelector(`[data-id="${postId}"]`);
-           if (elToRemove) {
-             elToRemove.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-500');
-             setTimeout(() => elToRemove.remove(), 500);
-           }
-        }
-      }
-
     })
     .subscribe();
 
-  // 3. Define and Store the Unsubscribe Function
-  const unsubscribe = () => { _supabase.removeChannel(channel); };
-  
+  const unsubscribe = () => _supabase.removeChannel(channel);
   activePostListeners.set(postId, unsubscribe);
 }
 
