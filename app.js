@@ -409,6 +409,7 @@ function watchPostCounts(postId) {
 
 // 1. Added ignoreProcessed = false to the parameters
 async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed = false) {
+	const placeholder = document.getElementById('public-placeholder');
   try {
     const counterRef = doc(db, "metadata", "postCounter");
     const counterSnap = await getDoc(counterRef);
@@ -452,6 +453,27 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
         
         if (!isDuplicate) {
           postBuffer.push(post);
+		  
+		  
+		  // --- START OF YOUR VARIABLES (The Eviction) ---
+          if (placeholder) {
+            console.log("🎯 Sampler Found Content. Removing Placeholder:", {
+                id: placeholder.id,
+                isConnected: placeholder.isConnected
+            });
+
+            placeholder.remove();
+            
+            if (document.getElementById('public-placeholder')) {
+                console.warn("⚠️ Sampler: Placeholder survived .remove(), nuking outerHTML.");
+                document.getElementById('public-placeholder').outerHTML = ''; 
+            } else {
+                console.log("✅ Sampler: Placeholder evicted.");
+            }
+          }
+          // --- END OF YOUR VARIABLES ---
+		  
+		  
         }
       } else {
         // If query returns nothing, the rand might be too high. 
