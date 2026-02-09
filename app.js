@@ -76,10 +76,7 @@ let isAppending = false;
 
 let totalGlobalPosts = -1;
 
-
-let visiblePosts = [];   
-let postBuffer = [];      
-let processedIds = new Set(); 
+ 
 
 // 🚀 MOVE THE BRIDGES HERE (After they are defined)
 window.db = db;
