@@ -1163,8 +1163,7 @@ function renderListItems(items) {
         if (visiblePosts.length === 0) {
             console.log("Spinner active - fetching cargo to clear it.");
     
-    // Start watching these initial posts
-    watchPostCounts(item.id);
+         switchTab();
             
         }
     }, 1500); // 1.5s gives the spinner time to look "intentional"
