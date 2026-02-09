@@ -2093,29 +2093,44 @@ function checkSpamGuard(newContent) {
   return true; 
 }
 
-// Change "serverCount" to "serverCommentCount" for clarity, and ADD "serverLikeCount"
-function updateLocalPostWithServerData(firebaseId, serverCommentCount, serverLikeCount) {
-  let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
-  let updated = false;
+async function updateLocalPostWithServerData(postId) {  // Renamed for clarity (assuming it matches Supabase ID)
+  try {
+    // Fetch latest counts from Supabase
+    const { data, error } = await _supabase
+      .from('posts')
+      .select('like_count, comment_count')
+      .eq('id', postId)
+      .single();
 
-  posts = posts.map(p => {
-    if (p.firebaseId === firebaseId) {
-      // Check if EITHER comments OR likes are different
-      if (p.commentCount !== serverCommentCount || p.likeCount !== serverLikeCount) {
-        p.commentCount = serverCommentCount;
-        p.likeCount = serverLikeCount; // Now this variable exists!
-        updated = true;
+    if (error) throw error;
+
+    const serverLikeCount = data.like_count;
+    const serverCommentCount = data.comment_count;
+
+    // Update localStorage (rest unchanged)
+    let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
+    let updated = false;
+
+    posts = posts.map(p => {
+      if (p.firebaseId === postId) {  // Still checks firebaseId if that's your key
+        if (p.commentCount !== serverCommentCount || p.likeCount !== serverLikeCount) {
+          p.commentCount = serverCommentCount;
+          p.likeCount = serverLikeCount;
+          updated = true;
+        }
+      }
+      return p;
+    });
+
+    if (updated) {
+      localStorage.setItem('freeform_v2', JSON.stringify(posts));
+      if (currentTab === 'private') {
+        allPrivatePosts = posts.slice().reverse();
+        renderPrivateBatch();
       }
     }
-    return p;
-  });
-
-  if (updated) {
-    localStorage.setItem('freeform_v2', JSON.stringify(posts));
-    if (currentTab === 'private') {
-      allPrivatePosts = posts.slice().reverse();
-      renderPrivateBatch();
-    }
+  } catch (error) {
+    console.error('Update local post error:', error);
   }
 }
 
