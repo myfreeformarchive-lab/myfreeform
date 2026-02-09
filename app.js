@@ -1227,7 +1227,17 @@ async function handleBruteForce() {
   try {
     // 2. Clear IDs so the sampler doesn't ignore the 11 posts
     processedIds.clear(); 
-    placeholder.remove();
+    
+	if (placeholder) {
+        console.log("🎯 Brute Force: Removing placeholder to make room for results.");
+        placeholder.remove();
+        
+        // Final nuke check
+        if (document.getElementById('public-placeholder')) {
+            document.getElementById('public-placeholder').outerHTML = '';
+        }
+    }
+	
     // 3. Attempt to fill the buffer (count=5, silent=false, ignoreProcessed=true)
     await refillBufferRandomly(5, false, true);
 
