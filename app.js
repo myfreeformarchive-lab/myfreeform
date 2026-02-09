@@ -1162,9 +1162,6 @@ function renderListItems(items) {
         // Only run if the feed is still empty
         if (visiblePosts.length === 0) {
             console.log("Spinner active - fetching cargo to clear it.");
-            
-			const postNode = createPostNode(item);
-    DOM.list.appendChild(postNode);
     
     // Start watching these initial posts
     watchPostCounts(item.id);
