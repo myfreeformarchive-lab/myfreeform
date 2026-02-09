@@ -1133,7 +1133,7 @@ function renderListItems(items) {
 </p>
       </div>`;
 	  }else {
-		  if (totalGlobalPosts === 0) {
+		  if (items.length === 0) {
       // 🍃 THE FALLEN LEAVES (PUBLIC EMPTY STATE)
       DOM.list.innerHTML = `
         <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
@@ -1156,7 +1156,7 @@ function renderListItems(items) {
     setTimeout(async () => {
         // 🛡️ The Loop Breaker: 
         // Only recover if empty AND we aren't already in the middle of a switch
-        if (visiblePosts.length === 0 && !window.isRecovering) {
+        if (items.length === 0 && !window.isRecovering) {
             window.isRecovering = true;
             console.log("🚀 [Recovery] Triggering switchTab...");
             
