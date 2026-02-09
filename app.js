@@ -1157,34 +1157,35 @@ function renderListItems(items) {
     return; // Exit if items was 0
   }
 
-if (placeholder) {
-    console.log("🎯 Placeholder Found:", {
+// RENDER ITEMS (If items.length > 0)
+  items.forEach(item => {
+    if (placeholder) {
+      console.log("🎯 Placeholder Found:", {
         id: placeholder.id,
         text: placeholder.innerText.trim(),
-        isConnected: placeholder.isConnected, // TRUE means it's live on screen
+        isConnected: placeholder.isConnected,
         html: placeholder.outerHTML
-    });
+      });
 
-    // Forced eviction
-    placeholder.remove();
-    
-    // Check if it's STILL there after removal attempt
-    if (document.getElementById('public-placeholder')) {
+      // Forced eviction
+      placeholder.remove();
+      
+      // Check if it's STILL there after removal attempt
+      if (document.getElementById('public-placeholder')) {
         console.warn("⚠️ WARNING: Placeholder still exists in DOM after .remove()!");
         document.getElementById('public-placeholder').outerHTML = ''; // Final nuke
-    } else {
+      } else {
         console.log("✅ Placeholder successfully evicted.");
+      }
+    } else {
+      console.log("🔍 No placeholder detected on screen.");
     }
-} else {
-    console.log("🔍 No placeholder detected on screen.");
-}
-  
-  // RENDER ITEMS (If items.length > 0)
-  items.forEach(item => {
+
     const postNode = createPostNode(item);
     DOM.list.appendChild(postNode);
     watchPostCounts(item.id);
   });
+
   refreshSnap();
 }
 
@@ -1232,8 +1233,6 @@ async function handleBruteForce() {
 
     if (postBuffer.length > 0) {
       console.log(`✅ Brute Force Success! Found ${postBuffer.length} posts.`);
-      
- placeholder.remove();
 	  
       // 4. Move from buffer to visiblePosts
       while (postBuffer.length > 0) {
