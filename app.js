@@ -407,30 +407,31 @@ function watchPostCounts(postId) {
   activePostListeners.set(postId, unsubscribe);
 }
 
-async function refillBufferRandomly(count = 1, silent = false) {
+// 1. Added ignoreProcessed = false to the parameters
+async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed = false) {
   try {
     const counterRef = doc(db, "metadata", "postCounter");
     const counterSnap = await getDoc(counterRef);
     
     if (!counterSnap.exists()) {
-      totalGlobalPosts = 0; // The counter doc doesn't even exist
+      totalGlobalPosts = 0; 
       return;
     }
 	
     const maxId = counterSnap.data().count;
-	totalGlobalPosts = maxId;
+    totalGlobalPosts = maxId;
 
     const windowSize = maxId < 50 ? maxId : 500;
     const minId = Math.max(1, maxId - windowSize);
 
     let attempts = 0;
-	const MAX_ATTEMPTS = 10;
-    // We try up to 15 times to find 'count' valid posts
+    const MAX_ATTEMPTS = 15; // Bumped slightly for better reliability
+
     while (postBuffer.length < count && attempts < MAX_ATTEMPTS) {
       attempts++;
       const rand = Math.floor(Math.random() * (maxId - minId + 1) + minId);
       
-	  const q = query(
+      const q = query(
         collection(db, "globalPosts"), 
         where("serialId", ">=", rand), 
         orderBy("serialId", "asc"), 
@@ -443,17 +444,21 @@ async function refillBufferRandomly(count = 1, silent = false) {
         const docData = snap.docs[0];
         const post = { id: docData.id, ...docData.data(), isFirebase: true };
         
-        // Ensure it's not already on screen OR already in the buffer
-        const isDuplicate = processedIds.has(post.id) || postBuffer.some(p => p.id === post.id);
+        // 🚀 THE CRITICAL FIX:
+        // If ignoreProcessed is true, we ONLY check if it's already in the buffer.
+        // We ignore the processedIds Set entirely.
+        const isDuplicate = (!ignoreProcessed && processedIds.has(post.id)) || 
+                           postBuffer.some(p => p.id === post.id);
         
         if (!isDuplicate) {
           postBuffer.push(post);
         }
       } else {
-		  break;
-		  }
+        // If query returns nothing, the rand might be too high. 
+        // We continue to next attempt instead of breaking to increase find-rate.
+        continue; 
+      }
     }
- 
   } catch (err) {
     console.error("Sampler failed:", err);
   }
@@ -1132,7 +1137,9 @@ function renderListItems(items) {
 </span>.
 </p>
       </div>`;
-	  }else if (totalGlobalPosts === 0) {
+	  }
+	  else { 
+	  if (totalGlobalPosts === 0) {
       // 🍃 THE FALLEN LEAVES (PUBLIC EMPTY STATE)
       DOM.list.innerHTML = `
         <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
@@ -1155,25 +1162,10 @@ function renderListItems(items) {
 
         if (!window.isBruteFetching) {
           window.isBruteFetching = true;
-          (async () => {
-            try {
-              await refillBufferRandomly(15);
-              if (postBuffer.length > 0) {
-                while (postBuffer.length > 0) {
-                  visiblePosts.push(postBuffer.shift());
-                }
-                console.log("✅ Brute Force Success!");
-				DOM.list.innerHTML = '';
-                renderListItems(visiblePosts);
-              }
-            } catch (err) {
-              console.error("❌ Brute Force Error:", err);
-            } finally {
-              setTimeout(() => { window.isBruteFetching = false; }, 2000);
-            }
-          })();
+          handleBruteForce();
         }
-      } // <--- Added this missing closing brace for the inner else
+      }
+	  }	  // <--- Added this missing closing brace for the inner else
     return; // Exit if items was 0
   }
   // RENDER ITEMS (If items.length > 0)
@@ -1183,6 +1175,49 @@ function renderListItems(items) {
     watchPostCounts(item.id);
   });
   refreshSnap();
+}
+
+async function handleBruteForce() {
+  // 1. Double check we aren't already fetching
+  if (window.isBruteFetching) return;
+  
+  window.isBruteFetching = true;
+  console.log("🛠️ BRUTE FORCE: List empty but DB has posts. Fetching now...");
+
+  try {
+    // 2. Clear IDs so the sampler doesn't ignore the 11 posts
+    processedIds.clear(); 
+
+    // 3. Attempt to fill the buffer (count=5, silent=false, ignoreProcessed=true)
+    await refillBufferRandomly(5, false, true);
+
+    if (postBuffer.length > 0) {
+      console.log(`✅ Brute Force Success! Found ${postBuffer.length} posts.`);
+      
+      // 4. Move from buffer to visiblePosts
+      while (postBuffer.length > 0) {
+        const post = postBuffer.shift();
+        if (!visiblePosts.some(p => p.id === post.id)) {
+          visiblePosts.push(post);
+        }
+      }
+
+      // 5. Trigger the render with the new data
+      renderListItems(visiblePosts);
+    } else {
+      console.log("⚠️ Brute Force failed to find items despite count > 0.");
+      // Optional: If after brute force it's still empty, show the leaves
+      totalGlobalPosts = 0; 
+      renderListItems([]);
+    }
+  } catch (err) {
+    console.error("❌ Brute Force Error:", err);
+  } finally {
+    // 6. Release the lock after a cooldown
+    setTimeout(() => { 
+      window.isBruteFetching = false; 
+    }, 2000);
+  }
 }
 
 function refreshSnap() {
