@@ -294,8 +294,6 @@ async function getNextUniqueTag() {
       transaction.update(counterRef, { count: nextId });
       return nextId;
     });
-
-    // 🚀 THE FIX: Return an object with both the Number and the String
     return {
       num: newCount,
       tag: `UID:${newCount}`
@@ -317,23 +315,16 @@ function startDripFeed() {
   const myId = ++currentDripId;
 
   async function drip() {
-    // 🚀 THE FIX: If the user switched tabs while we were waiting, STOP IMMEDIATELY
     if (currentTab !== 'public' || myId !== currentDripId) return;
-
     if (postBuffer.length === 0) {
       await refillBufferRandomly(1);
     }
-
-    // Double check again after the 'await' finishes
     if (currentTab !== 'public' || myId !== currentDripId) return;
-
     if (postBuffer.length > 0) {
-      const nextPost = postBuffer.shift();
-	  
+      const nextPost = postBuffer.shift();  
 	  if (!document.getElementById(`post-${nextPost.id}`)) {
           visiblePosts.unshift(nextPost);
           injectSinglePost(nextPost, 'top');
-
           if (visiblePosts.length > 50) {
             visiblePosts.pop();
             if (DOM.list.lastElementChild) DOM.list.lastElementChild.remove();
@@ -344,24 +335,14 @@ function startDripFeed() {
     const getRandomDelay = (minSecs, maxSecs) => {
   return Math.floor(Math.random() * (maxSecs - minSecs + 1) + minSecs) * 1000;
 };
-
-// --- Inside your drip logic ---
 const Variable = getRandomDelay(20, 40);
-
-console.log(`⏱️ Drip interval set: ${Variable / 1000}s`);
-
 dripTimeout = setTimeout(drip, Variable);
   }
-
   drip();
 }
 
 function updateUISurgically(id, data) {
-  // 1. ALWAYS update background storage (Keep the data fresh)
   updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
-  
-  // 2. ONLY touch the DOM if we are on the Public Tab
-  // This prevents the Global "Drip" or "Discovery" logic from messing with your Archive view
   if (currentTab !== 'public') return;
 
   const postEl = document.querySelector(`[data-id="${id}"]`);
@@ -380,24 +361,16 @@ function watchPostCounts(postId) {
   const postRef = doc(db, "globalPosts", postId);
   
   const unsubscribe = onSnapshot(postRef, (docSnap) => {
-    // ✅ CASE A: The post exists
     if (docSnap.exists()) {
       const data = docSnap.data();
-      
-      // 🚀 THE FIX: Use updateUISurgically which handles the Tab Guard internally.
-      // It will update LocalStorage but only touch the screen if currentTab === 'public'.
       updateUISurgically(postId, data);
     } 
-    // 🚀 CASE B: The post was deleted remotely
     else {
-      // 1. Always cleanup the listener locally
       if (activePostListeners.has(postId)) {
         const unsub = activePostListeners.get(postId);
         if (unsub) unsub();
         activePostListeners.delete(postId);
       }
-
-      // 2. ONLY remove from screen if we are actually looking at the Global feed
       if (currentTab === 'public') {
         visiblePosts = visiblePosts.filter(p => p.id !== postId && p.firebaseId !== postId);
 
@@ -415,7 +388,6 @@ function watchPostCounts(postId) {
   activePostListeners.set(postId, unsubscribe);
 }
 
-// 1. Added ignoreProcessed = false to the parameters
 async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed = false) {
 	const placeholder = document.getElementById('public-placeholder');
   try {
@@ -426,58 +398,36 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
       totalGlobalPosts = 0; 
       return;
     }
-	
     const maxId = counterSnap.data().count;
     totalGlobalPosts = maxId;
-
     const windowSize = maxId < 50 ? maxId : 500;
     const minId = Math.max(1, maxId - windowSize);
-
     let attempts = 0;
-    const MAX_ATTEMPTS = 15; // Bumped slightly for better reliability
-
+    const MAX_ATTEMPTS = 15; 
     while (postBuffer.length < count && attempts < MAX_ATTEMPTS) {
       attempts++;
-      const rand = Math.floor(Math.random() * (maxId - minId + 1) + minId);
-      
+      const rand = Math.floor(Math.random() * (maxId - minId + 1) + minId);     
       const q = query(
         collection(db, "globalPosts"), 
         where("serialId", ">=", rand), 
         orderBy("serialId", "asc"), 
         limit(1)
       );
-
       const snap = await getDocs(q);
-
       if (!snap.empty) {
         const docData = snap.docs[0];
         const post = { id: docData.id, ...docData.data(), isFirebase: true };
-        
-        // 🚀 THE CRITICAL FIX:
-        // If ignoreProcessed is true, we ONLY check if it's already in the buffer.
-        // We ignore the processedIds Set entirely.
         const isDuplicate = (!ignoreProcessed && processedIds.has(post.id)) || 
-                           postBuffer.some(p => p.id === post.id);
-        
+                           postBuffer.some(p => p.id === post.id);      
         if (!isDuplicate) {
           postBuffer.push(post);
-		  
-		  
-		  // --- START OF YOUR VARIABLES (The Eviction) ---
           if (placeholder) {
-
-            placeholder.remove();
-            
-            if (document.getElementById('public-placeholder')) {
-            
+            placeholder.remove();   
+            if (document.getElementById('public-placeholder')) {     
                 document.getElementById('public-placeholder').outerHTML = ''; 
-            } else {
-                
+            } else {      
             }
-          }
-          // --- END OF YOUR VARIABLES ---
-		  
-		  
+          }	  
         }
       } else {
         continue; 
@@ -489,15 +439,10 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
 }
 
 function injectSinglePost(item, position = 'top') {
-  // 1. IMMEDIATE SHIELD: If it's already in the DOM, kill it instantly.
   if (document.getElementById(`post-${item.id}`)) return;
-
-  // 2. Prevent injecting global posts into the private tab (Static check)
   if (currentTab === 'private' && item.isFirebase) return;
-
   const postNode = createPostNode(item); 
   postNode.classList.add('animate-in');
-
   if (position === 'top') {
 	const randomDelay = Math.floor(Math.random() * (4500 - 1500 + 1) + 1500);  
     setTimeout(() => {
@@ -512,7 +457,6 @@ function injectSinglePost(item, position = 'top') {
         requestAnimationFrame(refreshSnap);
       });
     }, randomDelay); 
-
   } else {
     if (!document.getElementById(`post-${item.id}`)) {
       DOM.list.appendChild(postNode);
@@ -539,49 +483,31 @@ function applyFontPreference(font) {
 }
 
 function switchTab(tab) {
-  // Exit early if switching to the same tab
   if (currentTab === tab) return;
+  DOM.list.style.transition = 'none';
+  DOM.list.style.transform = '';
+  DOM.list.style.opacity = '';
+  const _ = DOM.list.offsetHeight; 
 
-  // 1. Force animation to restart
-  DOM.list.style.transition = 'none'; // Disable transitions momentarily
-  DOM.list.style.transform = ''; // Clear the transform
-  DOM.list.style.opacity = ''; // Reset opacity
-
-  // 🚀 Force browser reflow to ensure the animation resets
-  const _ = DOM.list.offsetHeight; // Trigger reflow via accessing layout property
-
-  // 2. Reapply the fade/slide-out animation
   DOM.list.style.transition = 'transform 0.3s ease, opacity 0.3s ease'; // Restore transitions
   DOM.list.style.opacity = '0';
   DOM.list.style.transform = tab === 'public' ? 'translateX(0px)' : 'translateX(0px)';
 
-  // 3. Use a timeout for the animation duration
   setTimeout(() => {
-    // 4. Scroll the sticky element into view
-    
-
-    // 5. Update the state to reflect the current tab
     currentTab = tab;
     localStorage.setItem('freeform_tab_pref', tab);
-
-    // 6. Reset feed content for the new tab
     currentLimit = BATCH_SIZE;
     updateTabClasses();
     loadFeed();
-
-    // Enable infinite scroll for public feed
     if (tab === 'public') setupInfiniteScroll();
-
-    // 7. Fade/slide the content back in
     requestAnimationFrame(() => {
-      DOM.list.style.opacity = '1'; // Fade back in
-      DOM.list.style.transform = 'translateX(0)'; // Restore transform
-      setTimeout(refreshSnap, 100); // Make sure snapping works if applicable
+      DOM.list.style.opacity = '1'; 
+      DOM.list.style.transform = 'translateX(0)'; 
+      setTimeout(refreshSnap, 100); 
     });
 
-  }, 300); // Wait for the fade-out to finish
+  }, 300); 
 }
-
 
 function updateTabClasses() {
   const activeClass = "flex-1 pb-3 text-sm font-bold text-brand-600 border-b-2 border-brand-500 transition-all";
@@ -605,40 +531,30 @@ function updateToggleUI() {
 }
 
 function loadFeed() {
-  // 1. KILL THE GLOBAL HEARTBEAT (The Discovery Drip)
   if (dripTimeout) {
     clearTimeout(dripTimeout);
     dripTimeout = null;
   }
 
-  // 2. RESET THE GLOBAL SNAPSHOT (The Ego-Listener)
   if (publicUnsubscribe) { 
     publicUnsubscribe(); 
     publicUnsubscribe = null; 
   }
 
-  // 3. KILL ALL INDIVIDUAL POST WATCHERS
   if (activePostListeners && activePostListeners.size > 0) {
     activePostListeners.forEach((unsubscribe) => unsubscribe());
     activePostListeners.clear();
   }
-
-  // 🚀 4. NEW: WIPE GLOBAL STATE ARRAYS
-  // This prevents the "Discovery" posts from hanging around in memory 
-  // and interfering with your Private Tab logic.
+  
   visiblePosts = [];
   postBuffer = [];
   processedIds.clear();
 
-  // 5. ROUTE TO CORRECT TAB
   if (currentTab === 'private') {
-    // Load from LocalStorage
     allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
     renderPrivateBatch();
-    // Only listen for YOUR Global posts updates while in Private
     subscribeArchiveSync();
   } else {
-    // Start Discovery Mode
 	DOM.loadTrigger.style.display = 'flex';
     subscribePublicFeed();
   }
@@ -666,16 +582,11 @@ function subscribeArchiveSync() {
     snapshot.docs.forEach(doc => {
       const data = doc.data();
       const id = doc.id;
-      
-      // 1. Update background storage
       updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
-
-      // 2. ✅ THE FIX: Update the screen live in the Private Tab
       const postEl = document.querySelector(`[data-id="${id}"]`);
       if (postEl) {
         const likeSpan = postEl.querySelector(`.count-like-${id}`);
         if (likeSpan) likeSpan.textContent = data.likeCount || 0;
-
         const commentSpan = postEl.querySelector(`.count-comment-${id}`);
         if (commentSpan) commentSpan.textContent = data.commentCount || 0;
       }
@@ -693,8 +604,6 @@ async function subscribePublicFeed() {
     publicUnsubscribe();
     publicUnsubscribe = null;
   }
-
-  // 🛡️ THE FIX: Only reset state if we aren't just appending more posts
   if (!isAppending) {
     visiblePosts = [];
     postBuffer = []; 
@@ -702,12 +611,9 @@ async function subscribePublicFeed() {
     if (dripTimeout) clearTimeout(dripTimeout);
     showPublicPlaceholder('scanning');
   }
-
   try {
-    // 1. Fetch newest posts for immediate gratification
     const qInitial = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(15));
-    const initialSnap = await getDocs(qInitial);
-    
+    const initialSnap = await getDocs(qInitial);   
     const newItems = [];
     initialSnap.forEach(doc => {
       const post = { id: doc.id, ...doc.data(), isFirebase: true };
@@ -716,8 +622,6 @@ async function subscribePublicFeed() {
         processedIds.add(doc.id);
       }
     });
-
-    // 2. Render logic
     if (isAppending) {
         newItems.forEach(p => {
             visiblePosts.push(p);
@@ -735,40 +639,25 @@ async function subscribePublicFeed() {
     // 3. Ego-Listener (Tweaked: The "Instant Feedback" Loop)
     // ============================================================
     
-    // Capture the exact moment we started listening
     const listenStartTime = Date.now(); 
-
-    const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
-    
+    const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID)); 
     publicUnsubscribe = onSnapshot(myPostsQuery, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         const docId = change.doc.id;
         const data = change.doc.data();
-
-        // 🛡️ TIME GATE CHECK
-        // 1. !data.createdAt -> It's a local pending write (instant feedback)
-        // 2. data.createdAt > listenStartTime -> It's a post confirmed by server AFTER we loaded
         const isNewPost = !data.createdAt || (data.createdAt.toMillis ? data.createdAt.toMillis() : Date.now()) > listenStartTime;
 
         if (change.type === "added" && !processedIds.has(docId)) {
-          
-          // If it's an old post (history), mark it processed so we ignore it, but DO NOT render it.
           if (!isNewPost) {
              processedIds.add(docId);
              return; 
           }
-
-          // It is BRAND NEW -> Inject immediately
           const postObj = { id: docId, ...data, isFirebase: true };
           processedIds.add(docId);
-          visiblePosts.unshift(postObj);
-          
+          visiblePosts.unshift(postObj);      
           injectSinglePost(postObj, 'top');
-          
-          // Nice touch: smooth scroll to top to confirm to user their post is live
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-
         if (change.type === "modified") {
           updateUISurgically(docId, data);
         }
@@ -788,7 +677,6 @@ function getSmartShareButtons(text) {
   const urlToShare = window.location.href;
   const totalLength = (text ? text.length : 0) + urlToShare.length;
   
-  // ✅ COLORS ADDED HERE: bg-x-50 text-x-600 by default for visibility
   const platforms = [
     {
       id: 'copy',
@@ -840,26 +728,24 @@ function getSmartShareButtons(text) {
       classes: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-700 hover:border-blue-700 hover:text-white'
     }
   ];
-
   return platforms.filter(p => totalLength <= p.limit);
 }
 
 async function sharePost(text, platform) {
-  // Strip HTML tags and decode HTML entities
   const cleanText = text
-    .replace(/<[^>]*>/g, '') // Remove all HTML tags
-    .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
-    .replace(/&amp;/g, '&')  // Replace &amp; with &
-    .replace(/&lt;/g, '<')   // Replace &lt; with <
-    .replace(/&gt;/g, '>')   // Replace &gt; with >
-    .replace(/&quot;/g, '"') // Replace &quot; with "
-    .replace(/&#39;/g, "'")  // Replace &#39; with '
-    .replace(/&apos;/g, "'") // Replace &apos; with '
-    .replace(/&mdash;/g, '—') // Em dash
-    .replace(/&ndash;/g, '–') // En dash
-    .replace(/&hellip;/g, '...') // Ellipsis
-    .replace(/\s+/g, ' ')    // Collapse multiple spaces
-    .trim();                 // Remove leading/trailing spaces
+    .replace(/<[^>]*>/g, '') 
+    .replace(/&nbsp;/g, ' ') 
+    .replace(/&amp;/g, '&')  
+    .replace(/&lt;/g, '<')   
+    .replace(/&gt;/g, '>')   
+    .replace(/&quot;/g, '"') 
+    .replace(/&#39;/g, "'")  
+    .replace(/&apos;/g, "'") 
+    .replace(/&mdash;/g, '—') 
+    .replace(/&ndash;/g, '–') 
+    .replace(/&hellip;/g, '...') 
+    .replace(/\s+/g, ' ')    
+    .trim();                 
   
   let currentUrl = window.location.href;
   if (currentUrl.endsWith('/index.html')) {
@@ -867,16 +753,12 @@ async function sharePost(text, platform) {
   } else if (currentUrl.endsWith('index.html')) {
     currentUrl = currentUrl.replace('index.html', '');
   }
-  
   const urlText = encodeURIComponent(cleanText);
   const urlLink = encodeURIComponent(currentUrl);
-  
   if (platform === 'copy') {
     try {
-      await navigator.clipboard.writeText(`${cleanText}\n\n${currentUrl}`);
-      
-      showToast("Copied to clipboard");
-      
+      await navigator.clipboard.writeText(`${cleanText}\n\n${currentUrl}`);   
+      showToast("Copied to clipboard");    
     } catch (err) {
       showToast("Manual copy required", "error");
     }
@@ -904,7 +786,6 @@ async function sharePost(text, platform) {
       url = `https://www.facebook.com/sharer/sharer.php?u=${urlLink}&quote=${urlText}`;
       break;
   }
-
   if (url) {
     window.open(url, '_blank', 'width=600,height=500,noopener,noreferrer');
   }
@@ -916,29 +797,23 @@ function createPostNode(item) {
   el.id = `post-${item.id}`;
   el.setAttribute('data-id', item.id);
   const cursorClass = item.isFirebase ? "" : "cursor-pointer";
-  
   el.className = `feed-item block w-full bg-white px-4 py-3 mb-4 pb-6 border-b border-slate-100 lg:border-b-[1px] lg:border-slate-300 relative transition-colors ${cursorClass}`;
 
- // 2. Logic: Time, Fonts, and Tags
   const time = getRelativeTime(item.createdAt);
   const fontClass = item.font || 'font-sans'; 
   const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
-  
   const tagDisplay = item.uniqueTag 
     ? `<span class="text-brand-500 font-bold text-[11px] bg-brand-50 px-2 py-0.5 rounded-full">${item.uniqueTag}</span>`
     : `<span class="text-slate-400 font-medium text-[11px] bg-slate-50 px-2 py-0.5 rounded-full">#draft</span>`;
 
-  // 3. Logic: Likes & Comments
   const hasCommentsAccess = item.isFirebase || item.firebaseId;
   const realId = item.isFirebase ? item.id : item.firebaseId;
   const commentCount = item.commentCount || 0; 
   const likeCount = item.likeCount || 0;
-  
   const myLikes = JSON.parse(localStorage.getItem('my_likes_cache')) || {};
   const isLiked = !!myLikes[realId];
   const heartFill = isLiked ? 'fill-red-500 text-red-500' : 'fill-none text-slate-400 group-hover:text-red-500';
   const countColor = isLiked ? 'text-red-600' : 'text-slate-500';
-
   const interactiveButtonsHtml = `
     <div class="flex items-center gap-5">
         <div class="like-trigger group flex items-center gap-1.5 cursor-pointer transition-colors"
@@ -965,8 +840,6 @@ function createPostNode(item) {
 `;
 
   const actionArea = hasCommentsAccess ? interactiveButtonsHtml : `<span class="text-xs text-slate-400 font-medium italic">Private Draft</span>`;
-
-  // 4. Logic: Share Menu
   const allowedPlatforms = getSmartShareButtons(item.content);
   let menuHtml = '';
   allowedPlatforms.forEach(p => {
@@ -986,7 +859,6 @@ function createPostNode(item) {
 
   const footerHtml = `<div class="mt-6 pt-5 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
 
-  // 5. Inject HTML with animation container
   el.innerHTML = `
 <div class="animation-container absolute inset-0 flex items-center justify-center pointer-events-none z-30"></div>
  
@@ -1003,7 +875,6 @@ function createPostNode(item) {
 ${footerHtml}
 `;
 
-  // 6. Delete Button (Manual Node Creation)
   if (!item.isFirebase || isMyGlobalPost) {
     const delBtn = document.createElement('button');
     delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
@@ -1015,7 +886,6 @@ ${footerHtml}
     el.appendChild(delBtn);
   }
 
- // 7. Refined Click Handler (The Calibrated Net)
   let clickTimer = null;
   let clickCount = 0;
 
@@ -1029,12 +899,9 @@ ${footerHtml}
     if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) {
       return;
     }
-
-    // C. THE GLOBAL FILTER:
-    // If it's a Global post, ONLY the message icon (comment bubble) opens the modal.
     const isCommentIcon = e.target.closest('.icon-tabler-message-circle-2');
     if (item.isFirebase && !isCommentIcon) {
-      // However, we DON'T return here yet, because we still want double-tap to work!
+
     }
 
     clickCount++;
@@ -1079,9 +946,7 @@ ${footerHtml}
   return el;
 }
 
-// Helper Function for the Heart Animation
 function showHeartAnimation(container) {
-  // Instead of using the container's animation div, create a new one at body level
   const rect = container.getBoundingClientRect();
   const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
   const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
@@ -1093,7 +958,6 @@ function showHeartAnimation(container) {
     </svg>
   `;
   
-  // Position it absolutely on the page, not inside the post
   heart.style.cssText = `
     position: fixed;
     left: ${rect.left + rect.width/2 - 40}px;
@@ -1106,7 +970,6 @@ function showHeartAnimation(container) {
     z-index: 9999;
   `;
   
-  // Append to body, completely outside the post DOM
   document.body.appendChild(heart);
 
   requestAnimationFrame(() => {
@@ -1152,10 +1015,8 @@ function renderListItems(items) {
 	  }
 	  else { 
 	  if (totalGlobalPosts === 0) {
-      // 🍃 THE FALLEN LEAVES (PUBLIC EMPTY STATE)
       showPublicPlaceholder('empty');
     } else {
-        // 🛠️ BRUTE FORCE FETCH
         showPublicPlaceholder('scanning');
 
         if (!window.isBruteFetching) {
@@ -1163,39 +1024,27 @@ function renderListItems(items) {
           handleBruteForce();
         }
       }
-	  }	  // <--- Added this missing closing brace for the inner else
-    return; // Exit if items was 0
+	  }	  
+    return; 
   }
-
-// RENDER ITEMS (If items.length > 0)
   items.forEach(item => {
     if (placeholder) {
-
-      // Forced eviction
       placeholder.remove();
-      
-      // Check if it's STILL there after removal attempt
       if (document.getElementById('public-placeholder')) {
-
         document.getElementById('public-placeholder').outerHTML = ''; // Final nuke
       } else {
-      
       }
     } else {
-    
     }
-
     const postNode = createPostNode(item);
     DOM.list.appendChild(postNode);
     watchPostCounts(item.id);
   });
-
   refreshSnap();
 }
 
 function showPublicPlaceholder(type) {
   let html = '';
-  
   if (type === 'empty') {
     html = `
       <div id="public-placeholder" class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]" style="min-height: calc(100vh - 418px);">
@@ -1216,7 +1065,6 @@ function showPublicPlaceholder(type) {
         Scanning the horizon...
       </div>`;
   }
-
   DOM.list.innerHTML = html;
 }
 
@@ -1240,32 +1088,23 @@ async function handleBruteForce() {
             document.getElementById('public-placeholder').outerHTML = '';
         }
     }
-	
-    // 3. Attempt to fill the buffer (count=5, silent=false, ignoreProcessed=true)
     await refillBufferRandomly(5, false, true);
 
     if (postBuffer.length > 0) {
-	  
-      // 4. Move from buffer to visiblePosts
       while (postBuffer.length > 0) {
         const post = postBuffer.shift();
         if (!visiblePosts.some(p => p.id === post.id)) {
           visiblePosts.push(post);
         }
       }
-
-      // 5. Trigger the render with the new data
       renderListItems(visiblePosts);
     } else {
-     
-      // Optional: If after brute force it's still empty, show the leaves
       totalGlobalPosts = 0; 
       renderListItems([]);
     }
   } catch (err) {
 	  
   } finally {
-    // 6. Release the lock after a cooldown
     setTimeout(() => { 
       window.isBruteFetching = false; 
     }, 2000);
@@ -1273,7 +1112,6 @@ async function handleBruteForce() {
 }
 
 function refreshSnap() {
-  // We use window because your 'body' is the Master Scroller
   const scroller = window; 
   scroller.scrollBy(0, 1);
   scroller.scrollBy(0, -1);
