@@ -407,7 +407,7 @@ function watchPostCounts(postId) {
   activePostListeners.set(postId, unsubscribe);
 }
 
-async function refillBufferRandomly(count = 1, silent = false) {
+async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed = false) {
   try {
     const counterRef = doc(db, "metadata", "postCounter");
     const counterSnap = await getDoc(counterRef);
@@ -444,7 +444,7 @@ async function refillBufferRandomly(count = 1, silent = false) {
         const post = { id: docData.id, ...docData.data(), isFirebase: true };
         
         // Ensure it's not already on screen OR already in the buffer
-        const isDuplicate = processedIds.has(post.id) || postBuffer.some(p => p.id === post.id);
+        const isDuplicate = (!ignoreProcessed && processedIds.has(post.id)) || postBuffer.some(p => p.id === post.id);
         
         if (!isDuplicate) {
           postBuffer.push(post);
@@ -1152,15 +1152,14 @@ function renderListItems(items) {
         // 🛠️ BRUTE FORCE FETCH
         DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
         console.log("🛠️ BRUTE FORCE: List empty but DB has posts. Fetching now...");
-		
-		processedIds.clear();
 
         if (!window.isBruteFetching) {
           window.isBruteFetching = true;
           (async () => {
             try {
-              await refillBufferRandomly(10);
-			  console.log("📦 Buffer status after fetch:", postBuffer.length, "items found.");
+			  processedIds.clear();
+              await refillBufferRandomly(10, false, true);
+			  console.log("📦 Buffer status:", postBuffer.length);
               if (postBuffer.length > 0) {
                 while (postBuffer.length > 0) {
                   visiblePosts.push(postBuffer.shift());
