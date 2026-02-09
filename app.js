@@ -1161,7 +1161,7 @@ function renderListItems(items) {
 		  
           });
 	  }
-  }
+  });
 	}
     return;
 
