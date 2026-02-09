@@ -1738,11 +1738,11 @@ async function deleteComment(postId, commentId) {
         const commentRef = doc(db, "globalPosts", postId, "comments", commentId);
         await deleteDoc(commentRef);
 
-        // Swap to Supabase: Decrement comment_count in posts table
-        const { error } = await _supabase
-          .from('posts')
-          .update({ comment_count: _supabase.raw('comment_count - 1') })
-          .eq('id', postId);
+        // Swap to Supabase: Decrement comment_count atomically
+        const { error } = await _supabase.rpc('toggle_comment_count_atomic', {
+          p_post_id: postId,
+          p_increment: -1  // Decrement
+        });
 
         if (error) throw error;
 
@@ -1934,11 +1934,11 @@ async function postComment() {
       createdAt: serverTimestamp()
     });
 
-    // Swap to Supabase: Increment comment_count in posts table
-    const { error } = await _supabase
-      .from('posts')
-      .update({ comment_count: _supabase.raw('comment_count + 1') })
-      .eq('id', activePostId);
+    // Swap to Supabase: Increment comment_count atomically
+    const { error } = await _supabase.rpc('toggle_comment_count_atomic', {
+      p_post_id: activePostId,
+      p_increment: 1  // Increment
+    });
 
     if (error) throw error;
 
@@ -1950,7 +1950,8 @@ async function postComment() {
     if (scrollArea) scrollArea.scrollTop = 0; 
 
   } catch (e) { 
-
+    console.error('Post comment error:', e);
+    showToast("Connection failed. Comment not added.");
   } finally { 
     // Re-enable UI after keyboard animation finishes
     setTimeout(() => {
