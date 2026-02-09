@@ -1132,8 +1132,7 @@ function renderListItems(items) {
 </span>.
 </p>
       </div>`;
-	  }else {
-		  if (totalGlobalPosts === 0) {
+	  }else if (totalGlobalPosts === 0) {
       // 🍃 THE FALLEN LEAVES (PUBLIC EMPTY STATE)
       DOM.list.innerHTML = `
         <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
@@ -1150,10 +1149,6 @@ function renderListItems(items) {
           <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
         </div>`;
     } else {
-  // 1. If the world is empty, show the leaves
-  if (totalGlobalPosts === 0) {
-    DOM.list.innerHTML = `... FALLEN LEAVES HTML ...`;
-  } else {
         // 🛠️ BRUTE FORCE FETCH
         DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
         console.log("🛠️ BRUTE FORCE: List empty but DB has posts. Fetching now...");
@@ -1178,9 +1173,7 @@ function renderListItems(items) {
           })();
         }
       } // <--- Added this missing closing brace for the inner else
-    }
     return; // Exit if items was 0
-  }
   }
   // RENDER ITEMS (If items.length > 0)
   items.forEach(item => {
