@@ -1158,6 +1158,7 @@ function renderListItems(items) {
           (async () => {
             try {
               await refillBufferRandomly(10);
+			  console.log("📦 Buffer status after fetch:", postBuffer.length, "items found.");
               if (postBuffer.length > 0) {
                 while (postBuffer.length > 0) {
                   visiblePosts.push(postBuffer.shift());
