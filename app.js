@@ -1166,6 +1166,7 @@ function renderListItems(items) {
     return;
 
   }
+  }
 
   items.forEach(item => {
     const postNode = createPostNode(item);
@@ -1176,6 +1177,7 @@ function renderListItems(items) {
   });
   refreshSnap()
 }
+
 
 function refreshSnap() {
   // We use window because your 'body' is the Master Scroller
