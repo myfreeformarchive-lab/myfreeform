@@ -76,6 +76,11 @@ let isAppending = false;
 
 let totalGlobalPosts = 0;
 
+const supabaseUrl = 'https://ipgtvatyzwhkifnsstux.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwZ3R2YXR5endoa2lmbnNzdHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NDcyMzIsImV4cCI6MjA4NjIyMzIzMn0.OH7Dru0KKKdewj1nsWofvI73cT6tKIZbTVMPJA2oPvI'; 
+// Use _supabase (with an underscore) to avoid clashing with the library name
+const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
   // SVG Thought Bubble 
 function getThoughtBubbleSVG(className = "w-20 h-20") {
     return `<svg class="${className}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -357,38 +362,103 @@ function updateUISurgically(id, data) {
   }
 }
 
-function watchPostCounts(postId) {
+//function watchPostCounts(postId) {
+ // if (activePostListeners.has(postId)) return;
+
+ // const postRef = doc(db, "globalPosts", postId);
+  
+ // const unsubscribe = onSnapshot(postRef, (docSnap) => {
+  //  if (docSnap.exists()) {
+  //    const data = docSnap.data();
+ //     updateUISurgically(postId, data);
+//	  Ledger.log("watchPostCounts", 1, 0, 0);
+  //  } 
+   // else {
+  //    if (activePostListeners.has(postId)) {
+  //      const unsub = activePostListeners.get(postId);
+  //      if (unsub) unsub();
+ //       activePostListeners.delete(postId);
+  //    }
+   //   if (currentTab === 'public') {
+  //      visiblePosts = visiblePosts.filter(p => p.id !== postId && p.firebaseId !== postId);
+
+  //      const elToRemove = document.querySelector(`[data-id="${postId}"]`);
+    //    if (elToRemove) {
+    //      elToRemove.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-500');
+     //     setTimeout(() => elToRemove.remove(), 500);
+   //     }
+  //    }
+  //  }
+ // }, (err) => {
+    
+ // });
+
+ // activePostListeners.set(postId, unsubscribe);
+// }
+
+async function watchPostCounts(postId) {
+  // 1. Guard: Don't watch the same post twice
   if (activePostListeners.has(postId)) return;
 
-  const postRef = doc(db, "globalPosts", postId);
-  
-  const unsubscribe = onSnapshot(postRef, (docSnap) => {
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      updateUISurgically(postId, data);
-	  Ledger.log("watchPostCounts", 1, 0, 0);
-    } 
-    else {
-      if (activePostListeners.has(postId)) {
-        const unsub = activePostListeners.get(postId);
-        if (unsub) unsub();
-        activePostListeners.delete(postId);
-      }
-      if (currentTab === 'public') {
-        visiblePosts = visiblePosts.filter(p => p.id !== postId && p.firebaseId !== postId);
+  // 2. Initial Fetch: Get the current numbers immediately
+  const { data } = await _supabase
+    .from('posts')
+    .select('like_count, comment_count')
+    .eq('id', postId)
+    .single();
 
-        const elToRemove = document.querySelector(`[data-id="${postId}"]`);
-        if (elToRemove) {
-          elToRemove.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-500');
-          setTimeout(() => elToRemove.remove(), 500);
+  // If data exists, update the UI (Mapping snake_case -> camelCase)
+  if (data) {
+    updateUISurgically(postId, {
+      likeCount: data.like_count,
+      commentCount: data.comment_count
+    });
+    Ledger.log("watchPostCounts", 1, 0, 0); 
+  }
+
+  // 3. Realtime Listener: Replaces 'onSnapshot'
+  const channel = _supabase
+    .channel(`public:posts:${postId}`)
+    .on('postgres_changes', { 
+      event: '*', // Listen for UPDATES and DELETES
+      schema: 'public', 
+      table: 'posts', 
+      filter: `id=eq.${postId}` 
+    }, (payload) => {
+
+      // A. IF UPDATED (Post still exists, numbers changed)
+      if (payload.eventType === 'UPDATE') {
+        updateUISurgically(postId, {
+          likeCount: payload.new.like_count,
+          commentCount: payload.new.comment_count
+        });
+        Ledger.log("watchPostCounts", 1, 0, 0);
+      }
+
+      // B. IF DELETED (Post removed - Your exact 'else' block logic)
+      else if (payload.eventType === 'DELETE') {
+        if (activePostListeners.has(postId)) {
+           _supabase.removeChannel(channel);
+           activePostListeners.delete(postId);
+        }
+
+        if (currentTab === 'public') {
+          // Remove from local memory
+          visiblePosts = visiblePosts.filter(p => p.id !== postId && p.firebaseId !== postId);
+
+          // Animate removal from DOM
+          const elToRemove = document.querySelector(`[data-id="${postId}"]`);
+          if (elToRemove) {
+            elToRemove.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-500');
+            setTimeout(() => elToRemove.remove(), 500);
+          }
         }
       }
-    }
-  }, (err) => {
-    
-  });
+    })
+    .subscribe();
 
-  activePostListeners.set(postId, unsubscribe);
+  // 4. Store the cleanup function
+  activePostListeners.set(postId, () => _supabase.removeChannel(channel));
 }
 
 async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed = false) {
@@ -1302,6 +1372,18 @@ async function handlePost() {
       });
       firebaseId = docRef.id;
 	   Ledger.log("handlePost", 0, 1, 0);
+	   
+	   // --- 👇 ADD THIS BLOCK HERE 👇 ---
+      // Sync to Supabase immediately so the Watcher finds it
+      _supabase.from('posts').insert({
+          id: firebaseId,      // The same ID Firebase just created
+          like_count: 0,       // Initialize likes
+          comment_count: 0     // Initialize comments
+      }).then(({ error }) => {
+          if (error) console.error("Supabase Insert Error:", error.message);
+      });
+      // --- 👆 END BLOCK 👆 ---
+	   
     }
 
     const newPost = { 
@@ -1369,6 +1451,17 @@ async function publishDraft(post) {
         });
 		
 		Ledger.log("publishDraft", 0, 1, 0);
+		
+		// --- 👇 ADD THIS BLOCK HERE 👇 ---
+      // Sync to Supabase so the counters exist
+      _supabase.from('posts').insert({
+          id: docRef.id,       // Use the new Firebase ID
+          like_count: 0,
+          comment_count: 0
+      }).then(({ error }) => {
+          if (error) console.error("Supabase Insert Error:", error.message);
+      });
+      // --- 👆 END BLOCK 👆 ---
 
         const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
         const targetIndex = posts.findIndex(p => p.id === post.id);
