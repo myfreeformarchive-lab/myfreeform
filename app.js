@@ -429,6 +429,8 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
     while (postBuffer.length < count && attempts < MAX_ATTEMPTS) {
       attempts++;
       const rand = Math.floor(Math.random() * (maxId - minId + 1) + minId);
+	  // 🕵️ THE SMOKING GUN LOGS
+    console.log(`Attempt ${attempts}: Searching for serialId >= ${rand} (Range: ${minId}-${maxId})`);
       
 	  const q = query(
         collection(db, "globalPosts"), 
