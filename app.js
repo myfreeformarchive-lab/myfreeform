@@ -1157,10 +1157,29 @@ function renderListItems(items) {
     return; // Exit if items was 0
   }
   
-  if (placeholder) {
-    placeholder.remove(); 
-	placeholder.outerHTML = '';
-  }
+  const placeholder = document.getElementById('public-placeholder');
+
+if (placeholder) {
+    console.log("🎯 Placeholder Found:", {
+        id: placeholder.id,
+        text: placeholder.innerText.trim(),
+        isConnected: placeholder.isConnected, // TRUE means it's live on screen
+        html: placeholder.outerHTML
+    });
+
+    // Forced eviction
+    placeholder.remove();
+    
+    // Check if it's STILL there after removal attempt
+    if (document.getElementById('public-placeholder')) {
+        console.warn("⚠️ WARNING: Placeholder still exists in DOM after .remove()!");
+        document.getElementById('public-placeholder').outerHTML = ''; // Final nuke
+    } else {
+        console.log("✅ Placeholder successfully evicted.");
+    }
+} else {
+    console.log("🔍 No placeholder detected on screen.");
+}
   
   // RENDER ITEMS (If items.length > 0)
   items.forEach(item => {
@@ -1216,10 +1235,7 @@ async function handleBruteForce() {
     if (postBuffer.length > 0) {
       console.log(`✅ Brute Force Success! Found ${postBuffer.length} posts.`);
       
-	  if (placeholder) {
-    placeholder.remove(); 
-	placeholder.outerHTML = '';
-  }
+
 	  
       // 4. Move from buffer to visiblePosts
       while (postBuffer.length > 0) {
