@@ -1156,8 +1156,6 @@ function renderListItems(items) {
 	  }	  // <--- Added this missing closing brace for the inner else
     return; // Exit if items was 0
   }
-  
-  const placeholder = document.getElementById('public-placeholder');
 
 if (placeholder) {
     console.log("🎯 Placeholder Found:", {
