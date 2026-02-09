@@ -679,6 +679,7 @@ async function subscribePublicFeed() {
     processedIds.clear();
     if (dripTimeout) clearTimeout(dripTimeout);
     DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
+	console.log("🔭 [Horizon] Source: Initial Tab Load");
   }
 
   try {
@@ -1150,6 +1151,7 @@ function renderListItems(items) {
         </div>`;
     } else {
     DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
+	console.log("♻️ [Horizon] Source: Recovery Teleport (Empty VisiblePosts)");
     setTimeout(async () => {
         if (visiblePosts.length === 0) {
      switchTab();
