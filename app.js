@@ -1595,6 +1595,14 @@ async function deleteGlobal(postId) {
 		
 		Ledger.log("deleteGlobal", 0, 0, commentsSnapshot.size + likesSnapshot.size + 1);
 		
+		// 🚀 NEW: Reset counts in Supabase (outsources the local reset)
+        const { error } = await _supabase
+          .from('posts')
+          .update({ like_count: 0, comment_count: 0 })
+          .eq('id', postId);
+
+        if (error) throw error;
+		
 		// --- 🚀 START OF THE FIX ---
 
         // 1. Remove it from the JavaScript array so it's gone from memory
