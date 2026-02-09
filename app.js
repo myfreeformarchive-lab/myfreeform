@@ -1675,46 +1675,46 @@ async function toggleLike(event, postId) {
   // ==========================================
   // ☁️ FIREBASE UPDATE (Background)
   // ==========================================
-  try {
-    const postRef = doc(db, "globalPosts", postId);
-    const likeRef = doc(db, "globalPosts", postId, "likes", MY_USER_ID);
+try {
+    // Update like_count in the posts table: +1 if not liked, -1 if liked
+    const incrementValue = currentlyLiked ? -1 : 1;
+    const { error } = await supabase
+      .from('posts')
+      .update({ like_count: supabase.raw(`like_count + ${incrementValue}`) })  // Atomic increment via raw SQL
+      .eq('id', postId);
 
-    if (currentlyLiked) {
-      await deleteDoc(likeRef);
-      await updateDoc(postRef, { likeCount: increment(-1) });
-	  Ledger.log("toggleLike", 0, 2, 0);
-    } else {
-      await setDoc(likeRef, { createdAt: serverTimestamp() });
-      await updateDoc(postRef, { likeCount: increment(1) });
-	  Ledger.log("toggleLike", 0, 2, 0);
-    }
+    if (error) throw error;
+    Ledger.log("toggleLike", 0, 2, 0);
   } catch (error) {
+    console.error('Toggle like error:', error);
     showToast("Connection failed. Like not saved.");
   }
 }
 window.toggleLike = toggleLike;
 
 async function deleteComment(postId, commentId) {
-  // 1. Swap 'confirm()' for your custom 'showDialog'
   showDialog(
-    "Delete Comment", 
-    "Are you sure you want to remove this?", 
-    "Delete", // This triggers the red text logic in your showDialog
+    "Delete Comment",
+    "Are you sure you want to remove this?",
+    "Delete",
     async () => {
-      // --- ALL YOUR ORIGINAL LOGIC STARTS HERE ---
       try {
+        // Keep Firebase: Delete comment from subcollection
         const commentRef = doc(db, "globalPosts", postId, "comments", commentId);
         await deleteDoc(commentRef);
-        
-        // Update count on parent doc (Decrement)
-        const postRef = doc(db, "globalPosts", postId);
-        await updateDoc(postRef, {
-            commentCount: increment(-1)
-        });
-		Ledger.log("deleteComment", 0, 1, 1);
-        showToast("Comment deleted");
 
-      } catch (e) {
+        // Swap to Supabase: Decrement comment_count in posts table
+        const { error } = await supabase
+          .from('posts')
+          .update({ comment_count: supabase.raw('comment_count - 1') })
+          .eq('id', postId);
+
+        if (error) throw error;
+
+        Ledger.log("deleteComment", 0, 1, 1);
+        showToast("Comment deleted");
+      } catch (error) {
+        console.error('Delete comment error:', error);
         showToast("Could not delete comment", "error");
       }
     }
@@ -1892,17 +1892,22 @@ async function postComment() {
   DOM.sendComment.style.opacity = "0.5";
 
   try {
+    // Keep Firebase: Add comment to subcollection
     await addDoc(collection(db, `globalPosts/${activePostId}/comments`), {
       text: text,
       authorId: MY_USER_ID, 
       createdAt: serverTimestamp()
     });
 
-    const postRef = doc(db, "globalPosts", activePostId);
-    await updateDoc(postRef, { commentCount: increment(1) });
-	
-	Ledger.log("postComment", 0, 2, 0);
+    // Swap to Supabase: Increment comment_count in posts table
+    const { error } = await supabase
+      .from('posts')
+      .update({ comment_count: supabase.raw('comment_count + 1') })
+      .eq('id', activePostId);
 
+    if (error) throw error;
+
+    Ledger.log("postComment", 0, 2, 0);
     DOM.commentInput.value = '';
     showToast("Comment added");
     
