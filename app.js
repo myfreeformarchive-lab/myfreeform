@@ -1227,13 +1227,13 @@ async function handleBruteForce() {
   try {
     // 2. Clear IDs so the sampler doesn't ignore the 11 posts
     processedIds.clear(); 
-
+    placeholder.remove();
     // 3. Attempt to fill the buffer (count=5, silent=false, ignoreProcessed=true)
     await refillBufferRandomly(5, false, true);
 
     if (postBuffer.length > 0) {
       console.log(`✅ Brute Force Success! Found ${postBuffer.length} posts.`);
-	  placeholder.remove();
+	  
       // 4. Move from buffer to visiblePosts
       while (postBuffer.length > 0) {
         const post = postBuffer.shift();
