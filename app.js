@@ -1151,13 +1151,22 @@ function renderListItems(items) {
         </div>`;
     } else {
     DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
-	console.log("♻️ [Horizon] Source: Recovery Teleport (Empty VisiblePosts)");
+    console.log("♻️ [Horizon] Source: Recovery Teleport");
+
     setTimeout(async () => {
-        if (visiblePosts.length === 0) {
-     switchTab();
+        // 🛡️ The Loop Breaker: 
+        // Only recover if empty AND we aren't already in the middle of a switch
+        if (visiblePosts.length === 0 && !window.isRecovering) {
+            window.isRecovering = true;
+            console.log("🚀 [Recovery] Triggering switchTab...");
+            
+            switchTab(currentTab);
+
+            // Reset the lock after 3 seconds to allow future legit recoveries
+            setTimeout(() => { window.isRecovering = false; }, 3000);
         }
-    }, 500);
-      }
+    }, 1500); // 💡 Bumping to 1.5s to give the Initial Load a fair head start
+}
   }
     return;
 
