@@ -1676,12 +1676,13 @@ async function toggleLike(event, postId) {
   // ☁️ FIREBASE UPDATE (Background)
   // ==========================================
 try {
-    // Update like_count in the posts table: +1 if not liked, -1 if liked
     const incrementValue = currentlyLiked ? -1 : 1;
-    const { error } = await _supabase
-      .from('posts')
-      .update({ like_count: _supabase.raw(`like_count + ${incrementValue}`) })  // Atomic increment via raw SQL
-      .eq('id', postId);
+    
+    // Call the atomic procedure
+    const { error } = await _supabase.rpc('toggle_like_atomic', {
+      p_post_id: postId,
+      p_increment: incrementValue
+    });
 
     if (error) throw error;
     Ledger.log("toggleLike", 0, 2, 0);
