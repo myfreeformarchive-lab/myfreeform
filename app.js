@@ -1038,63 +1038,73 @@ function showHeartAnimation(container) {
 }
 
 function renderListItems(items) {
-	const placeholder = document.getElementById('public-placeholder');
-	
+  // 1. DEBUG: What does the DOM look like RIGHT NOW?
+  const existingPlaceholder = document.getElementById('public-placeholder');
+  const listContents = DOM.list ? DOM.list.innerHTML.length : "DOM.list is missing!";
   
-  if (items.length === 0) {
-	  DOM.list.innerHTML = ''; 
-	  
-	  if (currentTab === 'private') {
-    DOM.list.innerHTML = `
-      <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
-           style="scroll-snap-align: start; scroll-margin-top: calc(112px + 24px); min-height: calc(100vh - 418px);">
-        <div class="mb-4 text-slate-300">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9"/>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-            <line x1="9" y1="9" x2="9.01" y2="9"/>
-            <line x1="15" y1="9" x2="15.01" y2="9"/>
-          </svg>
-        </div>
-        <p class="text-slate-500 font-medium tracking-tight">Awaiting inspiration.</p>
-        <p class="text-slate-400 text-xs mt-2">
-  The best ideas are the ones you 
-  <span onclick="document.getElementById('postInput').scrollIntoView({ behavior: 'smooth', block: 'center' })" 
-      class="underline cursor-pointer hover:text-slate-600 transition-colors">
-    write down
-</span>.
-</p>
-      </div>`;
-	  }
-	  else { 
-	  if (totalGlobalPosts === 0) {
-      showPublicPlaceholder('empty');
-    } else {
-        showPublicPlaceholder('scanning');
+  console.log(`[renderListItems] Called with ${items.length} items.`);
+  console.log(`[renderListItems] Search for placeholder returned:`, existingPlaceholder);
+  console.log(`[renderListItems] DOM.list current HTML length:`, listContents);
 
-        if (!window.isBruteFetching) {
-          window.isBruteFetching = true;
-          handleBruteForce();
+  // 2. Handle Empty State
+  if (items.length === 0) {
+      DOM.list.innerHTML = ''; 
+      
+      if (currentTab === 'private') {
+        DOM.list.innerHTML = `
+          <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]" style="min-height: calc(100vh - 418px);">
+            <div class="mb-4 text-slate-300">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9"/>
+                <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                <line x1="9" y1="9" x2="9.01" y2="9"/>
+                <line x1="15" y1="9" x2="15.01" y2="9"/>
+              </svg>
+            </div>
+            <p class="text-slate-500 font-medium tracking-tight">Awaiting inspiration.</p>
+          </div>`;
+      } 
+      else { 
+        if (totalGlobalPosts === 0) {
+          showPublicPlaceholder('empty');
+        } else {
+          showPublicPlaceholder('scanning');
+          if (!window.isBruteFetching) {
+            window.isBruteFetching = true;
+            handleBruteForce();
+          }
         }
       }
-	  }	  
-    return; 
+      return; 
   }
-  items.forEach(item => {
-    if (placeholder) {
-      placeholder.remove();
-      if (document.getElementById('public-placeholder')) {
-        document.getElementById('public-placeholder').outerHTML = ''; // Final nuke
+
+  // 3. THE FIX: Brute Force Removal
+  // If getElementById failed, let's look directly inside the list container
+  if (existingPlaceholder) {
+      console.log("[renderListItems] 🟢 Found via ID. Removing...");
+      existingPlaceholder.remove();
+  } else {
+      // Fallback: Check if the list has children that LOOK like the placeholder
+      const manualCheck = DOM.list.querySelector('#public-placeholder');
+      if (manualCheck) {
+          console.log("[renderListItems] 🟡 Found via QuerySelector. Removing...");
+          manualCheck.remove();
       } else {
+         console.log("[renderListItems] 🔴 Not found. List might be clean or I am blind.");
       }
-    } else {
-    }
+  }
+
+  // 4. Render Items
+  items.forEach(item => {
     const postNode = createPostNode(item);
     DOM.list.appendChild(postNode);
     watchPostCounts(item.id);
   });
+
   refreshSnap();
 }
+
+
 
 function showPublicPlaceholder(type) {
   let html = '';
