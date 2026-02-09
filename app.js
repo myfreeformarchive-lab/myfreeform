@@ -1166,7 +1166,7 @@ function renderListItems(items) {
          switchTab();
             
         }
-    }, 1500); // 1.5s gives the spinner time to look "intentional"
+    }, 1000); // 1.5s gives the spinner time to look "intentional"
 		
       }
 	  }
