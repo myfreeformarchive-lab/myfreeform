@@ -1155,27 +1155,45 @@ function renderListItems(items) {
         DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
         console.log("🛠️ BRUTE FORCE: List empty but DB has posts. Fetching now...");
 
-        if (!window.isBruteFetching) {
-          window.isBruteFetching = true;
-          (async () => {
-            try {
-			  processedIds.clear();
-              await refillBufferRandomly(10, false, true);
-			  console.log("📦 Buffer status:", postBuffer.length);
-              if (postBuffer.length > 0) {
-                while (postBuffer.length > 0) {
-                  visiblePosts.push(postBuffer.shift());
+        // Inside your renderListItems Brute Force block
+if (!window.isBruteFetching) {
+    window.isBruteFetching = true;
+    (async () => {
+        try {
+            processedIds.clear();
+            
+            // 🚀 THE NEW PLAN: If the random sampler is stuck, 
+            // we just fetch the newest 10 posts directly.
+            const emergencyQuery = query(
+                collection(db, "globalPosts"), 
+                limit(10)
+            );
+            const emergencySnap = await getDocs(emergencyQuery);
+            
+            console.log(`🛰️ Emergency Fetch found ${emergencySnap.size} posts.`);
+
+            emergencySnap.forEach(doc => {
+                const post = { id: doc.id, ...doc.data(), isFirebase: true };
+                if (!postBuffer.some(p => p.id === post.id)) {
+                    postBuffer.push(post);
                 }
-                console.log("✅ Brute Force Success!");
+            });
+
+            console.log("📦 Buffer status:", postBuffer.length);
+            
+            if (postBuffer.length > 0) {
+                while (postBuffer.length > 0) {
+                    visiblePosts.push(postBuffer.shift());
+                }
                 renderListItems(visiblePosts);
-              }
-            } catch (err) {
-              console.error("❌ Brute Force Error:", err);
-            } finally {
-              setTimeout(() => { window.isBruteFetching = false; }, 2000);
             }
-          })();
+        } catch (err) {
+            console.error("❌ Brute Force Error:", err);
+        } finally {
+            setTimeout(() => { window.isBruteFetching = false; }, 2000);
         }
+    })();
+}
       } // <--- Added this missing closing brace for the inner else
     }
     return; // Exit if items was 0
