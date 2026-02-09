@@ -1154,7 +1154,7 @@ function renderListItems(items) {
     DOM.list.innerHTML = `
         <div class="flex flex-col items-center justify-center py-20">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-300 mb-4"></div>
-            <p class="text-slate-400 text-xs animate-pulse">Whispering to the wind...</p>
+            <p class="text-slate-400 text-xs animate-pulse">Gathering perspectives...</p>
         </div>`;
 
     // 2. The Teleport: Go get the posts so the spinner can die
