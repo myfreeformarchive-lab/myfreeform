@@ -2268,6 +2268,9 @@ const Ledger = {
   }
 };
 
+// Attach to window for console access
+window.Ledger = Ledger;
+
 // publicUnsubscribe, commentsUnsubscribe, activePostListeners
 // runMigration, loadFeed, updateMeter, switchTab, postComment, handlePost, 
 // handleSwipeGesture for desktop vs mobile logging
