@@ -1112,10 +1112,12 @@ function showHeartAnimation(container) {
 }
 
 function renderListItems(items) {
+	const placeholder = document.getElementById('public-placeholder');
 	
-  DOM.list.innerHTML = ''; 
   
   if (items.length === 0) {
+	  DOM.list.innerHTML = ''; 
+	  
 	  if (currentTab === 'private') {
     DOM.list.innerHTML = `
       <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
@@ -1141,24 +1143,10 @@ function renderListItems(items) {
 	  else { 
 	  if (totalGlobalPosts === 0) {
       // 🍃 THE FALLEN LEAVES (PUBLIC EMPTY STATE)
-      DOM.list.innerHTML = `
-        <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
-             style="scroll-snap-align: start; scroll-margin-top: calc(112px + 24px); min-height: calc(100vh - 418px);">
-          <div class="mb-4 text-slate-300 animate-pulse">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10.39 6.23L7 9s.5 4 4 5c1 0 3-1 3-1l3.5-3.5S14 6 10.39 6.23z" />
-              <path d="M7 9c3 3 7 1.5 7 1.5" />
-              <path d="M19 15.5c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5c0-2.5 2-4.5 4.5-4.5s-4.5-2-4.5-4.5z" opacity="0.5" />
-              <path d="M2 12h4m10 0h6" stroke-dasharray="4 4" />
-            </svg>
-          </div>
-          <p class="text-slate-500 font-medium tracking-tight">It's quiet here.</p>
-          <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
-        </div>`;
+      showPublicPlaceholder('empty');
     } else {
         // 🛠️ BRUTE FORCE FETCH
-        DOM.list.innerHTML = '<div class="text-center py-20 opacity-50 font-medium italic">Scanning the horizon...</div>';
-        console.log("🛠️ BRUTE FORCE: List empty but DB has posts. Fetching now...");
+        showPublicPlaceholder('scanning');
 
         if (!window.isBruteFetching) {
           window.isBruteFetching = true;
@@ -1168,6 +1156,15 @@ function renderListItems(items) {
 	  }	  // <--- Added this missing closing brace for the inner else
     return; // Exit if items was 0
   }
+  
+  if (placeholder) {
+    placeholder.remove();
+    // If the list only contained the placeholder, it's now empty, so we don't need a full wipe
+  } else {
+    // If there was no placeholder (e.g., initial load or refresh), clear the whole thing
+    DOM.list.innerHTML = ''; 
+  }
+  
   // RENDER ITEMS (If items.length > 0)
   items.forEach(item => {
     const postNode = createPostNode(item);
@@ -1175,6 +1172,33 @@ function renderListItems(items) {
     watchPostCounts(item.id);
   });
   refreshSnap();
+}
+
+function showPublicPlaceholder(type) {
+  let html = '';
+  
+  if (type === 'empty') {
+    html = `
+      <div id="public-placeholder" class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]" style="min-height: calc(100vh - 418px);">
+        <div class="mb-4 text-slate-300 animate-pulse">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.39 6.23L7 9s.5 4 4 5c1 0 3-1 3-1l3.5-3.5S14 6 10.39 6.23z" />
+            <path d="M7 9c3 3 7 1.5 7 1.5" />
+            <path d="M19 15.5c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5c0-2.5 2-4.5 4.5-4.5s-4.5-2-4.5-4.5z" opacity="0.5" />
+            <path d="M2 12h4m10 0h6" stroke-dasharray="4 4" />
+          </svg>
+        </div>
+        <p class="text-slate-500 font-medium tracking-tight">It's quiet here.</p>
+        <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
+      </div>`;
+  } else if (type === 'scanning') {
+    html = `
+      <div id="public-placeholder" class="text-center py-20 opacity-50 font-medium italic">
+        Scanning the horizon...
+      </div>`;
+  }
+
+  DOM.list.innerHTML = html;
 }
 
 async function handleBruteForce() {
