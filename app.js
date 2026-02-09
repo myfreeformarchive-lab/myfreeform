@@ -22,7 +22,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
 window.db = db;
+window.visiblePosts = visiblePosts;
+window.postBuffer = postBuffer;
+window.processedIds = processedIds;
 
 // ==========================================
 // 1. STATE & DOM
