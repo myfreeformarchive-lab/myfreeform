@@ -1391,7 +1391,8 @@ async function handlePost() {
       _supabase.from('posts').insert({
           id: firebaseId,      // The same ID Firebase just created
           like_count: 0,       // Initialize likes
-          comment_count: 0     // Initialize comments
+          comment_count: 0,
+          author_id: MY_USER_ID	  // Initialize comments
       }).then(({ error }) => {
           if (error) console.error("Supabase Insert Error:", error.message);
       });
@@ -1470,7 +1471,8 @@ async function publishDraft(post) {
       _supabase.from('posts').insert({
           id: docRef.id,       // Use the new Firebase ID
           like_count: 0,
-          comment_count: 0
+          comment_count: 0,
+		  author_id: MY_USER_ID
       }).then(({ error }) => {
           if (error) console.error("Supabase Insert Error:", error.message);
       });
