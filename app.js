@@ -1194,13 +1194,12 @@ function renderListItems(items) {
   }
   
   items.forEach(item => {
+    // If we have a placeholder, kill it
     if (placeholder) {
       placeholder.remove();
-      if (document.getElementById('public-placeholder')) {
-        document.getElementById('public-placeholder').outerHTML = ''; // Final nuke
-      } else {
-      }
-    } else {
+      // Double check for any lingering ghost by ID
+      const ghost = document.getElementById('public-placeholder');
+      if (ghost) ghost.remove();
     }
     const postNode = createPostNode(item);
     DOM.list.appendChild(postNode);
