@@ -1793,31 +1793,50 @@ function openModal(post) {
     
     // We store this in a variable so we can clean it up if the post is deleted
     const modalAutoUnsubscribe = onSnapshot(postRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const serverData = docSnap.data();
-        updateLocalPostWithServerData(
-            realFirestoreId, 
-            serverData.commentCount || 0, 
-            serverData.likeCount || 0
-        );
-		Ledger.log("openModal", 1, 0, 0);
-      } 
-      // 🚀 THE FIX: If someone else deletes the post while the modal is open
-      else {
-        modalAutoUnsubscribe(); // Stop listening
-        closeModal();           // Kick user out of the modal
-		
-		const now = Date.now();
-  if (now - lastGhostToastTime > 3000) { // 3000ms = 3 seconds
-    showToast("Note no longer available", "neutral");
-    lastGhostToastTime = now;
+  if (docSnap.exists()) {
+    // 1. Firebase confirms the post is alive.
+    // 2. Now we fetch the "True Counts" from Supabase.
+    _supabase
+      .from('posts')
+      .select('id, like_count, comment_count')
+      .eq('id', realFirestoreId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (data && !error) {
+          // Sync the Supabase data to LocalStorage and UI
+          updateLocalPostWithServerData(
+            realFirestoreId,
+            data.comment_count || 0,
+            data.like_count || 0
+          );
+          
+          // If the modal is currently open, we can update the modal counters specifically here too
+          // updateModalCounters(data.like_count, data.comment_count); 
+          
+          Ledger.log("openModal_SupabaseSync", 1, 0, 0);
+        }
+      });
+
+    // 3. Keep the Real-time listener active so counts tick up while user reads
+    if (typeof watchPostCounts === 'function') {
+      watchPostCounts(realFirestoreId);
+    }
+
+  } else {
+    // 🚀 THE DELETE FIX: If post is gone from Firebase, kill everything
+    modalAutoUnsubscribe();
+    closeModal();
+
+    const now = Date.now();
+    if (now - lastGhostToastTime > 3000) {
+      showToast("Note no longer available", "neutral");
+      lastGhostToastTime = now;
+    }
+
+    const el = document.querySelector(`[data-id="${realFirestoreId}"]`);
+    if (el) el.remove();
   }
-        
-        // Also remove it from the background feed so it's not there when the modal closes
-        const el = document.querySelector(`[data-id="${realFirestoreId}"]`);
-        if (el) el.remove();
-      }
-    });
+});
 
     const q = query(collection(db, `globalPosts/${realFirestoreId}/comments`), orderBy("createdAt", "desc"));
     DOM.commentList.innerHTML = '<div class="text-center py-10 text-slate-300 text-sm">Loading...</div>';
@@ -1893,7 +1912,6 @@ function closeModal() {
   // 2. UI Reset
   DOM.modal.classList.add('hidden');
   document.body.style.overflow = ''; 
-  activePostId = null;
 
   // 3. Listener Cleanup
   if (commentsUnsubscribe) { 
@@ -1908,6 +1926,16 @@ function closeModal() {
     // We set it to null so it's ready for the next post
     // Note: ensure modalAutoUnsubscribe is declared with 'let' at the top of your script
   }
+  
+  if (activePostId && activePostListeners.has(activePostId)) {
+    const unsubscribe = activePostListeners.get(activePostId);
+    if (typeof unsubscribe === 'function') {
+      unsubscribe(); // This triggers _supabase.removeChannel()
+    }
+    activePostListeners.delete(activePostId); // Wipe from the Map
+  }
+  
+  activePostId = null;
   
   if (DOM.input) {
     DOM.input.disabled = false;
@@ -2133,26 +2161,18 @@ function checkSpamGuard(newContent) {
   return true; 
 }
 
-async function updateLocalPostWithServerData(postId) {  // Renamed for clarity (assuming it matches Supabase ID)
+// ✅ Corrected to accept arguments so it doesn't have to re-fetch what you already have
+async function updateLocalPostWithServerData(postId, serverCommentCount, serverLikeCount) { 
   try {
-    // Fetch latest counts from Supabase
-    const { data, error } = await _supabase
-      .from('posts')
-      .select('like_count, comment_count')
-      .eq('id', postId)
-      .single();
+    // We no longer need the 'await _supabase.from...' block here 
+    // because you are passing the data in from the listeners!
 
-    if (error) throw error;
-
-    const serverLikeCount = data.like_count;
-    const serverCommentCount = data.comment_count;
-
-    // Update localStorage (rest unchanged)
     let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
     let updated = false;
 
     posts = posts.map(p => {
-      if (p.firebaseId === postId) {  // Still checks firebaseId if that's your key
+      // Logic: Match the post and check if the numbers actually changed
+      if (p.firebaseId === postId || p.id === postId) { 
         if (p.commentCount !== serverCommentCount || p.likeCount !== serverLikeCount) {
           p.commentCount = serverCommentCount;
           p.likeCount = serverLikeCount;
@@ -2164,6 +2184,8 @@ async function updateLocalPostWithServerData(postId) {  // Renamed for clarity (
 
     if (updated) {
       localStorage.setItem('freeform_v2', JSON.stringify(posts));
+      
+      // If the user is looking at their private archive, refresh the list
       if (currentTab === 'private') {
         allPrivatePosts = posts.slice().reverse();
         renderPrivateBatch();
