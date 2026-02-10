@@ -376,6 +376,11 @@ function watchPostCounts(postId) {
   return;
   }
 
+  if (!isNaN(postId) && postId.length > 10) {
+	  window.pendingPostUpdates--;
+      return; 
+  }
+
   // 3. FIRE-AND-FORGET (No 'await')
   // We trigger the fetch, but we do NOT pause the code here.
   _supabase
