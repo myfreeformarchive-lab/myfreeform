@@ -526,6 +526,10 @@ function injectSinglePost(item, position = 'top') {
       if (currentTab !== 'public' || document.getElementById(`post-${item.id}`)) {
         return; 
       }
+	  
+	  const ghost = document.getElementById('public-placeholder');
+      if (ghost) ghost.remove();
+	  
       const currentScrollTop = window.scrollY;
       DOM.list.prepend(postNode);
       watchPostCounts(item.id);
@@ -942,8 +946,6 @@ async function sharePost(text, platform) {
 }
 
 function createPostNode(item) {
-	const ghost = document.getElementById('public-placeholder');
-    if (ghost) ghost.remove();
   // 1. Create the base container
   const el = document.createElement('div');
   el.id = `post-${item.id}`;
