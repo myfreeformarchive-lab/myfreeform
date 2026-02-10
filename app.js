@@ -1141,6 +1141,7 @@ function renderListItems(items) {
 }
 
 function showPublicPlaceholder(type) {
+	console.log(`[DEBUG] showPublicPlaceholder called with type: "${type}"`);
   let html = '';
   if (type === 'empty') {
     html = `
@@ -1163,6 +1164,21 @@ function showPublicPlaceholder(type) {
       </div>`;
   }
   DOM.list.innerHTML = html;
+  
+  // 🕵️‍♂️ MONITORING THE STUCK STATE
+  if (type === 'scanning') {
+    console.log(`[DEBUG] Placeholder set to SCANNING. Pending Updates: ${window.pendingPostUpdates}`);
+    
+    // Set a "Dead Man's Switch" - if it's still there in 5 seconds, we know it's stuck.
+    setTimeout(() => {
+      const el = document.getElementById('public-placeholder');
+      if (el && el.innerText.includes('Scanning')) {
+        console.warn(`[DEBUG] SCREEN STUCK: "Scanning" still visible after 5s.`);
+        console.warn(`[DEBUG] Current state - Tab: ${currentTab}, Pending: ${window.pendingPostUpdates}, Listeners: ${activePostListeners.size}`);
+      }
+    }, 5000);
+  }
+  
 }
 
 async function handleBruteForce() {
