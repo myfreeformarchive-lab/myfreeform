@@ -1113,33 +1113,36 @@ function renderListItems(items) {
 	  if (totalGlobalPosts === 0) {
       showPublicPlaceholder('empty');
     } else {
-        showPublicPlaceholder('scanning');
-
-        if (!window.isBruteFetching) {
+        
+          if (!window.isBruteFetching) {
+          showPublicPlaceholder('scanning'); // Only show scanning if we are actually starting a fetch
           window.isBruteFetching = true;
           handleBruteForce();
+        } else {
+          // 🚀 THE FIX: If we are already brute fetching and still have 0 items, 
+          // stop showing "Scanning" and show "Empty" so the user isn't stuck.
+          showPublicPlaceholder('empty');
         }
       }
-	  }	  
+    }
+		
     return; 
   }
   
- // 🟢 THE FIX: Set the total count for THIS batch BEFORE the loop starts
-  window.pendingPostUpdates = items.length;
-
   items.forEach(item => {
-    // 3. Clear placeholder only once
-    const existingPlaceholder = document.getElementById('public-placeholder');
-    if (existingPlaceholder) existingPlaceholder.remove();
-
+    if (placeholder) {
+      placeholder.remove();
+      if (document.getElementById('public-placeholder')) {
+        document.getElementById('public-placeholder').outerHTML = ''; // Final nuke
+      } else {
+      }
+    } else {
+    }
     const postNode = createPostNode(item);
     DOM.list.appendChild(postNode);
-
-    // 4. Start the watcher (this will decrement the counter we just set)
-    // 🚩 REMOVED: window.pendingPostUpdates++ from here
+	window.pendingPostUpdates++;
     watchPostCounts(item.id);
   });
-
   refreshSnap();
 }
 
