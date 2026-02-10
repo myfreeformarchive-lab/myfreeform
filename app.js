@@ -1708,9 +1708,10 @@ async function deleteGlobal(postId) {
         // --- 🏁 END OF THE FIX ---
 		
 		setTimeout(() => {
-          const currentVisible = document.querySelectorAll('.post-card'); // or whatever your post class is
+          const currentVisible = document.querySelectorAll('.feed-item'); // or whatever your post class is
           if (currentVisible.length === 0) {
             console.log("[Delete] 🧹 Screen is empty, triggering placeholder.");
+			totalGlobalPosts = 0;
             renderListItems([]); 
           }
         }, 350);
