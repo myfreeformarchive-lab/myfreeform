@@ -593,45 +593,34 @@ function updateToggleUI() {
     : "text-xs font-semibold text-slate-500 transition-colors";
 }
 
-let loadFeedTimeout = null; // Add this at the top of your script
-
 function loadFeed() {
-  // 1. Immediately cancel any pending load from a previous click
-  if (loadFeedTimeout) clearTimeout(loadFeedTimeout);
-  if (dripTimeout) { clearTimeout(dripTimeout); dripTimeout = null; }
+  if (dripTimeout) {
+    clearTimeout(dripTimeout);
+    dripTimeout = null;
+  }
 
-  // 2. Kill old listeners
-  if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
+  if (publicUnsubscribe) { 
+    publicUnsubscribe(); 
+    publicUnsubscribe = null; 
+  }
+
   if (activePostListeners && activePostListeners.size > 0) {
     activePostListeners.forEach((unsubscribe) => unsubscribe());
     activePostListeners.clear();
   }
   
-  // 3. Reset the "Stuck" Counter
-  // This is vital. If we switch tabs, we stop caring about the old tab's count.
-  window.pendingPostUpdates = 0;
-
   visiblePosts = [];
   postBuffer = [];
   processedIds.clear();
 
-  // 4. Wait 50ms before opening new connections
-  // This prevents the "WebSocket is closed before established" error
-  loadFeedTimeout = setTimeout(() => {
-    if (currentTab === 'private') {
-      const data = JSON.parse(localStorage.getItem('freeform_v2')) || [];
-      allPrivatePosts = [...data].reverse();
-      
-      // Initialize the count for the new view
-      window.pendingPostUpdates = allPrivatePosts.length;
-      
-      renderPrivateBatch();
-      subscribeArchiveSync();
-    } else {
-      DOM.loadTrigger.style.display = 'flex';
-      subscribePublicFeed();
-    }
-  }, 50); 
+  if (currentTab === 'private') {
+    allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
+    renderPrivateBatch();
+    subscribeArchiveSync();
+  } else {
+	DOM.loadTrigger.style.display = 'flex';
+    subscribePublicFeed();
+  }
 }
 
 function renderPrivateBatch() {
