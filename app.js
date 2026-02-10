@@ -561,6 +561,18 @@ function applyFontPreference(font) {
 
 function switchTab(tab) {
   if (currentTab === tab) return;
+  
+  // 🕵️‍♂️ MOVE THE LOGS HERE (Before the 300ms wait)
+  console.log(`[DEBUG] switchTab initiated to: ${tab}. Current counter: ${window.pendingPostUpdates}`);
+  
+  if (activePostListeners && activePostListeners.size > 0) {
+      console.log(`[DEBUG] Immediate cleanup of ${activePostListeners.size} listeners...`);
+      activePostListeners.forEach((unsubscribe, id) => {
+          unsubscribe(); // This should now trigger your "State was: ..." logs immediately
+      });
+      activePostListeners.clear();
+  }
+  
   DOM.list.style.transition = 'none';
   DOM.list.style.transform = '';
   DOM.list.style.opacity = '';
