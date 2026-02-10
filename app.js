@@ -662,6 +662,7 @@ function renderPrivateBatch() {
 }
 
 function subscribeArchiveSync() {
+	console.log(`[Private Debug] 🛰️ subscribeArchiveSync starting. Tab: ${currentTab}`);
   if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
 
   // Supabase real-time channel for your posts
