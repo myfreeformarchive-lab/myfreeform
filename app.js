@@ -1234,6 +1234,20 @@ function showPublicPlaceholder(type) {
       <div id="public-placeholder" class="text-center py-20 opacity-50 font-medium italic">
         Scanning the horizon...
       </div>`;
+
+    // 🕒 THE 3-SECOND PANIC TIMER
+    console.log("[UI] Scanning started. 3s timeout armed.");
+    
+    setTimeout(() => {
+      const stillScanning = document.getElementById('public-placeholder');
+      if (stillScanning && stillScanning.innerText.includes('Scanning')) {
+        console.error("🚨 STUCK DETECTED: Forcing internal reload.");
+        
+        // We use window.location.reload() or re-trigger your loadFeed()
+        // But a reload is the most "billion-dollar" way to guarantee a fresh state
+        window.location.reload(); 
+      }
+    }, 3000);
   }
   DOM.list.innerHTML = html;
   
