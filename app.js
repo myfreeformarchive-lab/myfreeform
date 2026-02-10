@@ -664,21 +664,12 @@ function loadFeed() {
 }
 
 function renderPrivateBatch() {
-  // 1. Check the Red Light FIRST before clearing the screen
-  if (window.pendingPostUpdates > 0) {
-    console.log(`[Private] 🚦 Sync in progress (${window.pendingPostUpdates}). Postponing batch render.`);
-    return;
-  }
-
-  // 2. Refresh the data
+  // Re-fetch to ensure we have the counts updated by the background sync
   allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
   
   const visible = allPrivatePosts.slice(0, currentLimit);
-  
-  // 3. Only clear the screen once we are sure we are about to draw
   DOM.list.innerHTML = ''; 
   renderListItems(visible);
-  
   DOM.loadTrigger.style.display = (currentLimit >= allPrivatePosts.length) ? 'none' : 'flex';
 }
 
@@ -951,6 +942,8 @@ async function sharePost(text, platform) {
 }
 
 function createPostNode(item) {
+	const ghost = document.getElementById('public-placeholder');
+    if (ghost) ghost.remove();
   // 1. Create the base container
   const el = document.createElement('div');
   el.id = `post-${item.id}`;
