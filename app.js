@@ -1123,20 +1123,23 @@ function renderListItems(items) {
 	  }	  
     return; 
   }
+  
+ // 🟢 THE FIX: Set the total count for THIS batch BEFORE the loop starts
+  window.pendingPostUpdates = items.length;
+
   items.forEach(item => {
-    if (placeholder) {
-      placeholder.remove();
-      if (document.getElementById('public-placeholder')) {
-        document.getElementById('public-placeholder').outerHTML = ''; // Final nuke
-      } else {
-      }
-    } else {
-    }
+    // 3. Clear placeholder only once
+    const existingPlaceholder = document.getElementById('public-placeholder');
+    if (existingPlaceholder) existingPlaceholder.remove();
+
     const postNode = createPostNode(item);
     DOM.list.appendChild(postNode);
-	window.pendingPostUpdates++;
+
+    // 4. Start the watcher (this will decrement the counter we just set)
+    // 🚩 REMOVED: window.pendingPostUpdates++ from here
     watchPostCounts(item.id);
   });
+
   refreshSnap();
 }
 
