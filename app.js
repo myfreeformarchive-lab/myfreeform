@@ -663,7 +663,7 @@ function renderPrivateBatch() {
 
 function subscribeArchiveSync() {
 	console.log(`[Private Debug] 🛰️ subscribeArchiveSync starting. Tab: ${currentTab}`);
-  if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
+  if (publicUnsubscribe) {await publicUnsubscribe(); publicUnsubscribe = null; }
 
   // Supabase real-time channel for your posts
   const channel = _supabase
@@ -709,8 +709,23 @@ function subscribeArchiveSync() {
     })
     .subscribe();
 
-  // Store unsubscribe function
-  publicUnsubscribe = () => _supabase.removeChannel(channel);
+// Store unsubscribe function with a safety check
+  publicUnsubscribe = async () => {
+    if (!channel) return;
+
+    const state = channel.state;
+    console.log(`[Socket Debug] 🔴 Unsubscribing. State: ${state}`);
+
+    // If it's still joining, Supabase might throw if we remove it too fast
+    try {
+      if (state === 'joined' || state === 'joining') {
+        await _supabase.removeChannel(channel);
+        console.log(`[Socket Debug] ✅ Channel removed.`);
+      }
+    } catch (e) {
+      console.warn(`[Socket Debug] ⚠️ Handled WebSocket race condition:`, e.message);
+    }
+  };
 }
 
 // ==========================================
