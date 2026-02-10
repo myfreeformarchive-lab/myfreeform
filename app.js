@@ -444,8 +444,22 @@ function watchPostCounts(postId) {
     })
     .subscribe();
 
-  // 5. CLEANUP
-  const unsubscribe = () => _supabase.removeChannel(channel);
+// 5. CLEANUP
+  const unsubscribe = () => {
+    const currentState = channel.state; // 'closed', 'errored', 'joined', or 'joining'
+    
+    console.log(`[Socket Debug] 🔴 Removing ${postId}. State was: ${currentState}`);
+
+    _supabase.removeChannel(channel)
+      .then(() => {
+        console.log(`[Socket Debug] ✅ Successfully cleaned up ${postId}`);
+      })
+      .catch((err) => {
+        // This is where that WebSocket error usually gets swallowed or throws
+        console.error(`[Socket Debug] ❌ Failed to remove ${postId}:`, err);
+      });
+  };
+
   activePostListeners.set(postId, unsubscribe);
 }
 
@@ -605,8 +619,10 @@ function loadFeed() {
   }
 
   if (activePostListeners && activePostListeners.size > 0) {
+	  console.log(`[loadFeed] 🧨 STARTING CLEANUP: Killing ${activePostListeners.size} listeners...`);
     activePostListeners.forEach((unsubscribe) => unsubscribe());
     activePostListeners.clear();
+	console.log(`[loadFeed] 🧹 activePostListeners Map cleared.`);
   }
   
   visiblePosts = [];
@@ -1147,7 +1163,6 @@ function renderListItems(items) {
 }
 
 function showPublicPlaceholder(type) {
-	console.log(`[DEBUG] showPublicPlaceholder called with type: "${type}"`);
   let html = '';
   if (type === 'empty') {
     html = `
@@ -1170,20 +1185,6 @@ function showPublicPlaceholder(type) {
       </div>`;
   }
   DOM.list.innerHTML = html;
-  
-  // 🕵️‍♂️ MONITORING THE STUCK STATE
-  if (type === 'scanning') {
-    console.log(`[DEBUG] Placeholder set to SCANNING. Pending Updates: ${window.pendingPostUpdates}`);
-    
-    // Set a "Dead Man's Switch" - if it's still there in 5 seconds, we know it's stuck.
-    setTimeout(() => {
-      const el = document.getElementById('public-placeholder');
-      if (el && el.innerText.includes('Scanning')) {
-        console.warn(`[DEBUG] SCREEN STUCK: "Scanning" still visible after 5s.`);
-        console.warn(`[DEBUG] Current state - Tab: ${currentTab}, Pending: ${window.pendingPostUpdates}, Listeners: ${activePostListeners.size}`);
-      }
-    }, 5000);
-  }
   
 }
 
@@ -2469,11 +2470,11 @@ const Ledger = {
       (this.deletes / 100000) * 0.02
     ).toFixed(5);
 
-    console.groupCollapsed(`💰 Ledger: [${category}] +${r}R/+${w}W/+${d}D`);
-    console.log(`Session Totals: ${this.reads}R | ${this.writes}W | ${this.deletes}D`);
-    console.log(`Estimated Session Cost: $${cost}`);
-    console.table(this.categories);
-    console.groupEnd();
+   // console.groupCollapsed(`💰 Ledger: [${category}] +${r}R/+${w}W/+${d}D`);
+  //  console.log(`Session Totals: ${this.reads}R | ${this.writes}W | ${this.deletes}D`);
+  //  console.log(`Estimated Session Cost: $${cost}`);
+   // console.table(this.categories);
+  //  console.groupEnd();
   }
 };
 
