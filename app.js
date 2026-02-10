@@ -376,11 +376,6 @@ function watchPostCounts(postId) {
   return;
   }
 
-  if (!isNaN(postId) && postId.length > 10) {
-	  window.pendingPostUpdates--;
-      return; 
-  }
-
   // 3. FIRE-AND-FORGET (No 'await')
   // We trigger the fetch, but we do NOT pause the code here.
   _supabase
@@ -614,23 +609,11 @@ function loadFeed() {
   processedIds.clear();
 
   if (currentTab === 'private') {
-    const localData = JSON.parse(localStorage.getItem('freeform_v2')) || [];
-    allPrivatePosts = [...localData].reverse();
-
-    // 🟢 INITIALIZE COUNTER HERE
-    // This tells the system how many posts to expect updates for
-    window.pendingPostUpdates = allPrivatePosts.length;
-
-    if (window.pendingPostUpdates === 0) {
-      console.log(`[loadFeed] 🟢 GREEN LIGHT. No private posts to sync.`);
-    }
-
+    allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
     renderPrivateBatch();
     subscribeArchiveSync();
   } else {
-    // For public feed, we reset to 0 because posts drip in one by one
-    window.pendingPostUpdates = 0; 
-    DOM.loadTrigger.style.display = 'flex';
+	DOM.loadTrigger.style.display = 'flex';
     subscribePublicFeed();
   }
 }
