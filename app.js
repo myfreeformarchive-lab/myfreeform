@@ -351,16 +351,21 @@ dripTimeout = setTimeout(drip, Variable);
 }
 
 function updateUISurgically(id, data) {
-  updateLocalPostWithServerData(id, data.commentCount || 0, data.likeCount || 0);
+  // Use ?? to ensure we respect a 0 sent from the server
+  const finalComments = data.commentCount ?? 0;
+  const finalLikes = data.likeCount ?? 0;
+
+  updateLocalPostWithServerData(id, finalComments, finalLikes);
+
   if (currentTab !== 'public') return;
 
   const postEl = document.querySelector(`[data-id="${id}"]`);
   if (postEl) {
     const likeSpan = postEl.querySelector(`.count-like-${id}`);
-    if (likeSpan) likeSpan.textContent = data.likeCount || 0;
+    if (likeSpan) likeSpan.textContent = finalLikes;
 
     const commentSpan = postEl.querySelector(`.count-comment-${id}`);
-    if (commentSpan) commentSpan.textContent = data.commentCount || 0;
+    if (commentSpan) commentSpan.textContent = finalComments;
   }
 }
 
@@ -1802,20 +1807,18 @@ function openModal(post) {
       .eq('id', realFirestoreId)
       .maybeSingle()
       .then(({ data, error }) => {
-        if (data && !error) {
-          // Sync the Supabase data to LocalStorage and UI
-          updateLocalPostWithServerData(
-            realFirestoreId,
-            data.comment_count || 0,
-            data.like_count || 0
-          );
-          
-          // If the modal is currently open, we can update the modal counters specifically here too
-          // updateModalCounters(data.like_count, data.comment_count); 
-          
-          Ledger.log("openModal_SupabaseSync", 1, 0, 0);
-        }
-      });
+  if (data && !error) {
+    updateLocalPostWithServerData(realFirestoreId, data.comment_count, data.like_count);
+
+    // ✅ ADD THESE: Update the Modal's own UI counters immediately
+    const mLike = DOM.modal.querySelector(`.count-like-${realFirestoreId}`);
+    const mComm = DOM.modal.querySelector(`.count-comment-${realFirestoreId}`);
+    if (mLike) mLike.textContent = data.like_count;
+    if (mComm) mComm.textContent = data.comment_count;
+    
+    Ledger.log("openModal_SupabaseSync", 1, 0, 0);
+  }
+});
 
     // 3. Keep the Real-time listener active so counts tick up while user reads
     if (typeof watchPostCounts === 'function') {
@@ -2161,14 +2164,15 @@ function checkSpamGuard(newContent) {
   return true; 
 }
 
-// ✅ Corrected: Accepts optional counts to support LIVE UPDATES
 async function updateLocalPostWithServerData(postId, serverCommentCount = null, serverLikeCount = null) {
   try {
+    // 🚦 TRAP FIX: Explicitly check for null/undefined so 0 doesn't trigger a fetch
+    let needsFetch = (serverCommentCount === null || serverLikeCount === null);
+    
     let finalComments = serverCommentCount;
     let finalLikes = serverLikeCount;
 
-    // 🚦 IF DATA IS MISSING: Go fetch it (The "Active Fetch" case)
-    if (finalComments === null || finalLikes === null) {
+    if (needsFetch) {
       const { data, error } = await _supabase
         .from('posts')
         .select('like_count, comment_count')
@@ -2185,11 +2189,16 @@ async function updateLocalPostWithServerData(postId, serverCommentCount = null, 
     let updated = false;
 
     posts = posts.map(p => {
-      // Check both id and firebaseId to be safe
       if (p.firebaseId === postId || p.id === postId) {
-        if (p.commentCount !== finalComments || p.likeCount !== finalLikes) {
-          p.commentCount = finalComments;
-          p.likeCount = finalLikes;
+        // 🛠️ TYPE FIX: Force both to Numbers to ensure the comparison is accurate
+        const currentLocalLikes = Number(p.likeCount) || 0;
+        const currentLocalComments = Number(p.commentCount) || 0;
+        const incomingLikes = Number(finalLikes) || 0;
+        const incomingComments = Number(finalComments) || 0;
+
+        if (currentLocalComments !== incomingComments || currentLocalLikes !== incomingLikes) {
+          p.commentCount = incomingComments;
+          p.likeCount = incomingLikes;
           updated = true;
         }
       }
@@ -2198,7 +2207,7 @@ async function updateLocalPostWithServerData(postId, serverCommentCount = null, 
 
     if (updated) {
       localStorage.setItem('freeform_v2', JSON.stringify(posts));
-      // Refresh UI if looking at private archive
+      // Only refresh the heavy UI if we're actually on that tab
       if (currentTab === 'private') {
         allPrivatePosts = posts.slice().reverse();
         renderPrivateBatch();
