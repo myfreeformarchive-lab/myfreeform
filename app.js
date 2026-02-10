@@ -2161,21 +2161,35 @@ function checkSpamGuard(newContent) {
   return true; 
 }
 
-// ✅ Corrected to accept arguments so it doesn't have to re-fetch what you already have
-async function updateLocalPostWithServerData(postId, serverCommentCount, serverLikeCount) { 
+// ✅ Corrected: Accepts optional counts to support LIVE UPDATES
+async function updateLocalPostWithServerData(postId, serverCommentCount = null, serverLikeCount = null) {
   try {
-    // We no longer need the 'await _supabase.from...' block here 
-    // because you are passing the data in from the listeners!
+    let finalComments = serverCommentCount;
+    let finalLikes = serverLikeCount;
 
+    // 🚦 IF DATA IS MISSING: Go fetch it (The "Active Fetch" case)
+    if (finalComments === null || finalLikes === null) {
+      const { data, error } = await _supabase
+        .from('posts')
+        .select('like_count, comment_count')
+        .eq('id', postId)
+        .maybeSingle();
+
+      if (error || !data) return; 
+      finalComments = data.comment_count;
+      finalLikes = data.like_count;
+    }
+
+    // 💾 STORAGE LOGIC
     let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
     let updated = false;
 
     posts = posts.map(p => {
-      // Logic: Match the post and check if the numbers actually changed
-      if (p.firebaseId === postId || p.id === postId) { 
-        if (p.commentCount !== serverCommentCount || p.likeCount !== serverLikeCount) {
-          p.commentCount = serverCommentCount;
-          p.likeCount = serverLikeCount;
+      // Check both id and firebaseId to be safe
+      if (p.firebaseId === postId || p.id === postId) {
+        if (p.commentCount !== finalComments || p.likeCount !== finalLikes) {
+          p.commentCount = finalComments;
+          p.likeCount = finalLikes;
           updated = true;
         }
       }
@@ -2184,8 +2198,7 @@ async function updateLocalPostWithServerData(postId, serverCommentCount, serverL
 
     if (updated) {
       localStorage.setItem('freeform_v2', JSON.stringify(posts));
-      
-      // If the user is looking at their private archive, refresh the list
+      // Refresh UI if looking at private archive
       if (currentTab === 'private') {
         allPrivatePosts = posts.slice().reverse();
         renderPrivateBatch();
