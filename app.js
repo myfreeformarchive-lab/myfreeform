@@ -663,7 +663,10 @@ function renderPrivateBatch() {
 
 function subscribeArchiveSync() {
 	console.log(`[Private Debug] 🛰️ subscribeArchiveSync starting. Tab: ${currentTab}`);
-  if (publicUnsubscribe) {await publicUnsubscribe(); publicUnsubscribe = null; }
+  if (publicUnsubscribe) { 
+    await publicUnsubscribe(); // Wait for the old one to die before born-ing the new one
+    publicUnsubscribe = null; 
+}
 
   // Supabase real-time channel for your posts
   const channel = _supabase
