@@ -372,41 +372,49 @@ function updateUISurgically(id, data) {
 function watchPostCounts(postId) {
   // 1. If we are already watching, stop.
   if (activePostListeners.has(postId)){
-	window.pendingPostUpdates--;  
-  return;
+    window.pendingPostUpdates--;  
+    return;
   }
 
+  // Guard clause for invalid IDs
   if (!isNaN(postId) && postId.length > 10) {
-	  window.pendingPostUpdates--;
-      return; 
+    window.pendingPostUpdates--;
+    return; 
   }
 
-  // 3. FIRE-AND-FORGET (No 'await')
-  // We trigger the fetch, but we do NOT pause the code here.
+  // 3. FIRE-AND-FORGET
   _supabase
     .from('posts')
     .select('id, like_count, comment_count')
     .eq('id', postId)
     .maybeSingle()
     .then(({ data, error }) => {
-		window.pendingPostUpdates--;
-		
-		if (window.pendingPostUpdates === 0) {
-             console.log(`[watchPostCounts] 🟢 GREEN LIGHT. All updates finished.`);
-        }
-		
-        if (data) {
-            const uiData = {
-                id: data.id, 
-                likeCount: data.like_count, 
-                commentCount: data.comment_count 
-            };
-            updateUISurgically(postId, uiData);
-            Ledger.log("watchPostCounts", 1, 0, 0);
-        }
+      // 🚀 THE FIX: Always decrement first so we never hang
+      window.pendingPostUpdates--;
+      
+      if (window.pendingPostUpdates === 0) {
+        console.log(`[watchPostCounts] 🟢 GREEN LIGHT. All updates finished.`);
+      }
+
+      // Handle Errors
+      if (error) {
+        console.error("Supabase fetch error:", error);
+        return; 
+      }
+
+      // 🚀 THE FIX: If data is null (empty), we still call updateUISurgically 
+      // with 0s so the UI stays consistent and the "waiter" function is satisfied.
+      const uiData = {
+        id: postId, 
+        likeCount: data?.like_count ?? 0, 
+        commentCount: data?.comment_count ?? 0 
+      };
+
+      updateUISurgically(postId, uiData);
+      Ledger.log("watchPostCounts", 1, 0, 0);
     });
 
-  // 4. SETUP LIVE LISTENER (Standard)
+  // 4. SETUP LIVE LISTENER
   const channel = _supabase
     .channel(`public:posts:${postId}`)
     .on('postgres_changes', { 
@@ -415,7 +423,6 @@ function watchPostCounts(postId) {
         table: 'posts', 
         filter: `id=eq.${postId}` 
     }, (payload) => {
-
       if (payload.eventType === 'UPDATE') {
         const uiData = {
             id: payload.new.id,
@@ -425,8 +432,8 @@ function watchPostCounts(postId) {
         updateUISurgically(postId, uiData);
         Ledger.log("watchPostCounts", 1, 0, 0);
       } 
-      
       else if (payload.eventType === 'DELETE') {
+        // ... (Your existing delete logic is fine)
         if (activePostListeners.has(postId)) {
            const unsub = activePostListeners.get(postId);
            if (unsub) unsub();
