@@ -661,7 +661,7 @@ function renderPrivateBatch() {
   DOM.loadTrigger.style.display = (currentLimit >= allPrivatePosts.length) ? 'none' : 'flex';
 }
 
-function subscribeArchiveSync() {
+async function subscribeArchiveSync() {
 	console.log(`[Private Debug] 🛰️ subscribeArchiveSync starting. Tab: ${currentTab}`);
   if (publicUnsubscribe) { 
     await publicUnsubscribe(); // Wait for the old one to die before born-ing the new one
