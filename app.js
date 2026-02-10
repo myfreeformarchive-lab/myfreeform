@@ -1379,9 +1379,7 @@ async function handlePost() {
         authorId: MY_USER_ID,
         uniqueTag: uniqueTag,
 		serialId: serialId,
-        createdAt: serverTimestamp(),
-        commentCount: 0,
-        likeCount: 0
+        createdAt: serverTimestamp()
       });
       firebaseId = docRef.id;
 	   Ledger.log("handlePost", 0, 1, 0);
@@ -1459,9 +1457,7 @@ async function publishDraft(post) {
           authorId: MY_USER_ID,
           uniqueTag: idData.tag,
 		  serialId: idData.num,
-          createdAt: serverTimestamp(),
-          commentCount: 0,
-          likeCount: 0 
+          createdAt: serverTimestamp()
         });
 		
 		Ledger.log("publishDraft", 0, 1, 0);
@@ -1509,42 +1505,53 @@ async function publishDraft(post) {
 }
 
 async function deleteLocal(id) {
-  // 1. Trigger the Dialog instead of window.confirm
   showDialog(
     "Delete from Archive?", 
     "This will permanently remove this note from your device and from the Global feed.",
     "Delete",
     async () => {
-      // === 🔴 THE DELETION LOGIC STARTS HERE ===
-      
       let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
       const targetPost = posts.find(p => p.id === id);
 
       if (targetPost && targetPost.firebaseId) {
         try {
+          // 1. FIREBASE CLEANUP (Content & Sub-collections)
           const batch = writeBatch(db);
           const postRef = doc(db, "globalPosts", targetPost.firebaseId);
           const commentsRef = collection(db, "globalPosts", targetPost.firebaseId, "comments");
           const likesRef = collection(db, "globalPosts", targetPost.firebaseId, "likes");
 
-          // Clean up sub-collections first
-          const commentsSnapshot = await getDocs(commentsRef);
-		  Ledger.log("deleteLocal", commentsSnapshot.size, 0, 0);
-          commentsSnapshot.forEach(doc => batch.delete(doc.ref));
-          
-          const likesSnapshot = await getDocs(likesRef);
-		  Ledger.log("deleteLocal", likesSnapshot.size, 0, 0);
-          likesSnapshot.forEach(doc => batch.delete(doc.ref));
+          const [commentsSnapshot, likesSnapshot] = await Promise.all([
+            getDocs(commentsRef),
+            getDocs(likesRef)
+          ]);
 
+          commentsSnapshot.forEach(doc => batch.delete(doc.ref));
+          likesSnapshot.forEach(doc => batch.delete(doc.ref));
           batch.delete(postRef);
-          await batch.commit();
-		  Ledger.log("deleteLocal", 0, 0, commentsSnapshot.size + likesSnapshot.size + 1);
+
+          await batch.commit(); 
+          Ledger.log("deleteLocal", 0, 0, commentsSnapshot.size + likesSnapshot.size + 1);
+
+          // 2. SUPABASE CLEANUP (Counters)
+          // We use the firebaseId because that's what we used as the ID in Supabase!
+          const { error } = await _supabase
+            .from('posts')
+            .delete()
+            .eq('id', targetPost.firebaseId);
+
+          if (error) {
+            console.error("Supabase cleanup failed:", error.message);
+          } else {
+            console.log("Supabase record purged.");
+          }
+
         } catch(e) {
-     
+          console.error("Cloud deletion failed:", e);
         }
       }
 
-      // Remove from Local Storage
+      // 3. LOCAL STORAGE CLEANUP
       posts = posts.filter(p => p.id !== id);
       localStorage.setItem('freeform_v2', JSON.stringify(posts));
       
@@ -1552,8 +1559,6 @@ async function deleteLocal(id) {
       allPrivatePosts = posts.reverse();
       renderPrivateBatch();
       updateMeter();
-      
-      // Notify the user
       showToast("Note deleted from archive", "neutral");
     }
   );
