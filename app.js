@@ -1213,9 +1213,6 @@ function renderListItems(items) {
 function showPublicPlaceholder(type) {
   let html = '';
   if (type === 'empty') {
-    // We check if the user is online to give them a helpful button
-    const isOnline = navigator.onLine;
-    
     html = `
       <div id="public-placeholder" class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]" style="min-height: calc(100vh - 418px);">
         <div class="mb-4 text-slate-300 animate-pulse">
@@ -1227,13 +1224,7 @@ function showPublicPlaceholder(type) {
           </svg>
         </div>
         <p class="text-slate-500 font-medium tracking-tight">It's quiet here.</p>
-        <p class="text-slate-400 text-xs mt-2">${isOnline ? 'Waiting for a whisper to break the silence.' : 'You appear to be offline.'}</p>
-        
-        ${isOnline ? `
-          <button onclick="loadFeed()" class="mt-6 px-4 py-2 text-xs font-medium text-slate-500 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-full transition-all active:scale-95">
-            Try scanning again
-          </button>
-        ` : ''}
+        <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
       </div>`;
   } else if (type === 'scanning') {
     html = `
