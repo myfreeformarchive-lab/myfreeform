@@ -683,10 +683,6 @@ async function subscribeArchiveSync() {
     await publicUnsubscribe(); // Wait for the old one to die before born-ing the new one
     publicUnsubscribe = null; 
 }
- if (unsubscribe) { 
-    await unsubscribe(); // Wait for the old one to die before born-ing the new one
-    unsubscribe = null; 
-}
 
   // Supabase real-time channel for your posts
   const channel = _supabase
