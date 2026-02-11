@@ -492,75 +492,89 @@ function watchPostCounts(postId) {
 }
 
 async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed = false) {
-	const placeholder = document.getElementById('public-placeholder');
-	console.log(`%c🔄 Starting refillBufferRandomly (Target: ${count})`, "color: cyan; font-weight: bold;");
-  try {
-    const counterRef = doc(db, "metadata", "postCounter");
-    const counterSnap = await getDoc(counterRef);
+    const placeholder = document.getElementById('public-placeholder');
+    console.log(`%c🔄 Starting refillBufferRandomly (Target: ${count})`, "color: cyan; font-weight: bold;");
     
-    if (!counterSnap.exists()) {
-		console.warn("⚠️ No postCounter found in metadata.");
-      totalGlobalPosts = 0; 
-      return;
-    }
-	Ledger.log("refillBufferRandomly", 1, 0, 0);
-	
-    const maxId = counterSnap.data().count;
-    totalGlobalPosts = maxId;
-	const safetyOffset = 30; 
-        // We ensure we don't go below 1 if the DB is small (e.g. only 20 posts)
-        const searchMaxId = Math.max(1, maxId - safetyOffset);
-	
-    const windowSize = searchMaxId < 50 ? searchMaxId : 500;
-    const minId = Math.max(1, searchMaxId - windowSize);
-	
-	console.log(`📊 DB Stats: Real Total: ${maxId} | Safe Max: ${searchMaxId} (-${safetyOffset}) | Search Window: ${minId} to ${searchMaxId}`);
-	
-    let attempts = 0;
-    const MAX_ATTEMPTS = 15; 
-    while (postBuffer.length < count && attempts < MAX_ATTEMPTS) {
-      attempts++;
-      const rand = Math.floor(Math.random() * (searchMaxId - minId + 1) + minId);    
-console.log(`[Attempt ${attempts}] 🎲 Generated random start ID: ${rand}`);	  
-      const q = query(
-        collection(db, "globalPosts"), 
-        where("serialId", ">=", rand), 
-        orderBy("serialId", "asc"), 
-        limit(1)
-      );
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        const docData = snap.docs[0];
-        const post = { id: docData.id, ...docData.data(), isFirebase: true };
-        const isDuplicate = (!ignoreProcessed && processedIds.has(post.id)) || 
-                           postBuffer.some(p => p.id === post.id);      
-        if (!isDuplicate) {
-          postBuffer.push(post);
-		  console.log(`  ✅ Added Post ${post.serialId}. Buffer size: ${postBuffer.length}/${count}`);
-          if (placeholder) {
-            placeholder.remove();   
-            if (document.getElementById('public-placeholder')) {     
-                document.getElementById('public-placeholder').outerHTML = ''; 
-            } else {      
-            }
-          }	  
-        }else {
-                    // LOG: Failure Reason
-                    const reason = (!ignoreProcessed && processedIds.has(post.id)) ? "Already in processedIds" : "Already in postBuffer";
-                    console.log(`  ❌ Duplicate found: Post ${post.serialId}. Reason: ${reason}`);
-                }
-		Ledger.log("refillBufferRandomly", 1, 0, 0);
-      } else {
-		  console.log(`  ❓ Query returned empty for serialId >= ${rand}`);
-        continue; 
-      }
-    }
-	if (attempts >= MAX_ATTEMPTS) {
-            console.warn("🛑 MAX_ATTEMPTS reached. Stopping loop.");
+    try {
+        const counterRef = doc(db, "metadata", "postCounter");
+        const counterSnap = await getDoc(counterRef);
+        
+        if (!counterSnap.exists()) {
+            console.warn("⚠️ No postCounter found in metadata.");
+            totalGlobalPosts = 0; 
+            return;
         }
-  } catch (err) {
-	  console.error("🔥 Error in refillBufferRandomly:", err);
-  }
+        Ledger.log("refillBufferRandomly", 1, 0, 0);
+        
+        const maxId = counterSnap.data().count;
+        totalGlobalPosts = maxId;
+
+        // --- OLD LOGIC COMMENTED OUT ---
+        /*
+        const safetyOffset = 30; 
+        const searchMaxId = Math.max(1, maxId - safetyOffset);
+        const windowSize = searchMaxId < 50 ? searchMaxId : 500;
+        const minId = Math.max(1, searchMaxId - windowSize);
+        */
+
+        // --- NEW CORRECTED LOGIC ---
+        // We search the entire database from ID 1 to the absolute Max
+        const searchMaxId = maxId;
+        const minId = 1;
+
+        console.log(`📊 DB Stats: Searching Entire DB | Range: ${minId} to ${searchMaxId} (Total: ${maxId})`);
+        
+        let attempts = 0;
+        const MAX_ATTEMPTS = 25; // Increased slightly to give it a better chance in large datasets
+        
+        while (postBuffer.length < count && attempts < MAX_ATTEMPTS) {
+            attempts++;
+            const rand = Math.floor(Math.random() * (searchMaxId - minId + 1) + minId);    
+            
+            console.log(`[Attempt ${attempts}] 🎲 Random ID: ${rand}`);      
+            
+            const q = query(
+                collection(db, "globalPosts"), 
+                where("serialId", ">=", rand), 
+                orderBy("serialId", "asc"), 
+                limit(1)
+            );
+            
+            const snap = await getDocs(q);
+            
+            if (!snap.empty) {
+                const docData = snap.docs[0];
+                const post = { id: docData.id, ...docData.data(), isFirebase: true };
+                
+                const isDuplicate = (!ignoreProcessed && processedIds.has(post.id)) || 
+                                   postBuffer.some(p => p.id === post.id);      
+                
+                if (!isDuplicate) {
+                    postBuffer.push(post);
+                    console.log(`  ✅ Added Post ${post.serialId}. Buffer: ${postBuffer.length}/${count}`);
+                    
+                    if (placeholder) {
+                        placeholder.remove();   
+                        const extraPlaceholder = document.getElementById('public-placeholder');
+                        if (extraPlaceholder) extraPlaceholder.outerHTML = ''; 
+                    }      
+                } else {
+                    const reason = (!ignoreProcessed && processedIds.has(post.id)) ? "Already Processed" : "In Buffer";
+                    console.log(`  ❌ Skip: Post ${post.serialId} (${reason})`);
+                }
+                Ledger.log("refillBufferRandomly", 1, 0, 0);
+            } else {
+                console.log(`  ❓ No post found >= ${rand}. (Might be at the very end of DB)`);
+                continue; 
+            }
+        }
+
+        if (attempts >= MAX_ATTEMPTS && postBuffer.length < count) {
+            console.warn(`🛑 MAX_ATTEMPTS reached. Only found ${postBuffer.length}/${count} posts.`);
+        }
+    } catch (err) {
+        console.error("🔥 Error in refillBufferRandomly:", err);
+    }
 }
 
 function injectSinglePost(item, position = 'top') {
@@ -1453,6 +1467,7 @@ function setupInfiniteScroll() {
 
 function loadMoreData() {
 	console.log("%c🚀 loadMoreData triggered", "color: magenta; font-weight: bold;");
+	console.log(`[Scroll Debug] Buffer: ${postBuffer.length}, Visible: ${visiblePosts.length}, Tab: ${currentTab}`);
   if (isLoadingMore) {
     console.log("  ⛔ Blocked: isLoadingMore is already TRUE (Prev load still running?)");
     return;
@@ -1477,6 +1492,7 @@ function loadMoreData() {
 		console.log(`  📦 Refill Promise Resolved. Buffer contains: ${postBuffer.length} posts`);
       if (postBuffer.length === 0) {
 		  console.warn("  ⚠️ Random buffer EMPTY. Fallback to Chronological (subscribePublicFeed).");
+		  console.log(`[Fallback Debug] Calling subscribePublicFeed. IsAppending: ${isAppending}`);
           // If randomizer found nothing, fallback to chronological
           isAppending = true;
           subscribePublicFeed().then(() => {
