@@ -1388,17 +1388,25 @@ document.addEventListener('click', (e) => {
 // ==========================================
 function setupInfiniteScroll() {
   // 1. If an observer already exists, kill it first
+  console.log("%c📜 setupInfiniteScroll initiated", "color: orange; font-weight: bold;");
   if (scrollObserver) {
+	  console.log("  Previous observer disconnected.");
     scrollObserver.disconnect();
   }
 
   // 2. Create the new observer
   scrollObserver = new IntersectionObserver((entries) => {
+	  console.log(`  👁️ Scroll Check: Intersecting? ${entries[0].isIntersecting} | isLoadingMore? ${isLoadingMore} | Tab: ${currentTab}`);
     if (entries[0].isIntersecting && !isLoadingMore) {
       // Only trigger if we are actually on the public tab
       if (currentTab === 'public') {
+		  console.log("     ✅ Conditions met! Triggering loadMoreData()...");
         loadMoreData();
+      } else {
+        console.log(`     ⛔ Blocked: Wrong tab ('${currentTab}')`);
       }
+    } else if (entries[0].isIntersecting && isLoadingMore) {
+       console.log("     ⏳ Blocked: Already loading data.");
     }
   }, { 
     root: null, 
@@ -1408,7 +1416,10 @@ function setupInfiniteScroll() {
   
   // 3. Start watching the trigger
   if (DOM.loadTrigger) {
+	  console.log("  ✅ DOM.loadTrigger found. Observing now.");
     scrollObserver.observe(DOM.loadTrigger);
+  } else {
+    console.error("  ❌ CRITICAL: DOM.loadTrigger is NULL. Observer has nothing to watch!");
   }
 }
 
