@@ -476,18 +476,23 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
       return;
     }
 	Ledger.log("refillBufferRandomly", 1, 0, 0);
+	
     const maxId = counterSnap.data().count;
     totalGlobalPosts = maxId;
-    const windowSize = maxId < 50 ? maxId : 500;
-    const minId = Math.max(1, maxId - windowSize);
+	const safetyOffset = 30; 
+        // We ensure we don't go below 1 if the DB is small (e.g. only 20 posts)
+        const searchMaxId = Math.max(1, maxId - safetyOffset);
 	
-	console.log(`📊 DB Stats: Total Posts: ${maxId} | Search Window: ${minId} to ${maxId}`);
+    const windowSize = searchMaxId < 50 ? searchMaxId : 500;
+    const minId = Math.max(1, searchMaxId - windowSize);
+	
+	console.log(`📊 DB Stats: Real Total: ${maxId} | Safe Max: ${searchMaxId} (-${safetyOffset}) | Search Window: ${minId} to ${searchMaxId}`);
 	
     let attempts = 0;
     const MAX_ATTEMPTS = 15; 
     while (postBuffer.length < count && attempts < MAX_ATTEMPTS) {
       attempts++;
-      const rand = Math.floor(Math.random() * (maxId - minId + 1) + minId);    
+      const rand = Math.floor(Math.random() * (searchMaxId - minId + 1) + minId);    
 console.log(`[Attempt ${attempts}] 🎲 Generated random start ID: ${rand}`);	  
       const q = query(
         collection(db, "globalPosts"), 
