@@ -541,6 +541,8 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
             );
             
             const snap = await getDocs(q);
+			
+			Ledger.log("refillBufferRandomly_Attempt", 1, 0, 0);
             
             if (!snap.empty) {
                 const docData = snap.docs[0];
@@ -562,7 +564,7 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
                     const reason = (!ignoreProcessed && processedIds.has(post.id)) ? "Already Processed" : "In Buffer";
                     console.log(`  ❌ Skip: Post ${post.serialId} (${reason})`);
                 }
-                Ledger.log("refillBufferRandomly", 1, 0, 0);
+                
             } else {
                 console.log(`  ❓ No post found >= ${rand}. (Might be at the very end of DB)`);
                 continue; 
