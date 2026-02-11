@@ -465,11 +465,13 @@ function watchPostCounts(postId) {
 
 async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed = false) {
 	const placeholder = document.getElementById('public-placeholder');
+	console.log(`%c🔄 Starting refillBufferRandomly (Target: ${count})`, "color: cyan; font-weight: bold;");
   try {
     const counterRef = doc(db, "metadata", "postCounter");
     const counterSnap = await getDoc(counterRef);
     
     if (!counterSnap.exists()) {
+		console.warn("⚠️ No postCounter found in metadata.");
       totalGlobalPosts = 0; 
       return;
     }
@@ -478,11 +480,15 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
     totalGlobalPosts = maxId;
     const windowSize = maxId < 50 ? maxId : 500;
     const minId = Math.max(1, maxId - windowSize);
+	
+	console.log(`📊 DB Stats: Total Posts: ${maxId} | Search Window: ${minId} to ${maxId}`);
+	
     let attempts = 0;
     const MAX_ATTEMPTS = 15; 
     while (postBuffer.length < count && attempts < MAX_ATTEMPTS) {
       attempts++;
-      const rand = Math.floor(Math.random() * (maxId - minId + 1) + minId);     
+      const rand = Math.floor(Math.random() * (maxId - minId + 1) + minId);    
+console.log(`[Attempt ${attempts}] 🎲 Generated random start ID: ${rand}`);	  
       const q = query(
         collection(db, "globalPosts"), 
         where("serialId", ">=", rand), 
@@ -497,6 +503,7 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
                            postBuffer.some(p => p.id === post.id);      
         if (!isDuplicate) {
           postBuffer.push(post);
+		  console.log(`  ✅ Added Post ${post.serialId}. Buffer size: ${postBuffer.length}/${count}`);
           if (placeholder) {
             placeholder.remove();   
             if (document.getElementById('public-placeholder')) {     
@@ -504,14 +511,22 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
             } else {      
             }
           }	  
-        }
+        }else {
+                    // LOG: Failure Reason
+                    const reason = (!ignoreProcessed && processedIds.has(post.id)) ? "Already in processedIds" : "Already in postBuffer";
+                    console.log(`  ❌ Duplicate found: Post ${post.serialId}. Reason: ${reason}`);
+                }
 		Ledger.log("refillBufferRandomly", 1, 0, 0);
       } else {
+		  console.log(`  ❓ Query returned empty for serialId >= ${rand}`);
         continue; 
       }
     }
+	if (attempts >= MAX_ATTEMPTS) {
+            console.warn("🛑 MAX_ATTEMPTS reached. Stopping loop.");
+        }
   } catch (err) {
-	  
+	  console.error("🔥 Error in refillBufferRandomly:", err);
   }
 }
 
