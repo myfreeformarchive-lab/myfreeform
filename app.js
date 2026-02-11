@@ -1424,30 +1424,43 @@ function setupInfiniteScroll() {
 }
 
 function loadMoreData() {
-  if (isLoadingMore) return;
+	console.log("%c🚀 loadMoreData triggered", "color: magenta; font-weight: bold;");
+  if (isLoadingMore) {
+    console.log("  ⛔ Blocked: isLoadingMore is already TRUE (Prev load still running?)");
+    return;
+  }
   isLoadingMore = true;
+  console.log("  🔒 Lock set: isLoadingMore = true");
 
   DOM.loadTrigger.style.visibility = 'visible';
   DOM.loadTrigger.style.opacity = '1';
 
   if (currentTab === 'private') {
+	  console.log("  📂 Path: Private Tab");
     currentLimit += BATCH_SIZE;
     renderPrivateBatch();
     isLoadingMore = false;
     DOM.loadTrigger.style.visibility = 'hidden';
+	console.log("  ✅ Private batch rendered. Lock released.");
   } else {
+	  console.log("  🌍 Path: Public/Discovery. Calling refillBufferRandomly(5)...");
     // Discovery Mode: Fetch a batch of random posts to append to the bottom
     refillBufferRandomly(5, true).then(() => {
+		console.log(`  📦 Refill Promise Resolved. Buffer contains: ${postBuffer.length} posts`);
       if (postBuffer.length === 0) {
+		  console.warn("  ⚠️ Random buffer EMPTY. Fallback to Chronological (subscribePublicFeed).");
           // If randomizer found nothing, fallback to chronological
           isAppending = true;
           subscribePublicFeed().then(() => {
+			  console.log("  🔄 Fallback feed loaded.");
               isLoadingMore = false;
               isAppending = false;
               DOM.loadTrigger.style.visibility = 'hidden';
+			  console.log("  ✅ Fallback complete. Lock released.");
           });
       } else {
           // Append the random "discoveries" to the bottom
+		  console.log(`  ✨ Injecting ${postBuffer.length} posts from buffer...`);
           while(postBuffer.length > 0) {
             const p = postBuffer.shift();
             visiblePosts.push(p);
@@ -1455,6 +1468,7 @@ function loadMoreData() {
           }
           isLoadingMore = false;
           DOM.loadTrigger.style.visibility = 'hidden';
+		  console.log("  ✅ Injection complete. Lock released.");
       }
     });
   }
