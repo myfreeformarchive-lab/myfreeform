@@ -856,6 +856,13 @@ async function subscribePublicFeed() {
     const listenStartTime = Date.now(); 
     const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID)); 
     publicUnsubscribe = onSnapshot(myPostsQuery, (snapshot) => {
+		
+		// --- LOG 2: CORRECTED (Only log real changes/billed reads) ---
+      const billedChanges = snapshot.docChanges().length;
+      if (billedChanges > 0) {
+        Ledger.log("subscribePublicFeed_Live", billedChanges, 0, 0);
+      }
+		
       snapshot.docChanges().forEach((change) => {
         const docId = change.doc.id;
         const data = change.doc.data();
@@ -876,7 +883,7 @@ async function subscribePublicFeed() {
           updateUISurgically(docId, data);
         }
       });
-	   Ledger.log("subscribePublicFeed", snapshot.docs.length, 0, 0);
+	   
     });
 
   } catch (err) {
