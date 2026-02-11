@@ -301,15 +301,29 @@ async function getNextUniqueTag() {
       transaction.update(counterRef, { count: nextId });
       return nextId;
     });
-	Ledger.log("getNextUniqueTag", 1, 1, 0);
-    return {
+
+    Ledger.log("getNextUniqueTag", 1, 1, 0);
+
+    const result = {
       num: newCount,
       tag: `UID:${newCount}`
     };
+
+    // --- PASTE LOG HERE ---
+    console.log("Success:", result); 
+    // ---------------------
+
+    return result;
   } catch (e) {
-  const tempNum = Date.now();
-  return { num: tempNum, tag: `#temp${tempNum.toString().slice(-4)}` };
-}
+    const tempNum = Date.now();
+    const tempResult = { num: tempNum, tag: `#temp${tempNum.toString().slice(-4)}` };
+
+    // --- PASTE LOG HERE FOR ERRORS ---
+    console.log("Failed, using temp tag:", tempResult, "Error:", e);
+    // --------------------------------
+
+    return tempResult;
+  }
 }
 
 // ==========================================
@@ -345,6 +359,7 @@ function startDripFeed() {
   return Math.floor(Math.random() * (maxSecs - minSecs + 1) + minSecs) * 1000;
 };
 const Variable = getRandomDelay(20, 40);
+console.log(`Next drip in: ${Variable / 1000} seconds`);
 dripTimeout = setTimeout(drip, Variable);
   }
   drip();
@@ -354,6 +369,8 @@ function updateUISurgically(id, data) {
   // Use ?? to ensure we respect a 0 sent from the server
   const finalComments = data.commentCount ?? 0;
   const finalLikes = data.likeCount ?? 0;
+  
+  console.log(`Updating UI for [${id}] -> Likes: ${finalLikes}, Comments: ${finalComments}`);
 
   updateLocalPostWithServerData(id, finalComments, finalLikes);
 
@@ -366,6 +383,9 @@ function updateUISurgically(id, data) {
 
     const commentSpan = postEl.querySelector(`.count-comment-${id}`);
     if (commentSpan) commentSpan.textContent = finalComments;
+	console.log(`✅ DOM updated for post ${id}`);
+  } else {
+	  console.warn(`⚠️ Post ${id} not found in DOM. (Maybe it scrolled off?)`);
   }
 }
 
@@ -380,6 +400,8 @@ function watchPostCounts(postId) {
 	  window.pendingPostUpdates--;
       return; 
   }
+  
+  console.log(`[Watch] 📡 Fetching initial stats for: ${postId}`);
 
   // 3. FIRE-AND-FORGET (No 'await')
   // We trigger the fetch, but we do NOT pause the code here.
@@ -415,6 +437,8 @@ function watchPostCounts(postId) {
         table: 'posts', 
         filter: `id=eq.${postId}` 
     }, (payload) => {
+		
+		console.log(`[Realtime] ⚡ Event: ${payload.eventType} for ${postId}`, payload.new || "");
 
       if (payload.eventType === 'UPDATE') {
         const uiData = {
@@ -427,6 +451,7 @@ function watchPostCounts(postId) {
       } 
       
       else if (payload.eventType === 'DELETE') {
+		  console.warn(`[Watch] 🗑️ Post ${postId} was deleted from database.`);
         if (activePostListeners.has(postId)) {
            const unsub = activePostListeners.get(postId);
            if (unsub) unsub();
@@ -442,7 +467,10 @@ function watchPostCounts(postId) {
         }
       }
     })
-    .subscribe();
+    .subscribe((status) => {
+      // --- LOG 3: CONNECTION STATUS ---
+      console.log(`[Socket] 🛰️ Status for ${postId}: ${status}`);
+    });
 
 // 5. CLEANUP
   const unsubscribe = () => {
@@ -2315,13 +2343,18 @@ async function updateLocalPostWithServerData(postId, serverCommentCount = null, 
     let finalLikes = serverLikeCount;
 
     if (needsFetch) {
+		console.log(`[Storage] 🔍 No data provided for ${postId}, fetching from Supabase...`);
       const { data, error } = await _supabase
         .from('posts')
         .select('like_count, comment_count')
         .eq('id', postId)
         .maybeSingle();
 
-      if (error || !data) return; 
+      if (error || !data) {
+        console.error(`[Storage] ❌ Fetch failed for ${postId}`, error);
+        return; 
+      }
+	 
       finalComments = data.comment_count;
       finalLikes = data.like_count;
     }
@@ -2339,6 +2372,11 @@ async function updateLocalPostWithServerData(postId, serverCommentCount = null, 
         const incomingComments = Number(finalComments) || 0;
 
         if (currentLocalComments !== incomingComments || currentLocalLikes !== incomingLikes) {
+			
+			console.log(`[Storage] 🔄 Syncing Post ${postId}:
+            Likes: ${currentLocalLikes} -> ${incomingLikes}
+            Comments: ${currentLocalComments} -> ${incomingComments}`);
+			
           p.commentCount = incomingComments;
           p.likeCount = incomingLikes;
           updated = true;
@@ -2350,7 +2388,9 @@ async function updateLocalPostWithServerData(postId, serverCommentCount = null, 
     if (updated) {
       localStorage.setItem('freeform_v2', JSON.stringify(posts));
       // Only refresh the heavy UI if we're actually on that tab
+	  console.log(`[Storage] ✅ LocalStorage updated for ${postId}`);
       if (currentTab === 'private') {
+		  console.log(`[UI] 🏎️ Private tab active, re-rendering batch...`);
         allPrivatePosts = posts.slice().reverse();
         renderPrivateBatch();
       }
