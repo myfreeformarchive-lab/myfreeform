@@ -34,6 +34,15 @@
   <meta property="og:description" content="A minimalist digital archive for your thoughts. Keep notes private or share them globally." />
   <meta property="og:image" content="icon.png" />
   <meta property="og:type" content="website" />
+  
+    <!-- 
+    External scripts: Loaded synchronously for security and utility functions.
+    - Punycode: Handles Unicode domain encoding/decoding.
+    - DOMPurify: Sanitizes HTML to prevent XSS attacks.
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/punycode@1.4.1/punycode.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Page title -->
   <title>My Freeform</title>
@@ -98,15 +107,6 @@
     <h2 class="text-xl font-bold text-white">Please Rotate Your Device</h2>
     <p class="text-slate-400 mt-2 text-sm">Engine is optimized for Portrait Mode.</p>
   </div>
-
-  <!-- 
-    External scripts: Loaded synchronously for security and utility functions.
-    - Punycode: Handles Unicode domain encoding/decoding.
-    - DOMPurify: Sanitizes HTML to prevent XSS attacks.
-  -->
-  <script src="https://cdn.jsdelivr.net/npm/punycode@1.4.1/punycode.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- 
     Inline script: Loads user preferences from localStorage into a global config object.
