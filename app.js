@@ -114,6 +114,19 @@ function getThoughtBubbleSVG(className = "w-20 h-20") {
 
 window.getThoughtBubbleSVG = getThoughtBubbleSVG;
 
+window.addEventListener('load', () => {
+  // Wait 1 second after page load to start Realtime
+  // This gives the DNS a head start on slow 4G connections
+  setTimeout(() => {
+    const channel = _supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'your_table' }, 
+        payload => console.log(payload)
+      )
+      .subscribe();
+  }, 1000);
+});
+
 // ==========================================
 // 2. INITIALIZATION
 // ==========================================
