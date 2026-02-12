@@ -508,24 +508,13 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
         
         const maxId = counterSnap.data().count;
         totalGlobalPosts = maxId;
-
-        // --- OLD LOGIC COMMENTED OUT ---
-        /*
-        const safetyOffset = 30; 
-        const searchMaxId = Math.max(1, maxId - safetyOffset);
-        const windowSize = searchMaxId < 50 ? searchMaxId : 500;
-        const minId = Math.max(1, searchMaxId - windowSize);
-        */
-
-        // --- NEW CORRECTED LOGIC ---
-        // We search the entire database from ID 1 to the absolute Max
         const searchMaxId = maxId;
         const minId = 1;
 
         console.log(`📊 DB Stats: Searching Entire DB | Range: ${minId} to ${searchMaxId} (Total: ${maxId})`);
         
         let attempts = 0;
-        const MAX_ATTEMPTS = 25; // Increased slightly to give it a better chance in large datasets
+        const MAX_ATTEMPTS = 25;
         
         while (postBuffer.length < count && attempts < MAX_ATTEMPTS) {
             attempts++;
@@ -549,9 +538,15 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
                 const post = { id: docData.id, ...docData.data(), isFirebase: true };
                 
                 const isDuplicate = (!ignoreProcessed && processedIds.has(post.id)) || 
-                                   postBuffer.some(p => p.id === post.id);      
+                                   postBuffer.some(p => p.id === post.id); 			
+
+// --- DEBUG LOG START ---
+                console.log(`🔍 Check: Found Post ${post.serialId}. Duplicate? ${isDuplicate}`);
+                console.log(`📂 Current Session "Seen" Count: ${processedIds.size}`);
+                // --- DEBUG LOG END ---								   
                 
                 if (!isDuplicate) {
+					
                     postBuffer.push(post);
                     console.log(`  ✅ Added Post ${post.serialId}. Buffer: ${postBuffer.length}/${count}`);
                     
@@ -569,6 +564,12 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
                 console.log(`  ❓ No post found >= ${rand}. (Might be at the very end of DB)`);
                 continue; 
             }
+        }
+		
+		// --- FINAL DEBUG SUMMARY ---
+        if (processedIds.size > 0) {
+            console.log("📝 List of IDs currently in processedIds:");
+            console.table(Array.from(processedIds)); 
         }
 
         if (attempts >= MAX_ATTEMPTS && postBuffer.length < count) {
