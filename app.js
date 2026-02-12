@@ -340,7 +340,7 @@ function startDripFeed() {
     if (currentTab !== 'public' || myId !== currentDripId) return;
     if (postBuffer.length === 0) {
 		console.log("%c🚰 Drip Feed: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
-      await refillBufferRandomly(1);
+      await refillBufferRandomly(5);
 	  Ledger.log("refillBuffer", 1, 0, 0);
     }
     if (currentTab !== 'public' || myId !== currentDripId) return;
@@ -1348,7 +1348,7 @@ async function handleBruteForce() {
         }
     }
 	console.log("%c🚰 Brute Force: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
-    await refillBufferRandomly(1, false, true);
+    await refillBufferRandomly(5, false, true);
 
     if (postBuffer.length > 0) {
       while (postBuffer.length > 0) {
@@ -1501,7 +1501,7 @@ function loadMoreData() {
   } else {
 	  console.log("%c🚰 Loadmoredata: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
     // Discovery Mode: Fetch a batch of random posts to append to the bottom
-    refillBufferRandomly(1, true).then(() => {
+    refillBufferRandomly(5, true).then(() => {
 		console.log(`  📦 Refill Promise Resolved. Buffer contains: ${postBuffer.length} posts`);
       if (postBuffer.length === 0) {
 		  console.warn("  ⚠️ Random buffer EMPTY. Fallback to Chronological (subscribePublicFeed).");
