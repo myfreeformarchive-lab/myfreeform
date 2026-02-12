@@ -548,6 +548,7 @@ async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed =
                 if (!isDuplicate) {
 					
                     postBuffer.push(post);
+					processedIds.add(post.id);
                     console.log(`  ✅ Added Post ${post.serialId}. Buffer: ${postBuffer.length}/${count}`);
                     
                     if (placeholder) {
