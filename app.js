@@ -491,7 +491,7 @@ function watchPostCounts(postId) {
   activePostListeners.set(postId, unsubscribe);
 }
 
-async function refillBufferRandomly(count = 1, silent = false, ignoreProcessed = false) {
+async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed = false) {
     const placeholder = document.getElementById('public-placeholder');
     console.log(`%c🔄 Starting refillBufferRandomly (Target: ${count})`, "color: cyan; font-weight: bold;");
     
@@ -1346,7 +1346,7 @@ async function handleBruteForce() {
             document.getElementById('public-placeholder').outerHTML = '';
         }
     }
-    await refillBufferRandomly(5, false, true);
+    await refillBufferRandomly(1, false, true);
 
     if (postBuffer.length > 0) {
       while (postBuffer.length > 0) {
@@ -1497,9 +1497,9 @@ function loadMoreData() {
     DOM.loadTrigger.style.visibility = 'hidden';
 	console.log("  ✅ Private batch rendered. Lock released.");
   } else {
-	  console.log("  🌍 Path: Public/Discovery. Calling refillBufferRandomly(5)...");
+	  console.log("  🌍 Path: Public/Discovery. Calling refillBufferRandomly(1)...");
     // Discovery Mode: Fetch a batch of random posts to append to the bottom
-    refillBufferRandomly(5, true).then(() => {
+    refillBufferRandomly(1, true).then(() => {
 		console.log(`  📦 Refill Promise Resolved. Buffer contains: ${postBuffer.length} posts`);
       if (postBuffer.length === 0) {
 		  console.warn("  ⚠️ Random buffer EMPTY. Fallback to Chronological (subscribePublicFeed).");
