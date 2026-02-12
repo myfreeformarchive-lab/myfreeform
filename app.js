@@ -587,8 +587,12 @@ async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed =
         if (attempts >= MAX_ATTEMPTS && postBuffer.length < count) {
             console.warn(`🛑 MAX_ATTEMPTS reached. Only found ${postBuffer.length}/${count} posts.`);
         }
+		console.log("🔓 Refill complete. Gate opened.");
     } catch (err) {
         console.error("🔥 Error in refillBufferRandomly:", err);
+    } finally {
+        // 3. ALWAYS open the gate here, even if there was an error
+        isRefilling = false;
     }
 }
 
