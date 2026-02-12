@@ -83,24 +83,6 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 // Use _supabase (with an underscore) to avoid clashing with the library name
 const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-// 2. The official test function
-async function checkConnection() {
-    try {
-        // We try to fetch the session. This doesn't require a table to exist.
-        const { data, error } = await _supabase.auth.getSession();
-
-        if (error) {
-            console.error('❌ Connection failed:', error.message);
-        } else {
-            console.log('✅ Supabase is connected and responding!');
-        }
-    } catch (err) {
-        console.error('💥 Unexpected error:', err);
-    }
-}
-
-checkConnection();
-
 window.pendingPostUpdates = 0;
 
   // SVG Thought Bubble 
@@ -113,19 +95,6 @@ function getThoughtBubbleSVG(className = "w-20 h-20") {
 }
 
 window.getThoughtBubbleSVG = getThoughtBubbleSVG;
-
-window.addEventListener('load', () => {
-  // Wait 1 second after page load to start Realtime
-  // This gives the DNS a head start on slow 4G connections
-  setTimeout(() => {
-    const channel = _supabase
-      .channel('schema-db-changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'your_table' }, 
-        payload => console.log(payload)
-      )
-      .subscribe();
-  }, 1000);
-});
 
 // ==========================================
 // 2. INITIALIZATION
