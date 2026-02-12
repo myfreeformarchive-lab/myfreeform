@@ -74,6 +74,8 @@ let dripTimeout = null;
 let activePostListeners = new Map();
 let isAppending = false;
 
+let isRefilling = false;
+
 let totalGlobalPosts = 0;
 
 const supabaseUrl = 'https://ipgtvatyzwhkifnsstux.supabase.co';
@@ -495,6 +497,14 @@ function watchPostCounts(postId) {
 async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed = false) {
     const placeholder = document.getElementById('public-placeholder');
     console.log(`%c🔄 Starting refillBufferRandomly (Target: ${count})`, "color: cyan; font-weight: bold;");
+	
+	if (isRefilling) {
+        console.warn("🛑 Refill already in progress. Ignoring this request.");
+        return;
+    }
+
+    // 2. Close the gate
+    isRefilling = true;
     
     try {
         const counterRef = doc(db, "metadata", "postCounter");
