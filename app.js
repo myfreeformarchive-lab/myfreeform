@@ -285,6 +285,19 @@ if (DOM.desktopEmojiTrigger && DOM.desktopEmojiPopup) {
   
 });
 
+let isScrolling = false;
+window.addEventListener('scroll', () => {
+  if (!isScrolling) {
+    document.body.classList.add('no-transitions');
+    isScrolling = true;
+  }
+  clearTimeout(window.scrollTimeout);
+  window.scrollTimeout = setTimeout(() => {
+    document.body.classList.remove('no-transitions');
+    isScrolling = false;
+  }, 150);
+});
+
 // ==========================================
 // 0. NEW: ATOMIC COUNTER SYSTEM
 // ==========================================
