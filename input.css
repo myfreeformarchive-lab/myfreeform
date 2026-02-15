@@ -99,10 +99,8 @@ body {
   height: auto !important;
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
- 
+  overscroll-behavior-y: contain;
   touch-action: pan-y pinch-zoom;
-  overscroll-behavior-y: none; /* Prevents the 'rubber-band' effect on some browsers */
-  -webkit-overflow-scrolling: touch; /* Ensures smooth momentum scrolling on iOS */
 }
 
 body.extension-view {
@@ -254,14 +252,6 @@ main.max-w-xl.mx-auto {
 /* Apply pop-in animation to comment bubbles */
 .comment-bubble {
   animation: popIn 0.2s ease-out forwards; /* Quick, subtle entrance */
-}
-
-/* Ensure the Nav is using Hardware Acceleration to stay smooth */
-nav {
-  position: fixed;
-  bottom: 0;
-  backface-visibility: hidden;
-  transform: translate3d(0,0,0); /* Forces GPU layer */
 }
 
 
