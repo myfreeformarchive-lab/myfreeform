@@ -27,7 +27,7 @@
   <!-- Allows scripts from self, unsafe-eval/inline (for dynamic content), and trusted CDNs -->
   <!-- Allows fonts from Google Fonts, styles from Tailwind and Google Fonts -->
   <!-- Allows connections to Firebase and Google APIs -->
-  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; connect-src 'self' https://philosophy-backend-production.up.railway.app https://cdn.jsdelivr.net https://cdnjs.cloudflare.com/;">
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.gstatic.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://*.googleapis.com https://*.firebaseio.com https://apis.google.com; font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; connect-src 'self' wss://ipgtvatyzwhkifnsstux.supabase.co https://ipgtvatyzwhkifnsstux.supabase.co https://cdn.jsdelivr.net https://cdnjs.cloudflare.com/ https://www.gstatic.com https://*.googleapis.com https://*.firebaseio.com https://firestore.googleapis.com;">
 
   <!-- Open Graph meta tags for social media sharing -->
   <meta property="og:title" content="My Freeform" />
@@ -42,6 +42,7 @@
   -->
   <script defer src="https://cdn.jsdelivr.net/npm/punycode@1.4.1/punycode.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Page title -->
   <title>My Freeform</title>
@@ -57,6 +58,8 @@
   
   <!-- Module preload for critical JavaScript files to improve load times -->
   <link rel="modulepreload" href="app.js" fetchpriority="high">
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js">
+  <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js">
   
   <!-- Favicon and app icons -->
   <link rel="icon" href="icon.png" type="image/png">
