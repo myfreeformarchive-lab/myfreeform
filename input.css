@@ -112,6 +112,7 @@ body.extension-view {
 /* 4. THE HEADER (Fixed Anchor): Styles for the fixed top navigation */
 /* Keeps the header in place while content scrolls beneath it */
 header {
+  /* Existing */
   position: fixed;
   top: 0;
   left: 0;
@@ -119,10 +120,38 @@ header {
   z-index: 100;
   background: white;
   height: 56px;
-  /* FIX: Prevent shaking by hinting GPU and disabling transforms */
-  will-change: transform; /* Optimizes for fixed position */
-  transform: translateZ(0); /* Forces hardware acceleration */
-  backface-visibility: hidden; /* Reduces flicker */
+  /* Stabilization */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  overscroll-behavior: contain;
+  /* Safe containment */
+  /* contain: layout style paint; */  /* Comment out if issues persist */
+}
+
+nav {
+  /* Stabilization without overriding position */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  /* Safe containment (remove if still causing issues) */
+  /* contain: layout style paint; */  /* Comment out or test without */
+  /* Ensure height is consistent */
+  height: 64px; /* For mobile; Tailwind handles lg:h-full */
+}
+
+@media (max-width: 768px) {
+  header, nav {
+    /* Keep hardware acceleration active */
+    transform: translateZ(0);
+    will-change: transform;
+    /* Add if needed for touch */
+    touch-action: manipulation;
+  }
 }
 
 /* Section Group: Styles for main content sections (e.g., input area, feed) */
