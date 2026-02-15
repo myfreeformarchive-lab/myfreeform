@@ -285,23 +285,6 @@ if (DOM.desktopEmojiTrigger && DOM.desktopEmojiPopup) {
   
 });
 
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', () => {
-    const bottomBar = document.querySelector('nav');
-    const topHeader = document.querySelector('header');
-    
-    // Calculate the actual visible height
-    const vh = window.visualViewport.height;
-    const offset = window.visualViewport.offsetTop;
-
-    // Stick the bar to the actual bottom of the visual screen
-    if (window.innerWidth < 1024) { // Mobile only
-        bottomBar.style.top = `${offset + vh - bottomBar.offsetHeight}px`;
-        topHeader.style.top = `${offset}px`;
-    }
-  });
-}
-
 // ==========================================
 // 0. NEW: ATOMIC COUNTER SYSTEM
 // ==========================================
