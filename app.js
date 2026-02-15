@@ -6,7 +6,7 @@ import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.2.4/+esm';
 const API_BASE = 'https://philosophy-backend-production.up.railway.app';
 
 // ==========================================
-// 1. STATE & DOM lala
+// 1. STATE & DOM
 // ==========================================
 const DOM = {
   input: document.getElementById('postInput'),
