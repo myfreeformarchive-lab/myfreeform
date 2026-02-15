@@ -1,13 +1,27 @@
-// Keep the extension check if you need it
 if (window.chrome && chrome.runtime && chrome.runtime.id) {
   document.body.classList.add('extension-view');
 }
 
-// Keep your Sanitizer
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+import { 
+  getFirestore, collection, addDoc, deleteDoc, doc, updateDoc,
+  query, orderBy, limit, serverTimestamp, onSnapshot,
+  writeBatch, getDocs, increment, setDoc, getDoc, runTransaction, where
+} from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
+
 import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.2.4/+esm';
 
-// This is now the ONLY configuration your frontend needs.
-const API_BASE = 'https://philosophy-backend-production.up.railway.app';
+const firebaseConfig = {
+  apiKey: "AIzaSyBD-8hcoAuTFaAhgSy-WIyQX_iI37uokTw",
+  authDomain: "myfreeformarchive-8a786.firebaseapp.com",
+  projectId: "myfreeformarchive-8a786",
+  storageBucket: "myfreeformarchive-8a786.appspot.com",
+  messagingSenderId: "16237442482",
+  appId: "1:16237442482:web:424f8f2e344a58e7f6a0ab"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 // ==========================================
 // 1. STATE & DOM
@@ -63,6 +77,11 @@ let isAppending = false;
 let isRefilling = false;
 
 let totalGlobalPosts = 0;
+
+const supabaseUrl = 'https://ipgtvatyzwhkifnsstux.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwZ3R2YXR5endoa2lmbnNzdHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NDcyMzIsImV4cCI6MjA4NjIyMzIzMn0.OH7Dru0KKKdewj1nsWofvI73cT6tKIZbTVMPJA2oPvI'; 
+// Use _supabase (with an underscore) to avoid clashing with the library name
+const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 window.pendingPostUpdates = 0;
 
@@ -272,24 +291,39 @@ if (DOM.desktopEmojiTrigger && DOM.desktopEmojiPopup) {
  * Ensures sequential #hashtag IDs across all users using Firestore Transactions
  */
 async function getNextUniqueTag() {
+  const counterRef = doc(db, "metadata", "postCounter");
   try {
-    const response = await fetch(`${API_BASE}/api/utils/next-tag`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+    const newCount = await runTransaction(db, async (transaction) => {
+      const counterDoc = await transaction.get(counterRef);
+      if (!counterDoc.exists()) {
+        transaction.set(counterRef, { count: 1 });
+        return 1;
+      }
+      const nextId = counterDoc.data().count + 1;
+      transaction.update(counterRef, { count: nextId });
+      return nextId;
     });
-    
-    const result = await response.json();
 
-    // Keeping your original logging and Ledger call exactly as they were
-    if (typeof Ledger !== 'undefined') Ledger.log("getNextUniqueTag", 1, 1, 0);
+    Ledger.log("getNextUniqueTag", 1, 1, 0);
+
+    const result = {
+      num: newCount,
+      tag: `UID:${newCount}`
+    };
+
+    // --- PASTE LOG HERE ---
     console.log("Success:", result); 
+    // ---------------------
 
     return result;
   } catch (e) {
-    // Keeping your original fallback logic exactly as it was
     const tempNum = Date.now();
     const tempResult = { num: tempNum, tag: `#temp${tempNum.toString().slice(-4)}` };
+
+    // --- PASTE LOG HERE FOR ERRORS ---
     console.log("Failed, using temp tag:", tempResult, "Error:", e);
+    // --------------------------------
+
     return tempResult;
   }
 }
@@ -305,45 +339,32 @@ function startDripFeed() {
   const myId = ++currentDripId;
 
   async function drip() {
-    // 1. Guard clauses to ensure we are still on the public tab and this is the active drip cycle
     if (currentTab !== 'public' || myId !== currentDripId) return;
-
-    // 2. Buffer check - calls our refactored refill function if empty
     if (postBuffer.length === 0) {
-      console.log("%c🚰 Drip Feed: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
+		console.log("%c🚰 Drip Feed: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
       await refillBufferRandomly(5);
-      if (typeof Ledger !== 'undefined') Ledger.log("refillBuffer", 1, 0, 0);
+	  Ledger.log("refillBuffer", 1, 0, 0);
     }
-
-    // 3. Re-verify state after the async refill call
     if (currentTab !== 'public' || myId !== currentDripId) return;
-
-    // 4. Inject logic
     if (postBuffer.length > 0) {
       const nextPost = postBuffer.shift();  
-      if (!document.getElementById(`post-${nextPost.id}`)) {
+	  if (!document.getElementById(`post-${nextPost.id}`)) {
           visiblePosts.unshift(nextPost);
           injectSinglePost(nextPost, 'top');
-          
-          // Cleanup to keep the DOM light (Max 50 posts)
           if (visiblePosts.length > 50) {
             visiblePosts.pop();
             if (DOM.list.lastElementChild) DOM.list.lastElementChild.remove();
           }
       }
-    }
+      }
     
-    // 5. Calculate next delay
     const getRandomDelay = (minSecs, maxSecs) => {
-      return Math.floor(Math.random() * (maxSecs - minSecs + 1) + minSecs) * 1000;
-    };
-
-    const Variable = getRandomDelay(20, 40);
-    console.log(`Next drip in: ${Variable / 1000} seconds`);
-    
-    dripTimeout = setTimeout(drip, Variable);
+  return Math.floor(Math.random() * (maxSecs - minSecs + 1) + minSecs) * 1000;
+};
+const Variable = getRandomDelay(20, 40);
+console.log(`Next drip in: ${Variable / 1000} seconds`);
+dripTimeout = setTimeout(drip, Variable);
   }
-
   drip();
 }
 
@@ -354,10 +375,8 @@ function updateUISurgically(id, data) {
   
   console.log(`Updating UI for [${id}] -> Likes: ${finalLikes}, Comments: ${finalComments}`);
 
-  // Updates the internal JS array/state
   updateLocalPostWithServerData(id, finalComments, finalLikes);
 
-  // Guard: Only update the feed if we are looking at the public tab
   if (currentTab !== 'public') return;
 
   const postEl = document.querySelector(`[data-id="${id}"]`);
@@ -367,59 +386,109 @@ function updateUISurgically(id, data) {
 
     const commentSpan = postEl.querySelector(`.count-comment-${id}`);
     if (commentSpan) commentSpan.textContent = finalComments;
-    
-    console.log(`✅ DOM updated for post ${id}`);
+	console.log(`✅ DOM updated for post ${id}`);
   } else {
-    console.warn(`⚠️ Post ${id} not found in DOM. (Maybe it scrolled off?)`);
+	  console.warn(`⚠️ Post ${id} not found in DOM. (Maybe it scrolled off?)`);
   }
 }
 
 function watchPostCounts(postId) {
-  // 1. Guard: If already watching, don't duplicate
-  if (activePostListeners.has(postId)) {
-    window.pendingPostUpdates--;  
-    return;
+  // 1. If we are already watching, stop.
+  if (activePostListeners.has(postId)){
+	window.pendingPostUpdates--;  
+  return;
   }
 
-  // 2. Guard: Invalid ID check
   if (!isNaN(postId) && postId.length > 10) {
-    window.pendingPostUpdates--;
-    return; 
+	  window.pendingPostUpdates--;
+      return; 
   }
   
-  console.log(`[Watch] 📡 Requesting stats from Railway for: ${postId}`);
+  console.log(`[Watch] 📡 Fetching initial stats for: ${postId}`);
 
-  // 3. INITIAL FETCH (Talks ONLY to your Backend)
-  fetch(`${API_BASE}/api/posts/stats/${postId}`)
-    .then(res => res.json())
-    .then(data => {
-      window.pendingPostUpdates--;
-      
-      if (window.pendingPostUpdates === 0) {
-        console.log(`[watchPostCounts] 🟢 GREEN LIGHT. All updates finished.`);
-      }
-      
-      if (data && !data.error) {
-        const uiData = {
-            id: data.id, 
-            likeCount: data.likeCount, 
-            commentCount: data.commentCount 
-        };
-        updateUISurgically(postId, uiData);
-        if (typeof Ledger !== 'undefined') Ledger.log("watchPostCounts", 1, 0, 0);
-      }
-    })
-    .catch(err => {
-      console.error("Failed to fetch initial stats:", err);
-      window.pendingPostUpdates--;
+  // 3. FIRE-AND-FORGET (No 'await')
+  // We trigger the fetch, but we do NOT pause the code here.
+  _supabase
+    .from('posts')
+    .select('id, like_count, comment_count')
+    .eq('id', postId)
+    .maybeSingle()
+    .then(({ data, error }) => {
+		window.pendingPostUpdates--;
+		
+		if (window.pendingPostUpdates === 0) {
+             console.log(`[watchPostCounts] 🟢 GREEN LIGHT. All updates finished.`);
+        }
+		
+        if (data) {
+            const uiData = {
+                id: data.id, 
+                likeCount: data.like_count, 
+                commentCount: data.comment_count 
+            };
+            updateUISurgically(postId, uiData);
+            Ledger.log("watchPostCounts", 1, 0, 0);
+        }
     });
 
-  // 4. REALTIME LOGIC (MANAGED BY BACKEND)
-  // For now, we set a placeholder in the Map so we don't double-watch.
-  // We will implement the EventSource/Socket logic once the Backend is ready.
+  // 4. SETUP LIVE LISTENER (Standard)
+  const channel = _supabase
+    .channel(`public:posts:${postId}`)
+    .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'posts', 
+        filter: `id=eq.${postId}` 
+    }, (payload) => {
+		
+		console.log(`[Realtime] ⚡ Event: ${payload.eventType} for ${postId}`, payload.new || "");
+
+      if (payload.eventType === 'UPDATE') {
+        const uiData = {
+            id: payload.new.id,
+            likeCount: payload.new.like_count,
+            commentCount: payload.new.comment_count
+        };
+        updateUISurgically(postId, uiData);
+        Ledger.log("watchPostCounts", 1, 0, 0);
+      } 
+      
+      else if (payload.eventType === 'DELETE') {
+		  console.warn(`[Watch] 🗑️ Post ${postId} was deleted from database.`);
+        if (activePostListeners.has(postId)) {
+           const unsub = activePostListeners.get(postId);
+           if (unsub) unsub();
+           activePostListeners.delete(postId);
+        }
+        if (currentTab === 'public') {
+           visiblePosts = visiblePosts.filter(p => p.id !== postId && p.firebaseId !== postId);
+           const elToRemove = document.querySelector(`[data-id="${postId}"]`);
+           if (elToRemove) {
+             elToRemove.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-500');
+             setTimeout(() => elToRemove.remove(), 500);
+           }
+        }
+      }
+    })
+    .subscribe((status) => {
+      // --- LOG 3: CONNECTION STATUS ---
+      console.log(`[Socket] 🛰️ Status for ${postId}: ${status}`);
+    });
+
+// 5. CLEANUP
   const unsubscribe = () => {
-    console.log(`[Socket Debug] 🔴 Stopping watch for ${postId}`);
-    activePostListeners.delete(postId);
+    const currentState = channel.state; // 'closed', 'errored', 'joined', or 'joining'
+    
+    console.log(`[Socket Debug] 🔴 Removing ${postId}. State was: ${currentState}`);
+
+    _supabase.removeChannel(channel)
+      .then(() => {
+        console.log(`[Socket Debug] ✅ Successfully cleaned up ${postId}`);
+      })
+      .catch((err) => {
+        // This is where that WebSocket error usually gets swallowed or throws
+        console.error(`[Socket Debug] ❌ Failed to remove ${postId}:`, err);
+      });
   };
 
   activePostListeners.set(postId, unsubscribe);
@@ -427,97 +496,130 @@ function watchPostCounts(postId) {
 
 async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed = false) {
     const placeholder = document.getElementById('public-placeholder');
-    console.log(`%c🔄 Starting refillBufferRandomly via Railway (Target: ${count})`, "color: cyan; font-weight: bold;");
-    
-    if (isRefilling) {
+    console.log(`%c🔄 Starting refillBufferRandomly (Target: ${count})`, "color: cyan; font-weight: bold;");
+	
+	if (isRefilling) {
         console.warn("🛑 Refill already in progress. Ignoring this request.");
         return;
     }
 
+    // 2. Close the gate
     isRefilling = true;
     
     try {
-        // Send our "seen" list so the server doesn't send duplicates
-        const seenIds = ignoreProcessed ? "" : Array.from(processedIds).join(',');
+        const counterRef = doc(db, "metadata", "postCounter");
+        const counterSnap = await getDoc(counterRef);
         
-        const response = await fetch(`${API_BASE}/api/posts/refill?count=${count}&seen=${seenIds}`);
-        const data = await response.json();
-
-        if (typeof Ledger !== 'undefined') Ledger.log("refillBufferRandomly", 1, 0, 0);
+        if (!counterSnap.exists()) {
+            console.warn("⚠️ No postCounter found in metadata.");
+            totalGlobalPosts = 0; 
+            return;
+        }
+        Ledger.log("refillBufferRandomly", 1, 0, 0);
         
-        totalGlobalPosts = data.total;
+        const maxId = counterSnap.data().count;
+        totalGlobalPosts = maxId;
+        const searchMaxId = maxId;
+        const minId = 1;
 
-        // Process the posts returned by the server
-        data.posts.forEach(post => {
-            // Safety check for duplicates again on frontend
-            const isDuplicate = (!ignoreProcessed && processedIds.has(post.id)) || 
-                               postBuffer.some(p => p.id === post.id);
-
-            if (!isDuplicate) {
-                postBuffer.push(post);
-                processedIds.add(post.id);
-                console.log(`  ✅ Added Post ${post.serialId}. Buffer: ${postBuffer.length}/${count}`);
+        console.log(`📊 DB Stats: Searching Entire DB | Range: ${minId} to ${searchMaxId} (Total: ${maxId})`);
+        
+        let attempts = 0;
+        const MAX_ATTEMPTS = 25;
+        
+        while (postBuffer.length < count && attempts < MAX_ATTEMPTS) {
+            attempts++;
+            const rand = Math.floor(Math.random() * (searchMaxId - minId + 1) + minId);    
+            
+            console.log(`[Attempt ${attempts}] 🎲 Random ID: ${rand}`);      
+            
+            const q = query(
+                collection(db, "globalPosts"), 
+                where("serialId", ">=", rand), 
+                orderBy("serialId", "asc"), 
+                limit(1)
+            );
+            
+            const snap = await getDocs(q);
+			
+			Ledger.log("refillBufferRandomly_Attempt", 1, 0, 0);
+            
+            if (!snap.empty) {
+                const docData = snap.docs[0];
+                const post = { id: docData.id, ...docData.data(), isFirebase: true };
                 
-                // UI Cleanup
-                if (placeholder) {
-                    placeholder.remove();   
-                    const extra = document.getElementById('public-placeholder');
-                    if (extra) extra.outerHTML = ''; 
-                }
-            }
-        });
+                const isDuplicate = (!ignoreProcessed && processedIds.has(post.id)) || 
+                                   postBuffer.some(p => p.id === post.id); 			
 
+// --- DEBUG LOG START ---
+                console.log(`🔍 Check: Found Post ${post.serialId}. Duplicate? ${isDuplicate}`);
+                console.log(`📂 Current Session "Seen" Count: ${processedIds.size}`);
+                // --- DEBUG LOG END ---								   
+                
+                if (!isDuplicate) {
+					
+                    postBuffer.push(post);
+					processedIds.add(post.id);
+                    console.log(`  ✅ Added Post ${post.serialId}. Buffer: ${postBuffer.length}/${count}`);
+                    
+                    if (placeholder) {
+                        placeholder.remove();   
+                        const extraPlaceholder = document.getElementById('public-placeholder');
+                        if (extraPlaceholder) extraPlaceholder.outerHTML = ''; 
+                    }      
+                } else {
+                    const reason = (!ignoreProcessed && processedIds.has(post.id)) ? "Already Processed" : "In Buffer";
+                    console.log(`  ❌ Skip: Post ${post.serialId} (${reason})`);
+                }
+                
+            } else {
+                console.log(`  ❓ No post found >= ${rand}. (Might be at the very end of DB)`);
+                continue; 
+            }
+        }
+		
+		// --- FINAL DEBUG SUMMARY ---
         if (processedIds.size > 0) {
-            console.log("📝 Session 'Seen' Count:", processedIds.size);
+            console.log("📝 List of IDs currently in processedIds:");
+            console.table(Array.from(processedIds)); 
         }
 
-        console.log("🔓 Refill complete. Gate opened.");
+        if (attempts >= MAX_ATTEMPTS && postBuffer.length < count) {
+            console.warn(`🛑 MAX_ATTEMPTS reached. Only found ${postBuffer.length}/${count} posts.`);
+        }
+		console.log("🔓 Refill complete. Gate opened.");
     } catch (err) {
         console.error("🔥 Error in refillBufferRandomly:", err);
     } finally {
+        // 3. ALWAYS open the gate here, even if there was an error
         isRefilling = false;
     }
 }
 
 function injectSinglePost(item, position = 'top') {
-  // 1. Guard: Don't duplicate if already on screen
   if (document.getElementById(`post-${item.id}`)) return;
-
-  // 2. Tab Filter: 
-  // We no longer check 'isFirebase'. Instead, we check if the item is public.
-  // If we are on the private tab, we don't want to inject public posts.
-  if (currentTab === 'private' && item.isPublic) return;
-
-  // 3. Create the element (Using your existing createPostNode function)
+  if (currentTab === 'private' && item.isFirebase) return;
   const postNode = createPostNode(item); 
   postNode.classList.add('animate-in');
-
   if (position === 'top') {
-    // Keep your random injection delay for the "drip" effect
-    const randomDelay = Math.floor(Math.random() * (4500 - 1500 + 1) + 1500);  
-    
+	const randomDelay = Math.floor(Math.random() * (4500 - 1500 + 1) + 1500);  
     setTimeout(() => {
-      // Final check: make sure tab hasn't changed while we were waiting
       if (currentTab !== 'public' || document.getElementById(`post-${item.id}`)) {
         return; 
       }
-      
-      const ghost = document.getElementById('public-placeholder');
+	  
+	  const ghost = document.getElementById('public-placeholder');
       if (ghost) ghost.remove();
-      
+	  
       const currentScrollTop = window.scrollY;
       DOM.list.prepend(postNode);
-
-      // This now calls the REFACTORED watchPostCounts (Railway-version)
       watchPostCounts(item.id);
-
       requestAnimationFrame(() => {
         window.scrollTo(0, currentScrollTop);
         requestAnimationFrame(refreshSnap);
       });
     }, randomDelay); 
   } else {
-    // Standard bottom-append for pagination
     if (!document.getElementById(`post-${item.id}`)) {
       DOM.list.appendChild(postNode);
       watchPostCounts(item.id);
@@ -530,19 +632,13 @@ function injectSinglePost(item, position = 'top') {
 // ==========================================
 
 function applyFontPreference(font) {
-  // 1. Remove all possible font classes from the main input
   DOM.input.classList.remove('font-sans', 'font-serif', 'font-mono', 'font-hand');
-  
-  // 2. Add the selected font class
   DOM.input.classList.add(font);
 
-  // 3. Update the button "Active" state (the ring effect)
   DOM.fontBtns.forEach(btn => {
     if (btn.getAttribute('data-font') === font) {
-      // Highlight the selected button
       btn.classList.add('ring-2', 'ring-brand-500', 'ring-offset-1');
     } else {
-      // Reset the others
       btn.classList.remove('ring-2', 'ring-brand-500', 'ring-offset-1');
     }
   });
@@ -551,49 +647,33 @@ function applyFontPreference(font) {
 function switchTab(tab) {
   if (currentTab === tab) return;
   
-  // 1. Logs & Debugging
+  // 🕵️‍♂️ MOVE THE LOGS HERE (Before the 300ms wait)
   console.log(`[DEBUG] switchTab initiated to: ${tab}. Current counter: ${window.pendingPostUpdates}`);
   
-  // 2. Cleanup Listeners
-  // Since we removed the Supabase SDK, the 'unsubscribe' here refers to the 
-  // cleanup functions we stored in our local Map during the 'watchPostCounts' step.
   if (activePostListeners && activePostListeners.size > 0) {
       console.log(`[DEBUG] Immediate cleanup of ${activePostListeners.size} listeners...`);
       activePostListeners.forEach((unsubscribe, id) => {
-          unsubscribe(); 
+          unsubscribe(); // This should now trigger your "State was: ..." logs immediately
       });
       activePostListeners.clear();
   }
   
-  // 3. Animation Reset
   DOM.list.style.transition = 'none';
   DOM.list.style.transform = '';
   DOM.list.style.opacity = '';
-  const _ = DOM.list.offsetHeight; // Force reflow
+  const _ = DOM.list.offsetHeight; 
 
-  // 4. Start Transition Animation
-  DOM.list.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+  DOM.list.style.transition = 'transform 0.3s ease, opacity 0.3s ease'; // Restore transitions
   DOM.list.style.opacity = '0';
-  // Standardizing the transform logic
-  DOM.list.style.transform = 'translateX(0px)';
+  DOM.list.style.transform = tab === 'public' ? 'translateX(0px)' : 'translateX(0px)';
 
-  // 5. Switch Logic (After animation delay)
   setTimeout(() => {
     currentTab = tab;
-    
-    // Persist preference locally
     localStorage.setItem('freeform_tab_pref', tab);
-    
     currentLimit = BATCH_SIZE;
     updateTabClasses();
-    
-    // CRITICAL: loadFeed will now use our new Backend API routes 
-    // to decide whether to fetch from Firebase or Supabase.
-    loadFeed(); 
-    
+    loadFeed();
     if (tab === 'public') setupInfiniteScroll();
-
-    // 6. Fade back in
     requestAnimationFrame(() => {
       DOM.list.style.opacity = '1'; 
       DOM.list.style.transform = 'translateX(0)'; 
@@ -618,62 +698,52 @@ function updateTabClasses() {
 
 function updateToggleUI() {
   const isPublic = DOM.toggle.checked;
-  
-  // 1. Update the label text
   DOM.label.textContent = isPublic ? "Public Mode" : "Private Mode";
-  
-  // 2. Swap the Tailwind classes for visual feedback
   DOM.label.className = isPublic 
     ? "text-xs font-bold text-brand-600 transition-colors"
     : "text-xs font-semibold text-slate-500 transition-colors";
 }
-
 let feedSafetyTimeout = null;
-
 function loadFeed() {
-  // 1. Clear existing safety and drip timers
-  if (feedSafetyTimeout) clearTimeout(feedSafetyTimeout);
+	if (feedSafetyTimeout) clearTimeout(feedSafetyTimeout);
   if (dripTimeout) {
     clearTimeout(dripTimeout);
     dripTimeout = null;
   }
 
-  // 2. CLEANUP: We kill all active listeners (Railway/Supabase)
-  // We no longer need publicUnsubscribe because Railway handles the flow.
+  if (publicUnsubscribe) { 
+    publicUnsubscribe(); 
+    publicUnsubscribe = null; 
+  }
+
   if (activePostListeners && activePostListeners.size > 0) {
-    console.log(`[loadFeed] 🧨 STARTING CLEANUP: Killing ${activePostListeners.size} listeners...`);
+	  console.log(`[loadFeed] 🧨 STARTING CLEANUP: Killing ${activePostListeners.size} listeners...`);
     activePostListeners.forEach((unsubscribe) => unsubscribe());
     activePostListeners.clear();
-    console.log(`[loadFeed] 🧹 activePostListeners Map cleared.`);
+	console.log(`[loadFeed] 🧹 activePostListeners Map cleared.`);
   }
   
-  // 3. Reset Local State
   visiblePosts = [];
   postBuffer = [];
   processedIds.clear();
 
-  // 4. Tab Logic
   if (currentTab === 'private') {
-    // Keep your local storage logic for the private tab
     allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
     renderPrivateBatch();
-    
-    // This will now call your refactored Archive Sync (Railway version)
     subscribeArchiveSync();
   } else {
-    // Public Tab Logic
-    DOM.loadTrigger.style.display = 'flex';
-    
-    // 🟢 Keep your 5-second UI Guard
+	DOM.loadTrigger.style.display = 'flex';
+	
+	// 🟢 NEW: Start the 5-second timer
     feedSafetyTimeout = setTimeout(() => {
       const placeholder = document.getElementById('public-placeholder');
+      // If we are still 'scanning', give up and show 'empty'
       if (placeholder && placeholder.innerText.includes('Scanning')) {
         console.warn("[UI Guard] Network is too slow. Showing empty state.");
         showPublicPlaceholder('empty');
       }
     }, 5000);
-    
-    // This starts the Drip Feed / Railway fetching process
+	
     subscribePublicFeed();
   }
 }
@@ -689,33 +759,41 @@ function renderPrivateBatch() {
 }
 
 async function subscribeArchiveSync() {
-  console.log(`[Private Debug] 🛰️ subscribeArchiveSync starting. Tab: ${currentTab}`);
+	console.log(`[Private Debug] 🛰️ subscribeArchiveSync starting. Tab: ${currentTab}`);
+  if (publicUnsubscribe) { 
+    await publicUnsubscribe(); // Wait for the old one to die before born-ing the new one
+    publicUnsubscribe = null; 
+}
 
-  // 1. SUPABASE REAL-TIME (We keep the pipe for now, but use Backend for data)
+  // Supabase real-time channel for your posts
   const channel = _supabase
     .channel('user_posts_sync')
     .on('postgres_changes', {
-      event: '*', 
+      event: '*',  // Listen for INSERT, UPDATE, DELETE
       schema: 'public',
       table: 'posts',
-      filter: `author_id=eq.${MY_USER_ID}` 
+      filter: `author_id=eq.${MY_USER_ID}`  // Only your posts
     }, async (payload) => {
-      const id = payload.new?.id || payload.old?.id;
+      const id = payload.new?.id || payload.old?.id;  // Post ID
       if (!id) return;
 
       try {
-        // 2. REFACTORED: Fetch latest counts from Railway instead of Supabase directly
-        const response = await fetch(`${API_BASE}/api/posts/stats/${id}`);
-        const data = await response.json();
+        // Fetch latest counts from Supabase
+        const { data, error } = await _supabase
+          .from('posts')
+          .select('like_count, comment_count')
+          .eq('id', id)
+          .single();
 
-        if (data.error) throw new Error(data.error);
+        if (error) throw error;
 
-        const likeCount = data.likeCount || 0;
-        const commentCount = data.commentCount || 0;
+        const likeCount = data?.like_count || 0;
+        const commentCount = data?.comment_count || 0;
 
-        // 3. Update localStorage and UI (Keeping your original logic)
+        // Update localStorage (like the original)
         updateLocalPostWithServerData(id, commentCount, likeCount);
 
+        // Update UI elements
         const postEl = document.querySelector(`[data-id="${id}"]`);
         if (postEl) {
           const likeSpan = postEl.querySelector(`.count-like-${id}`);
@@ -724,43 +802,40 @@ async function subscribeArchiveSync() {
           if (commentSpan) commentSpan.textContent = commentCount;
         }
 
-        if (typeof Ledger !== 'undefined') Ledger.log("subscribeArchiveSync", 1, 0, 0);
+        Ledger.log("subscribeArchiveSync", 1, 0, 0);  // Log per change
       } catch (error) {
         console.error('Sync error:', error);
       }
     })
     .subscribe();
 
-  // 4. CLEANUP logic stored in our Map
-  const unsubscribe = async () => {
+// Store unsubscribe function with a safety check
+  publicUnsubscribe = async () => {
     if (!channel) return;
+
     const state = channel.state;
-    console.log(`[Socket Debug] 🔴 Unsubscribing Archive. State: ${state}`);
+    console.log(`[Socket Debug] 🔴 Unsubscribing. State: ${state}`);
+
+    // If it's still joining, Supabase might throw if we remove it too fast
     try {
       if (state === 'joined' || state === 'joining') {
         await _supabase.removeChannel(channel);
-        console.log(`[Socket Debug] ✅ Archive Channel removed.`);
+        console.log(`[Socket Debug] ✅ Channel removed.`);
       }
     } catch (e) {
       console.warn(`[Socket Debug] ⚠️ Handled WebSocket race condition:`, e.message);
     }
   };
-
-  // Replace the old publicUnsubscribe variable with our centralized Map
-  activePostListeners.set('archive_sync', unsubscribe);
 }
 
 // ==========================================
 // 3. THE SUBSCRIBER (Fixed Syntax)
 // ==========================================
 async function subscribePublicFeed() {
-  // 1. Cleanup old listeners using our Map
-  if (activePostListeners.has('public_ego_listener')) {
-    const unsub = activePostListeners.get('public_ego_listener');
-    unsub();
-    activePostListeners.delete('public_ego_listener');
+  if (publicUnsubscribe) {
+    publicUnsubscribe();
+    publicUnsubscribe = null;
   }
-
   if (!isAppending) {
     visiblePosts = [];
     postBuffer = []; 
@@ -768,24 +843,18 @@ async function subscribePublicFeed() {
     if (dripTimeout) clearTimeout(dripTimeout);
     showPublicPlaceholder('scanning');
   }
-
   try {
-    // 2. REFACTORED: Initial Fetch from Railway
-    const response = await fetch(`${API_BASE}/api/posts/public?limit=15`);
-    const data = await response.json();
-    const initialPosts = data.posts || [];
-
+    const qInitial = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(15));
+    const initialSnap = await getDocs(qInitial);   
     const newItems = [];
-    initialPosts.forEach(post => {
-      // Server already adds the ID, we just check for local duplicates
+    initialSnap.forEach(doc => {
+      const post = { id: doc.id, ...doc.data(), isFirebase: true };
       if (!processedIds.has(post.id)) {
         newItems.push(post);
-        processedIds.add(post.id);
+        processedIds.add(doc.id);
       }
     });
-
-    if (typeof Ledger !== 'undefined') Ledger.log("subscribePublicFeed", initialPosts.length, 0, 0);
-
+	Ledger.log("subscribePublicFeed", initialSnap.docs.length, 0, 0);
     if (isAppending) {
         newItems.forEach(p => {
             visiblePosts.push(p);
@@ -799,17 +868,46 @@ async function subscribePublicFeed() {
 
     DOM.loadTrigger.style.opacity = '0';
 
-    // 3. EGO-LISTENER (Instant Feedback)
-    // We will use a Railway-managed polling or SSE here later. 
-    // For now, we define the unsubscribe logic to keep your code from breaking.
-    const unsubscribeEgo = () => {
-      console.log("🔴 Killing Ego-Listener");
-    };
-    activePostListeners.set('public_ego_listener', unsubscribeEgo);
+    // ============================================================
+    // 3. Ego-Listener (Tweaked: The "Instant Feedback" Loop)
+    // ============================================================
+    
+    const listenStartTime = Date.now(); 
+    const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID)); 
+    publicUnsubscribe = onSnapshot(myPostsQuery, (snapshot) => {
+		
+		// --- LOG 2: CORRECTED (Only log real changes/billed reads) ---
+      const billedChanges = snapshot.docChanges().length;
+      if (billedChanges > 0) {
+        Ledger.log("subscribePublicFeed_Live", billedChanges, 0, 0);
+      }
+		
+      snapshot.docChanges().forEach((change) => {
+        const docId = change.doc.id;
+        const data = change.doc.data();
+        const isNewPost = !data.createdAt || (data.createdAt.toMillis ? data.createdAt.toMillis() : Date.now()) > listenStartTime;
+
+        if (change.type === "added" && !processedIds.has(docId)) {
+          if (!isNewPost) {
+             processedIds.add(docId);
+             return; 
+          }
+          const postObj = { id: docId, ...data, isFirebase: true };
+          processedIds.add(docId);
+          visiblePosts.unshift(postObj);      
+          injectSinglePost(postObj, 'top');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        if (change.type === "modified") {
+          updateUISurgically(docId, data);
+        }
+      });
+	   
+    });
 
   } catch (err) {
-    console.error("Error in subscribePublicFeed:", err);
-    if(!isAppending) DOM.list.innerHTML = `<div class="text-center py-12 text-slate-400">Feed temporarily unavailable.</div>`;
+	  console.error("Error in subscribePublicFeed:", err);
+    if(!isAppending) DOM.list.innerHTML = `<div class="text-center py-12">Feed offline.</div>`;
   }
 }
 
@@ -876,7 +974,6 @@ function getSmartShareButtons(text) {
 }
 
 async function sharePost(text, platform) {
-  // 1. Clean HTML and Entities (Preserved exactly)
   const cleanText = text
     .replace(/<[^>]*>/g, '') 
     .replace(/&nbsp;/g, ' ') 
@@ -890,7 +987,7 @@ async function sharePost(text, platform) {
     .replace(/&ndash;/g, '–') 
     .replace(/&hellip;/g, '...') 
     .replace(/\s+/g, ' ')    
-    .trim();                   
+    .trim();                 
   
   let currentUrl = window.location.href;
   if (currentUrl.endsWith('/index.html')) {
@@ -898,22 +995,18 @@ async function sharePost(text, platform) {
   } else if (currentUrl.endsWith('index.html')) {
     currentUrl = currentUrl.replace('index.html', '');
   }
-
   const urlText = encodeURIComponent(cleanText);
   const urlLink = encodeURIComponent(currentUrl);
-
-  // 2. Clipboard Logic
   if (platform === 'copy') {
     try {
       await navigator.clipboard.writeText(`${cleanText}\n\n${currentUrl}`);   
-      if (typeof showToast !== 'undefined') showToast("Copied to clipboard");    
+      showToast("Copied to clipboard");    
     } catch (err) {
-      if (typeof showToast !== 'undefined') showToast("Manual copy required", "error");
+      showToast("Manual copy required", "error");
     }
     return;
   }
 
-  // 3. Platform Switch (Refactored Messenger to remove Firebase dependency)
   let url = '';
   switch(platform) {
     case 'x':
@@ -929,53 +1022,40 @@ async function sharePost(text, platform) {
       url = `https://t.me/share/url?url=${urlLink}&text=${urlText}`;
       break;
     case 'messenger':
-      // We use a generic APP_ID or your Facebook App ID here
-      // No more firebaseConfig reference
-      const fbAppId = 'YOUR_FACEBOOK_APP_ID'; 
-      url = `http://www.facebook.com/dialog/send?link=${urlLink}&app_id=${fbAppId}&redirect_uri=${urlLink}`;
+      url = `http://www.facebook.com/dialog/send?link=${urlLink}&app_id=${firebaseConfig.appId}&redirect_uri=${urlLink}`;
       break;
     case 'facebook':
       url = `https://www.facebook.com/sharer/sharer.php?u=${urlLink}&quote=${urlText}`;
       break;
   }
-
   if (url) {
     window.open(url, '_blank', 'width=600,height=500,noopener,noreferrer');
   }
 }
 
 function createPostNode(item) {
-  // 1. Base Container
+  // 1. Create the base container
   const el = document.createElement('div');
   el.id = `post-${item.id}`;
   el.setAttribute('data-id', item.id);
-  
-  // Refactored: We use isPublic instead of isFirebase
-  const cursorClass = item.isPublic ? "" : "cursor-pointer";
+  const cursorClass = item.isFirebase ? "" : "cursor-pointer";
   el.className = `feed-item block w-full bg-white px-4 py-3 mb-4 pb-6 border-b border-slate-100 lg:border-b-[1px] lg:border-slate-300 relative transition-colors ${cursorClass}`;
 
   const time = getRelativeTime(item.createdAt);
   const fontClass = item.font || 'font-sans'; 
-  
-  // Logic update: Did I write this public post?
-  const isMyPublicPost = item.isPublic && item.authorId === MY_USER_ID;
-  
+  const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
   const tagDisplay = item.uniqueTag 
     ? `<span class="text-brand-500 font-bold text-[11px] bg-brand-50 px-2 py-0.5 rounded-full">${item.uniqueTag}</span>`
     : `<span class="text-slate-400 font-medium text-[11px] bg-slate-50 px-2 py-0.5 rounded-full">#draft</span>`;
 
-  // Connection: If it's public OR has a cloud link, it gets interactive buttons
-  const hasCloudAccess = item.isPublic || item.cloudId;
-  const realId = item.id; // Backend now standardizes IDs
-  
+  const hasCommentsAccess = item.isFirebase || item.firebaseId;
+  const realId = item.isFirebase ? item.id : item.firebaseId;
   const commentCount = item.commentCount || 0; 
   const likeCount = item.likeCount || 0;
-  
   const myLikes = JSON.parse(localStorage.getItem('my_likes_cache')) || {};
   const isLiked = !!myLikes[realId];
   const heartFill = isLiked ? 'fill-red-500 text-red-500' : 'fill-none text-slate-400 group-hover:text-red-500';
   const countColor = isLiked ? 'text-red-600' : 'text-slate-500';
-
   const interactiveButtonsHtml = `
     <div class="flex items-center gap-5">
         <div class="like-trigger group flex items-center gap-1.5 cursor-pointer transition-colors"
@@ -1001,9 +1081,7 @@ function createPostNode(item) {
     </div>
 `;
 
-  const actionArea = hasCloudAccess ? interactiveButtonsHtml : `<span class="text-xs text-slate-400 font-medium italic">Private Draft</span>`;
-  
-  // Share Menu Logic (Stays the same)
+  const actionArea = hasCommentsAccess ? interactiveButtonsHtml : `<span class="text-xs text-slate-400 font-medium italic">Private Draft</span>`;
   const allowedPlatforms = getSmartShareButtons(item.content);
   let menuHtml = '';
   allowedPlatforms.forEach(p => {
@@ -1024,46 +1102,55 @@ function createPostNode(item) {
   const footerHtml = `<div class="mt-6 pt-5 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
 
   el.innerHTML = `
-    <div class="animation-container absolute inset-0 flex items-center justify-center pointer-events-none z-30"></div>
-    <div class="flex justify-between items-start mb-6"> 
-      <div class="flex items-center gap-2">
-        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isPublic ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
-          ${item.isPublic ? 'Global' : 'Local'}
-        </span>
-        <span class="text-xs text-slate-400 font-medium">${time}</span>
-      </div>
-    </div>
-    <p class="post-body text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] relative z-10 ${fontClass} break-keep break-words">${renderSmartText(item.content)}</p>
-    ${footerHtml}
-  `;
+<div class="animation-container absolute inset-0 flex items-center justify-center pointer-events-none z-30"></div>
+ 
+<div class="flex justify-between items-start mb-6"> <div class="flex items-center gap-2">
+    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
+      ${item.isFirebase ? 'Global' : 'Local'}
+    </span>
+    <span class="text-xs text-slate-400 font-medium">${time}</span>
+  </div>
+</div>
 
-  // Delete Button Logic (Decoupled from SDKs)
-  if (!item.isPublic || isMyPublicPost) {
+<p class="post-body text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] relative z-10 ${fontClass} break-keep break-words">${renderSmartText(item.content)}</p>
+
+${footerHtml}
+`;
+
+  if (!item.isFirebase || isMyGlobalPost) {
     const delBtn = document.createElement('button');
     delBtn.className = "absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors z-10 p-2";
     delBtn.innerHTML = "✕";
     delBtn.onclick = (e) => { 
       e.stopPropagation(); 
-      // These functions will now talk to Railway
-      item.isPublic ? deleteGlobal(item.id) : deleteLocal(item.id); 
+      item.isFirebase ? deleteGlobal(item.id) : deleteLocal(item.id); 
     };
     el.appendChild(delBtn);
   }
 
-  // Click Handlers (Double Tap to Heart, Single to Modal)
   let clickTimer = null;
   let clickCount = 0;
 
   el.onclick = (e) => {
     if (activeShareMenuId) return;
-    if (e.target.closest('a') || e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) return;
 
+    // A. THE LINK SHIELD: If they clicked a link, let the link handle itself.
+    if (e.target.closest('a')) return;
+
+    // B. THE BUTTON SHIELD: Same for buttons and icons
+    if (e.target.closest('button') || e.target.closest('.share-container') || e.target.closest('.like-trigger')) {
+      return;
+    }
     const isCommentIcon = e.target.closest('.icon-tabler-message-circle-2');
+    if (item.isFirebase && !isCommentIcon) {
+
+    }
 
     clickCount++;
     if (clickCount === 1) {
       clickTimer = setTimeout(() => {
-        if (!item.isPublic || isCommentIcon) {
+        // DECISION: Open modal if it's Local OR we clicked the Comment Icon
+        if (!item.isFirebase || isCommentIcon) {
           openModal(item);
         }
         clickCount = 0;
@@ -1071,8 +1158,10 @@ function createPostNode(item) {
     } else if (clickCount === 2) {
       clearTimeout(clickTimer);
       clickCount = 0;
+      
+      // Instagram-style double-tap heart (Works for Global & Local)
       showHeartAnimation(el);
-      if (hasCloudAccess) {
+      if (hasCommentsAccess) {
         const likeButton = el.querySelector('.like-trigger');
         if (likeButton) {
           const heartIcon = likeButton.querySelector('svg');
@@ -1084,7 +1173,7 @@ function createPostNode(item) {
     }
   };
 
-  // Share menu logic stays on frontend
+  // 8. Share Button Handlers
   const platformBtns = el.querySelectorAll('.share-icon-btn');
   platformBtns.forEach(btn => {
     btn.onclick = (e) => {
@@ -1101,20 +1190,20 @@ function createPostNode(item) {
 
 function showHeartAnimation(container) {
   const rect = container.getBoundingClientRect();
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
   
-  // Create the heart element
   const heart = document.createElement('div');
   heart.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" class="w-20 h-20 text-red-500 fill-red-500 drop-shadow-lg" viewBox="0 0 24 24" stroke-width="0" stroke="currentColor">
-        <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path>
+       <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path>
     </svg>
   `;
   
-  // Use position: fixed to avoid issues with parent overflow or relative positioning
   heart.style.cssText = `
     position: fixed;
-    left: ${rect.left + rect.width / 2 - 40}px;
-    top: ${rect.top + rect.height / 2 - 40}px;
+    left: ${rect.left + rect.width/2 - 40}px;
+    top: ${rect.top + rect.height/2 - 40}px;
     transform: scale(0);
     opacity: 0;
     transition: all 500ms ease-out;
@@ -1125,7 +1214,6 @@ function showHeartAnimation(container) {
   
   document.body.appendChild(heart);
 
-  // Trigger the animation sequence
   requestAnimationFrame(() => {
     heart.style.transform = 'scale(1.25)';
     heart.style.opacity = '1';
@@ -1139,81 +1227,77 @@ function showHeartAnimation(container) {
 }
 
 function renderListItems(items) {
-  // 1. Clear the safety timer since we are now rendering
-  if (feedSafetyTimeout) {
+	
+	if (feedSafetyTimeout) {
     clearTimeout(feedSafetyTimeout);
     feedSafetyTimeout = null;
   }
-
-  // 2. Guard: Don't repaint while database counts are still being attached
-  if (window.pendingPostUpdates > 0) {
-    console.log(`[renderListItems] 🚦 RED LIGHT. Waiting for ${window.pendingPostUpdates} updates to finish.`);
-    return; 
+	
+	if (window.pendingPostUpdates > 0) {
+      console.log(`[renderListItems] 🚦 RED LIGHT. Waiting for ${window.pendingPostUpdates} updates to finish.`);
+      return; 
   }
 
-  const placeholder = document.getElementById('public-placeholder');
-
-  // 3. EMPTY STATE LOGIC
+	const placeholder = document.getElementById('public-placeholder');
+	
   if (items.length === 0) {
-    DOM.list.innerHTML = ''; 
-    
-    if (currentTab === 'private') {
-      // Your custom "Awaiting inspiration" empty state for Private
-      DOM.list.innerHTML = `
-        <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
-             style="scroll-snap-align: start; scroll-margin-top: calc(112px + 24px); min-height: calc(100vh - 418px);">
-          <div class="mb-4 text-slate-300">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9"/>
-              <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-              <line x1="9" y1="9" x2="9.01" y2="9"/>
-              <line x1="15" y1="9" x2="15.01" y2="9"/>
-            </svg>
-          </div>
-          <p class="text-slate-700 font-medium tracking-tight">Awaiting inspiration.</p>
-          <p class="text-slate-600 text-xs mt-2">
-            The best ideas are the ones you 
-            <span onclick="document.getElementById('postInput').scrollIntoView({ behavior: 'smooth', block: 'center' })" 
-                  class="underline cursor-pointer text-slate-600 hover:text-slate-800 transition-colors">
-              write down
-            </span>.
-          </p>
-        </div>`;
-    } else { 
-      // Public Tab Empty Logic
-      if (totalGlobalPosts === 0) {
-        showPublicPlaceholder('empty');
-      } else {
-        if (!window.isBruteFetching) {
-          showPublicPlaceholder('scanning');
+	  DOM.list.innerHTML = ''; 
+	  
+	  if (currentTab === 'private') {
+    DOM.list.innerHTML = `
+      <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
+           style="scroll-snap-align: start; scroll-margin-top: calc(112px + 24px); min-height: calc(100vh - 418px);">
+        <div class="mb-4 text-slate-300">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9"/>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+            <line x1="9" y1="9" x2="9.01" y2="9"/>
+            <line x1="15" y1="9" x2="15.01" y2="9"/>
+          </svg>
+        </div>
+        <p class="text-slate-700 font-medium tracking-tight">Awaiting inspiration.</p>
+        <p class="text-slate-600 text-xs mt-2">
+  The best ideas are the ones you 
+  <span onclick="document.getElementById('postInput').scrollIntoView({ behavior: 'smooth', block: 'center' })" 
+      class="underline cursor-pointer text-slate-600 hover:text-slate-800 transition-colors">
+    write down
+</span>.
+</p>
+      </div>`;
+	  }
+	  else { 
+	  if (totalGlobalPosts === 0) {
+      showPublicPlaceholder('empty');
+    } else {
+        
+          if (!window.isBruteFetching) {
+          showPublicPlaceholder('scanning'); // Only show scanning if we are actually starting a fetch
           window.isBruteFetching = true;
-          // This will now trigger the Railway-based refill logic
           handleBruteForce();
         } else {
+          // 🚀 THE FIX: If we are already brute fetching and still have 0 items, 
+          // stop showing "Scanning" and show "Empty" so the user isn't stuck.
           showPublicPlaceholder('empty');
         }
       }
     }
+		
     return; 
   }
-
-  // 4. RENDERING LOGIC
+  
   items.forEach(item => {
-    // Kill the placeholder/ghosts as soon as we have a real item
-    if (placeholder) placeholder.remove();
-    const ghost = document.getElementById('public-placeholder');
-    if (ghost) ghost.remove();
-
-    // Create the HTML node using our refactored creator
+    // If we have a placeholder, kill it
+    if (placeholder) {
+      placeholder.remove();
+      // Double check for any lingering ghost by ID
+      const ghost = document.getElementById('public-placeholder');
+      if (ghost) ghost.remove();
+    }
     const postNode = createPostNode(item);
     DOM.list.appendChild(postNode);
-
-    // Increment our counter and start watching the stats via Railway
-    window.pendingPostUpdates++;
+	window.pendingPostUpdates++;
     watchPostCounts(item.id);
   });
-
-  // 5. Restore scroll snapping
   refreshSnap();
 }
 
@@ -1240,70 +1324,61 @@ function showPublicPlaceholder(type) {
       </div>`;
 
     // 🕒 THE 3-SECOND PANIC TIMER
-    // This is your safety net if the Railway API doesn't return data in time.
     console.log("[UI] Scanning started. 3s timeout armed.");
     
     setTimeout(() => {
       const stillScanning = document.getElementById('public-placeholder');
-      // If the placeholder is still there and still says "Scanning", 
-      // something went wrong with the fetch.
       if (stillScanning && stillScanning.innerText.includes('Scanning')) {
         console.error("🚨 STUCK DETECTED: Forcing internal reload.");
         
-        // Billion-dollar fix: Reset everything.
+        // We use window.location.reload() or re-trigger your loadFeed()
+        // But a reload is the most "billion-dollar" way to guarantee a fresh state
         window.location.reload(); 
       }
     }, 3000);
   }
-
-  // Paint the state to the list
   DOM.list.innerHTML = html;
+  
 }
 
 async function handleBruteForce() {
-  const placeholder = document.getElementById('public-placeholder');
-  
-  // 1. Guard: Prevent overlapping brute force attempts
+	const placeholder = document.getElementById('public-placeholder');
+  // 1. Double check we aren't already fetching
   if (window.isBruteFetching) return;
+  
   window.isBruteFetching = true;
 
   try {
-    // 2. Clear state so we can accept fresh results
+    // 2. Clear IDs so the sampler doesn't ignore the 11 posts
     processedIds.clear(); 
     
-    if (placeholder) {
+	if (placeholder) {
+       
         placeholder.remove();
-        // Final "ghost" check
-        const ghost = document.getElementById('public-placeholder');
-        if (ghost) ghost.outerHTML = '';
+        
+        // Final nuke check
+        if (document.getElementById('public-placeholder')) {
+            document.getElementById('public-placeholder').outerHTML = '';
+        }
     }
-
-    console.log("%c🚰 Brute Force: Triggering Backend Refill...", "color: #ffaa00; font-weight: bold;");
-    
-    // 3. REFACTORED: Call the refill logic that now hits Railway
-    // We pass 'true' for the brute flag so refillBufferRandomly knows this is high priority
+	console.log("%c🚰 Brute Force: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
     await refillBufferRandomly(5, false, true);
 
-    // 4. Update the local list with whatever the buffer found
     if (postBuffer.length > 0) {
       while (postBuffer.length > 0) {
         const post = postBuffer.shift();
-        // Deduplicate against visible posts
         if (!visiblePosts.some(p => p.id === post.id)) {
           visiblePosts.push(post);
         }
       }
       renderListItems(visiblePosts);
     } else {
-      // If even the brute force found nothing, it's truly empty
       totalGlobalPosts = 0; 
       renderListItems([]);
     }
   } catch (err) {
-    console.error("Brute force failed:", err);
-    renderListItems([]); // Show empty state on error
+	  
   } finally {
-    // 2-second cooldown to prevent spamming the Railway API
     setTimeout(() => { 
       window.isBruteFetching = false; 
     }, 2000);
@@ -1311,10 +1386,7 @@ async function handleBruteForce() {
 }
 
 function refreshSnap() {
-  // We target the window scroller
   const scroller = window; 
-  
-  // A tiny 1px nudge to force a browser layout recalculate
   scroller.scrollBy(0, 1);
   scroller.scrollBy(0, -1);
 }
@@ -1384,42 +1456,36 @@ document.addEventListener('click', (e) => {
 // 5. POST ACTIONS & SCROLL
 // ==========================================
 function setupInfiniteScroll() {
-  // 1. Cleanup old observer to prevent memory leaks or double-firing
+  // 1. If an observer already exists, kill it first
   console.log("%c📜 setupInfiniteScroll initiated", "color: orange; font-weight: bold;");
   if (scrollObserver) {
-    console.log("  Previous observer disconnected.");
+	  console.log("  Previous observer disconnected.");
     scrollObserver.disconnect();
   }
 
   // 2. Create the new observer
   scrollObserver = new IntersectionObserver((entries) => {
-    // Debug log to trace why it's firing
-    console.log(`  👁️ Scroll Check: Intersecting? ${entries[0].isIntersecting} | isLoadingMore? ${isLoadingMore} | Tab: ${currentTab}`);
-    
-    // The "Sweet Spot" check: is the trigger visible AND are we not already busy?
+	  console.log(`  👁️ Scroll Check: Intersecting? ${entries[0].isIntersecting} | isLoadingMore? ${isLoadingMore} | Tab: ${currentTab}`);
     if (entries[0].isIntersecting && !isLoadingMore) {
-      
-      // Safety: We only fetch more public data if the user is on the Public Tab
+      // Only trigger if we are actually on the public tab
       if (currentTab === 'public') {
-        console.log("      ✅ Conditions met! Triggering loadMoreData()...");
-        
-        // This will call the refactored function that hits Railway
-        loadMoreData(); 
+		  console.log("     ✅ Conditions met! Triggering loadMoreData()...");
+        loadMoreData();
       } else {
-        console.log(`      ⛔ Blocked: Wrong tab ('${currentTab}')`);
+        console.log(`     ⛔ Blocked: Wrong tab ('${currentTab}')`);
       }
     } else if (entries[0].isIntersecting && isLoadingMore) {
-       console.log("      ⏳ Blocked: Already loading data.");
+       console.log("     ⏳ Blocked: Already loading data.");
     }
   }, { 
-    root: null, // Watch the main viewport
-    threshold: 0.1, // Trigger as soon as 10% of the element is visible
-    rootMargin: '150px' // Fetch 150px before the user hits the bottom
+    root: null, 
+    threshold: 0.1,
+    rootMargin: '150px' // Increased margin for a smoother "Discovery" feel
   });
   
-  // 3. Start watching the trigger element
+  // 3. Start watching the trigger
   if (DOM.loadTrigger) {
-    console.log("  ✅ DOM.loadTrigger found. Observing now.");
+	  console.log("  ✅ DOM.loadTrigger found. Observing now.");
     scrollObserver.observe(DOM.loadTrigger);
   } else {
     console.error("  ❌ CRITICAL: DOM.loadTrigger is NULL. Observer has nothing to watch!");
@@ -1427,140 +1493,148 @@ function setupInfiniteScroll() {
 }
 
 function loadMoreData() {
-  console.log("%c🚀 loadMoreData triggered", "color: magenta; font-weight: bold;");
-  
-  // 1. Guard: Prevent multiple simultaneous fetches
+	console.log("%c🚀 loadMoreData triggered", "color: magenta; font-weight: bold;");
+	console.log(`[Scroll Debug] Buffer: ${postBuffer.length}, Visible: ${visiblePosts.length}, Tab: ${currentTab}`);
   if (isLoadingMore) {
-    console.log("  ⛔ Blocked: isLoadingMore is already TRUE");
+    console.log("  ⛔ Blocked: isLoadingMore is already TRUE (Prev load still running?)");
     return;
   }
   isLoadingMore = true;
   console.log("  🔒 Lock set: isLoadingMore = true");
 
-  // Show the loading spinner/trigger
   DOM.loadTrigger.style.visibility = 'visible';
   DOM.loadTrigger.style.opacity = '1';
 
   if (currentTab === 'private') {
-    // PRIVATE TAB: Local pagination (No server call needed)
-    console.log("  📂 Path: Private Tab");
+	  console.log("  📂 Path: Private Tab");
     currentLimit += BATCH_SIZE;
     renderPrivateBatch();
     isLoadingMore = false;
     DOM.loadTrigger.style.visibility = 'hidden';
-    console.log("  ✅ Private batch rendered. Lock released.");
+	console.log("  ✅ Private batch rendered. Lock released.");
   } else {
-    // PUBLIC TAB: Server-side discovery
-    console.log("%c🚰 Loadmoredata: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
-    
-    // Call our refactored refill function (which hits Railway)
+	  console.log("%c🚰 Loadmoredata: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
+    // Discovery Mode: Fetch a batch of random posts to append to the bottom
     refillBufferRandomly(5, true).then(() => {
-      console.log(`  📦 Refill Resolved. Buffer: ${postBuffer.length} posts`);
-      
+		console.log(`  📦 Refill Promise Resolved. Buffer contains: ${postBuffer.length} posts`);
       if (postBuffer.length === 0) {
-        console.warn("  ⚠️ Random buffer EMPTY. Fallback to Chronological.");
-        isAppending = true;
-        
-        // Fallback: Fetch latest posts from Railway
-        subscribePublicFeed().then(() => {
-          isLoadingMore = false;
-          isAppending = false;
-          DOM.loadTrigger.style.visibility = 'hidden';
-          console.log("  ✅ Fallback complete. Lock released.");
-        });
+		  console.warn("  ⚠️ Random buffer EMPTY. Fallback to Chronological (subscribePublicFeed).");
+		  console.log(`[Fallback Debug] Calling subscribePublicFeed. IsAppending: ${isAppending}`);
+          // If randomizer found nothing, fallback to chronological
+          isAppending = true;
+          subscribePublicFeed().then(() => {
+			  console.log("  🔄 Fallback feed loaded.");
+              isLoadingMore = false;
+              isAppending = false;
+              DOM.loadTrigger.style.visibility = 'hidden';
+			  console.log("  ✅ Fallback complete. Lock released.");
+          });
       } else {
-        // SUCCESS: Drain the buffer into the feed
-        console.log(`  ✨ Injecting ${postBuffer.length} posts from buffer...`);
-        while(postBuffer.length > 0) {
-          const p = postBuffer.shift();
-          visiblePosts.push(p);
-          injectSinglePost(p, 'bottom');
-        }
-        isLoadingMore = false;
-        DOM.loadTrigger.style.visibility = 'hidden';
-        console.log("  ✅ Injection complete. Lock released.");
+          // Append the random "discoveries" to the bottom
+		  console.log(`  ✨ Injecting ${postBuffer.length} posts from buffer...`);
+          while(postBuffer.length > 0) {
+            const p = postBuffer.shift();
+            visiblePosts.push(p);
+            injectSinglePost(p, 'bottom');
+          }
+          isLoadingMore = false;
+          DOM.loadTrigger.style.visibility = 'hidden';
+		  console.log("  ✅ Injection complete. Lock released.");
       }
     });
   }
 }
 
 function getSafeText(input) {
-  // We use DOMPurify to strip every single HTML tag and attribute.
-  // This prevents XSS (Cross-Site Scripting) attacks.
   return DOMPurify.sanitize(input, {
-    ALLOWED_TAGS: ['#text'], // ☢️ Nuclear Option: Only allow raw text
-    ALLOWED_ATTR: [],        // No styles, no onclicks, no hrefs
-    KEEP_CONTENT: true       // If they send <div>Hi</div>, we keep "Hi"
+    ALLOWED_TAGS: ['#text'], // No HTML allowed (Nuclear Option)
+    ALLOWED_ATTR: [], // No attributes (onclick, etc) allowed
+    KEEP_CONTENT: true // Keeps the text inside the tags, just removes the tags themselves
   });
 }
 
 async function handlePost() {
+  // Sanitize input text
   const rawText = DOM.input.value.trim();
   const text = getSafeText(rawText);
   if (!text) return;
 
   const isPublic = DOM.toggle.checked;
 
-  // 1. Spam Guard remains on frontend for instant feedback
-  if (isPublic && !checkSpamGuard(text)) return;
+  // --- 🚦 SPAM GUARD START ---
+  if (isPublic) {
+    if (!checkSpamGuard(text)) {
+      return; // Stop execution only if it's public spam
+    }
+  }
+  // --- 🚦 SPAM GUARD END ---
 
   DOM.btn.textContent = "...";
   DOM.btn.disabled = true;
 
   try {
-    let cloudData = null;
+    let firebaseId = null;
+    let uniqueTag = null;
+	let serialId = null;
 
     if (isPublic) {
-      // 2. REFACTORED: Single call to Railway
-      const response = await fetch(`${API_BASE}/api/posts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: text,
-          font: selectedFont,
-          authorId: MY_USER_ID
-        })
-      });
+      const idData = await getNextUniqueTag();
+      uniqueTag = idData.tag;
+	  serialId = idData.num;
 
-      cloudData = await response.json();
-      if (cloudData.error) throw new Error(cloudData.error);
-      
-      if (typeof Ledger !== 'undefined') Ledger.log("handlePost", 0, 1, 0);
+      const docRef = await addDoc(collection(db, "globalPosts"), { 
+        content: text, 
+        font: selectedFont, 
+        authorId: MY_USER_ID,
+        uniqueTag: uniqueTag,
+		serialId: serialId,
+        createdAt: serverTimestamp()
+      });
+      firebaseId = docRef.id;
+	   Ledger.log("handlePost", 0, 1, 0);
+	   
+	   // --- 👇 ADD THIS BLOCK HERE 👇 ---
+      // Sync to Supabase immediately so the Watcher finds it
+      _supabase.from('posts').insert({
+          id: firebaseId,      // The same ID Firebase just created
+          like_count: 0,       // Initialize likes
+          comment_count: 0,
+          author_id: MY_USER_ID	  // Initialize comments
+      }).then(({ error }) => {
+          if (error) console.error("Supabase Insert Error:", error.message);
+      });
+      // --- 👆 END BLOCK 👆 ---
+	   
     }
 
-    // 3. Local Object Construction
-    // We use the ID and Tags returned by the server if public
     const newPost = { 
-      id: isPublic ? cloudData.id : Date.now().toString(), 
+      id: Date.now().toString(), 
       content: text, 
       font: selectedFont,
-      uniqueTag: isPublic ? cloudData.uniqueTag : null,
-      serialId: isPublic ? cloudData.serialId : null,
+      uniqueTag: uniqueTag,
+	  serialId: serialId,
       createdAt: new Date().toISOString(),
-      isPublic: isPublic, // Changed from isFirebase
+      isFirebase: false,
+      firebaseId: firebaseId,
       commentCount: 0,
-      likeCount: 0
+	  likeCount: 0
     };
 
-    // 4. Local Storage Sync
     const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
     posts.push(newPost);
     localStorage.setItem('freeform_v2', JSON.stringify(posts));
     updateMeter();
 
-    // UI Navigation
     if (isPublic) {
       if (currentTab === 'private') switchTab('public');
     } else {
       if (currentTab === 'public') switchTab('private');
-      else { allPrivatePosts = [...posts].reverse(); renderPrivateBatch(); }
+      else { allPrivatePosts = posts.reverse(); renderPrivateBatch(); }
     }
-
     DOM.input.value = "";
     setRandomPlaceholder();
 
   } catch (error) { 
-    console.error("Post Error:", error);
     showToast("Error posting", "error");
   } finally { 
     DOM.btn.textContent = "Post"; 
@@ -1569,58 +1643,70 @@ async function handlePost() {
 }
 
 async function publishDraft(post) {
+  // 1. Trigger the Custom Dialog (Blue Button)
   showDialog(
     "Publish to World?",
     "This note will be visible to everyone on the Global Feed.",
     "Publish",
     async () => {
-      // 1. Frontend Spam Check
-      if (!checkSpamGuard(post.content)) return;
+      // === 🛡️ SPAM GUARD CHECK FIRST ===
+      if (!checkSpamGuard(post.content)) {
+        // User is either in jail or posting duplicate content
+        // checkSpamGuard will show its own dialog
+        return; // Stop here, don't publish
+      }
       
+      // === 🟢 PUBLISH LOGIC STARTS HERE ===
       try {
-        // 2. REFACTORED: Send to Railway
-        const response = await fetch(`${API_BASE}/api/posts`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: post.content,
-            font: post.font || 'font-sans',
-            authorId: MY_USER_ID
-          })
-        });
-
-        const cloudData = await response.json();
-        if (cloudData.error) throw new Error(cloudData.error);
+        const idData = await getNextUniqueTag();		
         
-        if (typeof Ledger !== 'undefined') Ledger.log("publishDraft", 0, 1, 0);
+        const docRef = await addDoc(collection(db, "globalPosts"), { 
+          content: post.content, 
+          font: post.font || 'font-sans', 
+          authorId: MY_USER_ID,
+          uniqueTag: idData.tag,
+		  serialId: idData.num,
+          createdAt: serverTimestamp()
+        });
+		
+		Ledger.log("publishDraft", 0, 1, 0);
+		
+		// --- 👇 ADD THIS BLOCK HERE 👇 ---
+      // Sync to Supabase so the counters exist
+      _supabase.from('posts').insert({
+          id: docRef.id,       // Use the new Firebase ID
+          like_count: 0,
+          comment_count: 0,
+		  author_id: MY_USER_ID
+      }).then(({ error }) => {
+          if (error) console.error("Supabase Insert Error:", error.message);
+      });
+      // --- 👆 END BLOCK 👆 ---
 
-        // 3. Update Local Storage
         const posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
         const targetIndex = posts.findIndex(p => p.id === post.id);
         
         if (targetIndex !== -1) {
-          // Sync local metadata with server-generated data
-          posts[targetIndex].id = cloudData.id; // Upgrade local ID to Global ID
-          posts[targetIndex].uniqueTag = cloudData.uniqueTag;
-          posts[targetIndex].serialId = cloudData.serialId;
+          // Link local post to the new global ID
+          posts[targetIndex].firebaseId = docRef.id;
+          posts[targetIndex].uniqueTag = idData.tag;
+		  posts[targetIndex].serialId = idData.num;
           posts[targetIndex].commentCount = 0;
           posts[targetIndex].likeCount = 0;
-          posts[targetIndex].isPublic = true; // Mark as public
-          
           localStorage.setItem('freeform_v2', JSON.stringify(posts));
           
-          allPrivatePosts = [...posts].reverse();
+          allPrivatePosts = posts.reverse();
           loadFeed();
           
-          // Re-open modal with the new "Live" state
-          const updatedPost = posts.find(p => p.id === cloudData.id);
+          // Re-open modal to show the new "Live" status
+          const updatedPost = posts.find(p => p.id === post.id);
           openModal(updatedPost);
           
+          // Success Toast
           showToast("Post is now live");
         }
 
       } catch (e) {
-        console.error("Publishing failed:", e);
         showToast("Could not publish. Check connection.", "error");
       }
     }
@@ -1636,31 +1722,50 @@ async function deleteLocal(id) {
       let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
       const targetPost = posts.find(p => p.id === id);
 
-      // If it's a public post, tell Railway to nuke the cloud version
-      if (targetPost && (targetPost.isPublic || targetPost.firebaseId)) {
-        const cloudId = targetPost.id || targetPost.firebaseId;
-        
+      if (targetPost && targetPost.firebaseId) {
         try {
-          const response = await fetch(`${API_BASE}/api/posts/${cloudId}`, {
-            method: 'DELETE'
-          });
-          
-          if (!response.ok) throw new Error("Cloud deletion failed");
-          
-          if (typeof Ledger !== 'undefined') Ledger.log("deleteLocal", 0, 0, 1);
-          console.log("Cloud record purged via Railway.");
+          // 1. FIREBASE CLEANUP (Content & Sub-collections)
+          const batch = writeBatch(db);
+          const postRef = doc(db, "globalPosts", targetPost.firebaseId);
+          const commentsRef = collection(db, "globalPosts", targetPost.firebaseId, "comments");
+          const likesRef = collection(db, "globalPosts", targetPost.firebaseId, "likes");
+
+          const [commentsSnapshot, likesSnapshot] = await Promise.all([
+            getDocs(commentsRef),
+            getDocs(likesRef)
+          ]);
+
+          commentsSnapshot.forEach(doc => batch.delete(doc.ref));
+          likesSnapshot.forEach(doc => batch.delete(doc.ref));
+          batch.delete(postRef);
+
+          await batch.commit(); 
+          Ledger.log("deleteLocal", 0, 0, commentsSnapshot.size + likesSnapshot.size + 1);
+
+          // 2. SUPABASE CLEANUP (Counters)
+          // We use the firebaseId because that's what we used as the ID in Supabase!
+          const { error } = await _supabase
+            .from('posts')
+            .delete()
+            .eq('id', targetPost.firebaseId);
+
+          if (error) {
+            console.error("Supabase cleanup failed:", error.message);
+          } else {
+            console.log("Supabase record purged.");
+          }
+
         } catch(e) {
           console.error("Cloud deletion failed:", e);
-          // We continue to local deletion even if cloud fails so the user isn't stuck
         }
       }
 
-      // 3. LOCAL STORAGE CLEANUP (Always happens)
+      // 3. LOCAL STORAGE CLEANUP
       posts = posts.filter(p => p.id !== id);
       localStorage.setItem('freeform_v2', JSON.stringify(posts));
       
       // Update UI
-      allPrivatePosts = [...posts].reverse();
+      allPrivatePosts = posts.reverse();
       renderPrivateBatch();
       updateMeter();
       showToast("Note deleted from archive", "neutral");
@@ -1669,45 +1774,88 @@ async function deleteLocal(id) {
 }
 
 async function deleteGlobal(postId) {
+  // 1. Trigger the Custom Dialog instead of window.confirm
   showDialog(
     "Delete from Global?", 
     "This will permanently remove the post for everyone. Comments and likes will also be deleted.",
     "Delete", 
     async () => {
+      // === 🔴 DELETION LOGIC STARTS HERE ===
       try {
-        // 1. REFACTORED: Tell Railway to purge all cloud data
-        const response = await fetch(`${API_BASE}/api/posts/${postId}`, {
-          method: 'DELETE'
-        });
+        const batch = writeBatch(db);
+        const postRef = doc(db, "globalPosts", postId);
+        const commentsRef = collection(db, "globalPosts", postId, "comments");
+        const likesRef = collection(db, "globalPosts", postId, "likes"); // <--- Added Likes cleanup
         
-        if (!response.ok) throw new Error("Cloud delete failed");
+        // 2. Queue up Comment deletions
+        const commentsSnapshot = await getDocs(commentsRef);
+		Ledger.log("deleteGlobal", commentsSnapshot.size, 0, 0);
+        commentsSnapshot.forEach((commentDoc) => {
+          batch.delete(commentDoc.ref);
+        });
 
-        if (typeof Ledger !== 'undefined') Ledger.log("deleteGlobal", 0, 0, 1);
+        // 3. Queue up Like deletions (New)
+        const likesSnapshot = await getDocs(likesRef);
+		Ledger.log("deleteGlobal", likesSnapshot.size, 0, 0);
+        likesSnapshot.forEach((likeDoc) => {
+           batch.delete(likeDoc.ref);
+        });
 
-        // 2. SURGICAL UI REMOVAL: Fade out the card immediately
-        visiblePosts = visiblePosts.filter(p => p.id !== postId);
+        // 4. Delete the Post itself
+        batch.delete(postRef);
 
+        // 5. Commit all changes at once
+        await batch.commit();
+		
+		Ledger.log("deleteGlobal", 0, 0, commentsSnapshot.size + likesSnapshot.size + 1);
+		
+		// 🚀 NEW: Delete from Supabase (full removal)
+        const { error } = await _supabase
+          .from('posts')
+          .delete()
+          .eq('id', postId);
+
+        if (error) throw error;
+		
+		// --- 🚀 START OF THE FIX ---
+
+        // 1. Remove it from the JavaScript array so it's gone from memory
+        visiblePosts = visiblePosts.filter(p => p.id !== postId && p.firebaseId !== postId);
+
+        // 2. Surgically remove the HTML card from the screen immediately
         const elToRemove = document.querySelector(`[data-id="${postId}"]`);
         if (elToRemove) {
           elToRemove.classList.add('opacity-0', 'scale-95', 'transition-all', 'duration-300');
           setTimeout(() => elToRemove.remove(), 300);
         }
 
-        // 3. Kill the listener (Decoupled from Firebase)
+        // 3. Kill the "Live Watcher" for this post so it stops listening
         if (activePostListeners.has(postId)) {
-          activePostListeners.get(postId)(); 
-          activePostListeners.delete(postId); 
+          activePostListeners.get(postId)(); // Stop the listener
+          activePostListeners.delete(postId); // Remove from the Map
         }
+        
+        // --- 🏁 END OF THE FIX ---
+		
+		setTimeout(() => {
+          const currentVisible = document.querySelectorAll('.feed-item'); // or whatever your post class is
+          if (currentVisible.length === 0) {
+            console.log("[Delete] 🧹 Screen is empty, triggering placeholder.");
+			totalGlobalPosts = 0;
+            renderListItems([]); 
+          }
+        }, 350);
+        
+       
 
-        // 4. Update Local Storage (Downgrade from "Global" to "Local Draft")
+        // 6. Update Local Storage (Remove "Global" status)
         let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
         let updated = false;
 
         posts = posts.map(p => {
-          // Check both ID and firebaseId for backward compatibility
-          if (p.id === postId || p.firebaseId === postId) {
-            delete p.isPublic; // Remove the public flag
+          if (p.firebaseId === postId) {
             delete p.firebaseId; 
+            // Also reset counts locally since it's no longer global
             p.commentCount = 0;
             p.likeCount = 0;
             updated = true;
@@ -1717,24 +1865,18 @@ async function deleteGlobal(postId) {
 
         if (updated) {
           localStorage.setItem('freeform_v2', JSON.stringify(posts));
-          allPrivatePosts = [...posts].reverse();
+          allPrivatePosts = posts.reverse();
           
-          if (currentTab === 'private') renderPrivateBatch();
-        }
-
-        // 5. Empty State Check
-        setTimeout(() => {
-          const currentVisible = document.querySelectorAll('.feed-item');
-          if (currentVisible.length === 0) {
-            totalGlobalPosts = 0;
-            renderListItems([]); 
+          // Refresh UI if we are on the private tab
+          if (currentTab === 'private') {
+            renderPrivateBatch();
           }
-        }, 350);
-
+        }
+        
+        // 7. Success Notification
         showToast("Post deleted from global feed");
 
       } catch (e) {
-        console.error(e);
         showToast("Delete failed. Check connection.", "error");
       }
     }
@@ -1742,58 +1884,68 @@ async function deleteGlobal(postId) {
 }
 
 async function toggleLike(event, postId) {
-  event.stopPropagation(); 
+  event.stopPropagation(); // Don't open the modal
   if (!postId || postId === 'undefined') return;
 
   const myLikes = JSON.parse(localStorage.getItem('my_likes_cache')) || {};
   const currentlyLiked = !!myLikes[postId];
 
   // ==========================================
-  // ⚡️ OPTIMISTIC UI UPDATE (Preserved)
+  // ⚡️ OPTIMISTIC UI UPDATE (Instant)
   // ==========================================
-  const wrapper = event.currentTarget; 
+  const wrapper = event.currentTarget; // The div you clicked
   const icon = wrapper.querySelector('svg');
   const countSpan = wrapper.querySelector('span');
+  
+  // Get current number safely
   let currentCount = parseInt(countSpan.textContent) || 0;
 
   if (currentlyLiked) {
+    // VISUAL: Turn Gray / Hollow
     icon.classList.remove('fill-red-500', 'text-red-500');
     icon.classList.add('fill-none', 'text-slate-400');
+    
+    // COUNT: Decrement
     countSpan.textContent = Math.max(0, currentCount - 1);
     countSpan.classList.remove('text-red-600');
     countSpan.classList.add('text-slate-500');
+    
+    // STATE: Remove from local cache immediately
     delete myLikes[postId];
   } else {
+    // VISUAL: Turn Red / Filled
     icon.classList.remove('fill-none', 'text-slate-400');
     icon.classList.add('fill-red-500', 'text-red-500');
+    
+    // COUNT: Increment
     countSpan.textContent = currentCount + 1;
     countSpan.classList.remove('text-slate-500');
     countSpan.classList.add('text-red-600');
+    
+    // STATE: Add to local cache immediately
     myLikes[postId] = true;
   }
   
+  // Save cache immediately so scrolling doesn't flicker
   localStorage.setItem('my_likes_cache', JSON.stringify(myLikes));
 
   // ==========================================
-  // ☁️ RAILWAY UPDATE (Background)
+  // ☁️ FIREBASE UPDATE (Background)
   // ==========================================
-  try {
-    // We send the current state to the server
-    const response = await fetch(`${API_BASE}/api/posts/${postId}/like`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        isLiked: !currentlyLiked // Sending the NEW state
-      })
+try {
+    const incrementValue = currentlyLiked ? -1 : 1;
+    
+    // Call the atomic procedure
+    const { error } = await _supabase.rpc('toggle_like_atomic', {
+      p_post_id: postId,
+      p_increment: incrementValue
     });
 
-    if (!response.ok) throw new Error("Server rejected like");
-    
-    if (typeof Ledger !== 'undefined') Ledger.log("toggleLike", 0, 2, 0);
+    if (error) throw error;
+    Ledger.log("toggleLike", 0, 2, 0);
   } catch (error) {
     console.error('Toggle like error:', error);
-    // Note: In a high-end app, you would "roll back" the UI here if the server fails
-    showToast("Connection failed. Like not saved.", "error");
+    showToast("Connection failed. Like not saved.");
   }
 }
 window.toggleLike = toggleLike;
@@ -1805,20 +1957,20 @@ async function deleteComment(postId, commentId) {
     "Delete",
     async () => {
       try {
-        // REFACTORED: Single call to your Railway API
-        const response = await fetch(`${API_BASE}/api/posts/${postId}/comments/${commentId}`, {
-          method: 'DELETE'
+        // Keep Firebase: Delete comment from subcollection
+        const commentRef = doc(db, "globalPosts", postId, "comments", commentId);
+        await deleteDoc(commentRef);
+
+        // Swap to Supabase: Decrement comment_count atomically
+        const { error } = await _supabase.rpc('toggle_comment_count_atomic', {
+          p_post_id: postId,
+          p_increment: -1  // Decrement
         });
 
-        if (!response.ok) throw new Error("Server failed to delete comment");
+        if (error) throw error;
 
-        if (typeof Ledger !== 'undefined') Ledger.log("deleteComment", 0, 1, 1);
-        
+        Ledger.log("deleteComment", 0, 1, 1);
         showToast("Comment deleted");
-        
-        // If the modal is open, you might want to refresh the comments list here
-        // e.g., if (isModalOpen) renderComments(postId);
-        
       } catch (error) {
         console.error('Delete comment error:', error);
         showToast("Could not delete comment", "error");
@@ -1968,36 +2120,39 @@ function openModal(post) {
 }
 
 function closeModal() {
-  // 1. Navigation: Keep the browser history in sync
+  // 1. Navigation: Handle the hardware back button logic
   if (window.history.state?.modal === 'open') {
     window.history.back();
   }
-  
-  // 2. UI Reset: Hide modal and restore scrolling
+	
+  // 2. UI Reset
   DOM.modal.classList.add('hidden');
   document.body.style.overflow = ''; 
 
-  // 3. Comment Cleanup: Stop the Firestore listener
+  // 3. Listener Cleanup
   if (commentsUnsubscribe) { 
     commentsUnsubscribe(); 
     commentsUnsubscribe = null; 
   }
 
-  // 4. Live Counter Cleanup (Railway/Supabase)
-  // We stop watching the specific post counts to save bandwidth
+  // 🚀 THE FIX: Stop the modal's specific live-count watcher
+  // This ensures the "phone hangs up" on this post when you walk away
+  if (typeof modalAutoUnsubscribe !== 'undefined' && modalAutoUnsubscribe) {
+    modalAutoUnsubscribe();
+    // We set it to null so it's ready for the next post
+    // Note: ensure modalAutoUnsubscribe is declared with 'let' at the top of your script
+  }
+  
   if (activePostId && activePostListeners.has(activePostId)) {
     const unsubscribe = activePostListeners.get(activePostId);
     if (typeof unsubscribe === 'function') {
-      // This will now trigger our refactored "hang up" logic
-      unsubscribe(); 
+      unsubscribe(); // This triggers _supabase.removeChannel()
     }
-    activePostListeners.delete(activePostId); 
+    activePostListeners.delete(activePostId); // Wipe from the Map
   }
   
-  // Clear the global reference
   activePostId = null;
   
-  // 5. Input Restore: Let the user type again
   if (DOM.input) {
     DOM.input.disabled = false;
   }
@@ -2006,19 +2161,21 @@ function closeModal() {
 async function postComment() {
   const rawText = DOM.commentInput.value.trim();
   
-  // 1. Guards
   if (!checkSpamGuard(null)) return; 
   if (!rawText || !activePostId) return;
 
+  // Sanitize the input to remove HTML tags and keep only plain text
   const text = getSafeText(rawText);
+
+  // If sanitization results in empty text (e.g., if the input was only HTML), prevent submission
   if (!text.trim()) {
     showToast("Invalid comment");
     return;
   }
 
-  // 2. Keyboard & UI Suppression
+  // --- ⌨️ KEYBOARD SUPPRESSION ---
   DOM.commentInput.blur(); 
-  DOM.commentInput.disabled = true; 
+  DOM.commentInput.disabled = true; // "Hard Kill" focus so OS drops keyboard
   
   if ('virtualKeyboard' in navigator) {
     navigator.virtualKeyboard.hide();
@@ -2028,24 +2185,25 @@ async function postComment() {
   DOM.sendComment.style.opacity = "0.5";
 
   try {
-    // 3. REFACTORED: Send to Railway API
-    const response = await fetch(`${API_BASE}/api/posts/${activePostId}/comments`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: text,
-        authorId: MY_USER_ID
-      })
+    // Keep Firebase: Add comment to subcollection
+    await addDoc(collection(db, `globalPosts/${activePostId}/comments`), {
+      text: text,
+      authorId: MY_USER_ID, 
+      createdAt: serverTimestamp()
     });
 
-    if (!response.ok) throw new Error("Server failed to post comment");
+    // Swap to Supabase: Increment comment_count atomically
+    const { error } = await _supabase.rpc('toggle_comment_count_atomic', {
+      p_post_id: activePostId,
+      p_increment: 1  // Increment
+    });
 
-    // 4. Success Actions
-    if (typeof Ledger !== 'undefined') Ledger.log("postComment", 0, 2, 0);
+    if (error) throw error;
+
+    Ledger.log("postComment", 0, 2, 0);
     DOM.commentInput.value = '';
     showToast("Comment added");
     
-    // Smoothly scroll to top to see the new comment
     const scrollArea = document.getElementById('modalScrollArea');
     if (scrollArea) scrollArea.scrollTop = 0; 
 
@@ -2053,11 +2211,12 @@ async function postComment() {
     console.error('Post comment error:', e);
     showToast("Connection failed. Comment not added.");
   } finally { 
-    // Wait for the keyboard to finish sliding down before re-enabling
+    // Re-enable UI after keyboard animation finishes
     setTimeout(() => {
       DOM.commentInput.disabled = false;
       DOM.sendComment.disabled = false; 
       DOM.sendComment.style.opacity = "1";
+      // NOTE: We do NOT call .focus() here anymore.
     }, 300);
   }
 }
@@ -2229,40 +2388,47 @@ function checkSpamGuard(newContent) {
 
 async function updateLocalPostWithServerData(postId, serverCommentCount = null, serverLikeCount = null) {
   try {
+    // 🚦 TRAP FIX: Explicitly check for null/undefined so 0 doesn't trigger a fetch
     let needsFetch = (serverCommentCount === null || serverLikeCount === null);
     
     let finalComments = serverCommentCount;
     let finalLikes = serverLikeCount;
 
     if (needsFetch) {
-      console.log(`[Storage] 🔍 No data provided for ${postId}, fetching from Railway...`);
-      
-      // REFACTORED: Call Railway instead of Supabase SDK
-      const response = await fetch(`${API_BASE}/api/posts/${postId}/stats`);
-      
-      if (!response.ok) {
-        console.error(`[Storage] ❌ Fetch failed for ${postId}`);
+		console.log(`[Storage] 🔍 No data provided for ${postId}, fetching from Supabase...`);
+      const { data, error } = await _supabase
+        .from('posts')
+        .select('like_count, comment_count')
+        .eq('id', postId)
+        .maybeSingle();
+
+      if (error || !data) {
+        console.error(`[Storage] ❌ Fetch failed for ${postId}`, error);
         return; 
       }
-      
-      const data = await response.json();
+	 
       finalComments = data.comment_count;
       finalLikes = data.like_count;
     }
 
-    // 💾 STORAGE LOGIC (0 Logical Changes below this line)
+    // 💾 STORAGE LOGIC
     let posts = JSON.parse(localStorage.getItem('freeform_v2')) || [];
     let updated = false;
 
     posts = posts.map(p => {
       if (p.firebaseId === postId || p.id === postId) {
+        // 🛠️ TYPE FIX: Force both to Numbers to ensure the comparison is accurate
         const currentLocalLikes = Number(p.likeCount) || 0;
         const currentLocalComments = Number(p.commentCount) || 0;
         const incomingLikes = Number(finalLikes) || 0;
         const incomingComments = Number(finalComments) || 0;
 
         if (currentLocalComments !== incomingComments || currentLocalLikes !== incomingLikes) {
-          console.log(`[Storage] 🔄 Syncing Post ${postId}: Likes: ${currentLocalLikes} -> ${incomingLikes} Comments: ${currentLocalComments} -> ${incomingComments}`);
+			
+			console.log(`[Storage] 🔄 Syncing Post ${postId}:
+            Likes: ${currentLocalLikes} -> ${incomingLikes}
+            Comments: ${currentLocalComments} -> ${incomingComments}`);
+			
           p.commentCount = incomingComments;
           p.likeCount = incomingLikes;
           updated = true;
@@ -2273,9 +2439,10 @@ async function updateLocalPostWithServerData(postId, serverCommentCount = null, 
 
     if (updated) {
       localStorage.setItem('freeform_v2', JSON.stringify(posts));
-      console.log(`[Storage] ✅ LocalStorage updated for ${postId}`);
+      // Only refresh the heavy UI if we're actually on that tab
+	  console.log(`[Storage] ✅ LocalStorage updated for ${postId}`);
       if (currentTab === 'private') {
-        console.log(`[UI] 🏎️ Private tab active, re-rendering batch...`);
+		  console.log(`[UI] 🏎️ Private tab active, re-rendering batch...`);
         allPrivatePosts = posts.slice().reverse();
         renderPrivateBatch();
       }
@@ -2395,14 +2562,9 @@ window.renderSmartText = renderSmartText;
 
 function getRelativeTime(timestamp) {
   if (!timestamp) return "Just now";
-  
-  // REFACTORED: Firebase .toDate() check removed for standard Date parsing
-  // This works for both ISO strings from Railway and old local data
-  const date = new Date(timestamp); 
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
   const now = new Date();
   const diff = Math.floor((now - date) / 1000); 
-
-  if (isNaN(date.getTime())) return "Just now"; // Safety check for invalid dates
   if (diff < 60) return "Just now";
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
