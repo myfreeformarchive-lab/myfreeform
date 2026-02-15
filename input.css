@@ -256,6 +256,14 @@ main.max-w-xl.mx-auto {
   animation: popIn 0.2s ease-out forwards; /* Quick, subtle entrance */
 }
 
+/* Ensure the Nav is using Hardware Acceleration to stay smooth */
+nav {
+  position: fixed;
+  bottom: 0;
+  backface-visibility: hidden;
+  transform: translate3d(0,0,0); /* Forces GPU layer */
+}
+
 
 /* =========================================
     SHARE SYSTEM 
