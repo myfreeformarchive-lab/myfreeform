@@ -17,7 +17,8 @@ const firebaseConfig = {
   projectId: "myfreeformarchive-8a786",
   storageBucket: "myfreeformarchive-8a786.appspot.com",
   messagingSenderId: "16237442482",
-  appId: "1:16237442482:web:424f8f2e344a58e7f6a0ab"
+  appId: "1:16237442482:web:424f8f2e344a58e7f6a0ab",
+  measurementId: "G-P8EG1477ME"
 };
 
 const app = initializeApp(firebaseConfig);
