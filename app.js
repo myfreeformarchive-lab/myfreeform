@@ -308,13 +308,21 @@ window.syncIncomingMessages = async function() {
     for (const row of data) {
         const msg = row.payload;
         
-        console.log(`💾 Sync: Saving message from ${msg.senderId} to LocalStorage...`);
-        saveToLocal(msg.roomId, msg);
+        // --- THE FIX ---
+        // Ensure the roomId has the 'secure_chat_' prefix so renderChatList can see it
+        const cleanRoomId = msg.roomId.startsWith('secure_chat_') 
+            ? msg.roomId 
+            : `secure_chat_${msg.roomId}`;
+
+        console.log(`💾 Sync: Saving to ${cleanRoomId}...`);
+        
+        // We pass the cleanRoomId here to ensure LocalStorage key is correct
+        saveToLocal(cleanRoomId, msg);
         
         console.log(`🗑️ Sync: Deleting message ID ${row.id} from Supabase...`);
         const { error: delError } = await _supabase.from('dm_relay').delete().eq('id', row.id);
         
-        if (delError) console.error("⚠️ Sync: Failed to delete after download:", delError.message);
+        if (delError) console.error("⚠️ Sync: Failed to delete:", delError.message);
     }
     
     // 4. UI Refresh Logs
