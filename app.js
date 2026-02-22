@@ -285,19 +285,6 @@ if (DOM.desktopEmojiTrigger && DOM.desktopEmojiPopup) {
   
 });
 
-let isScrolling = false;
-window.addEventListener('scroll', () => {
-  if (!isScrolling) {
-    document.body.classList.add('no-transitions');
-    isScrolling = true;
-  }
-  clearTimeout(window.scrollTimeout);
-  window.scrollTimeout = setTimeout(() => {
-    document.body.classList.remove('no-transitions');
-    isScrolling = false;
-  }, 150);
-});
-
 // ==========================================
 // 0. NEW: ATOMIC COUNTER SYSTEM
 // ==========================================
@@ -2666,6 +2653,58 @@ document.addEventListener('DOMContentLoaded', () => {
     // 6 & 7. Exit Modal
     document.getElementById('exitModalBack')?.addEventListener('click', () => closeExitModal());
     document.getElementById('confirm-exit-btn')?.addEventListener('click', () => closeExitModal());
+});
+
+// Generic function to open ANY modal (Profile, Chat, etc.)
+function showUIModal(modalElement) {
+  if (window.history.state?.modal !== 'open') {
+    history.pushState({ modal: 'open' }, '');
+  }
+  if (DOM.input) DOM.input.disabled = true;
+  
+  modalElement.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+// Generic function to close ANY modal
+function hideUIModal(modalElement) {
+  if (window.history.state?.modal === 'open') {
+    window.history.back();
+  }
+  modalElement.classList.add('hidden');
+  document.body.style.overflow = '';
+  if (DOM.input) DOM.input.disabled = false;
+}
+
+// 1. Get references to the new elements
+const profileModal = document.getElementById('profileModal');
+const chatModal = document.getElementById('chatModal');
+
+// 2. Open Profile
+document.getElementById('navProfile').onclick = () => {
+  showUIModal(profileModal);
+};
+
+// 3. Open Chat
+document.getElementById('navMessages').onclick = () => {
+  showUIModal(chatModal);
+};
+
+// 4. Close Listeners (Buttons and Overlays)
+document.getElementById('closeProfileBtn').onclick = () => hideUIModal(profileModal);
+document.getElementById('profileOverlay').onclick = () => hideUIModal(profileModal);
+
+document.getElementById('closeChatBtn').onclick = () => hideUIModal(chatModal);
+document.getElementById('chatOverlay').onclick = () => hideUIModal(chatModal);
+
+// 5. Sync with your existing Back Button popstate logic
+window.addEventListener('popstate', () => {
+  // Hide all modals if the user clicks the physical back button
+  profileModal.classList.add('hidden');
+  chatModal.classList.add('hidden');
+  DOM.modal.classList.add('hidden'); // Your original comment modal
+  document.body.style.overflow = '';
+  if (DOM.input) DOM.input.disabled = false;
 });
 
 
