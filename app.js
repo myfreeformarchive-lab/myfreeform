@@ -287,7 +287,7 @@ if (DOM.desktopEmojiTrigger && DOM.desktopEmojiPopup) {
 window.syncIncomingMessages = async function() {
     console.log("🔍 Sync: Checking 'dm_relay' for messages...");
 
-    // 1. Fetch messages
+    // 1. Fetch messages where I am the receiver
     const { data, error } = await _supabase
         .from('dm_relay')
         .select('*')
@@ -299,49 +299,50 @@ window.syncIncomingMessages = async function() {
     }
 
     if (!data || data.length === 0) {
-        console.log("os Sync: No new messages found on server.");
+        console.log("📥 Sync: No new messages found.");
         return;
     }
 
-    console.log(`📩 Sync: Found ${data.length} new messages! Processing...`);
+    console.log(`📩 Sync: Found ${data.length} messages. Processing...`);
 
     for (const row of data) {
         const msg = row.payload;
         
-        // --- THE FIX ---
-        // Ensure the roomId has the 'secure_chat_' prefix so renderChatList can see it
-        const cleanRoomId = msg.roomId.startsWith('secure_chat_') 
-            ? msg.roomId 
-            : `secure_chat_${msg.roomId}`;
+        // Use the raw roomId directly from the message payload
+        const roomId = msg.roomId;
 
-        console.log(`💾 Sync: Saving to ${cleanRoomId}...`);
+        console.log(`💾 Sync: Saving to local storage for room: ${roomId}`);
+        saveToLocal(roomId, msg);
         
-        // We pass the cleanRoomId here to ensure LocalStorage key is correct
-        saveToLocal(cleanRoomId, msg);
+        // 2. Delete from Supabase immediately (Ephemeral)
+        const { error: delError } = await _supabase
+            .from('dm_relay')
+            .delete()
+            .eq('id', row.id);
         
-        console.log(`🗑️ Sync: Deleting message ID ${row.id} from Supabase...`);
-        const { error: delError } = await _supabase.from('dm_relay').delete().eq('id', row.id);
-        
-        if (delError) console.error("⚠️ Sync: Failed to delete:", delError.message);
+        if (delError) console.error("⚠️ Sync: Cleanup failed for ID:", row.id);
     }
     
-    // 4. UI Refresh Logs
+    // 3. UI Auto-Refresh
     const dmModal = document.getElementById('dmModal');
     const chatModal = document.getElementById('chatModal');
 
+    // If the DM window is open, refresh the messages
     if (dmModal && !dmModal.classList.contains('hidden')) {
-        console.log("🔄 Sync: DM Modal is open, refreshing messages...");
-        const targetUserId = document.getElementById('dmModalTitle').innerText.replace('@', '');
-        const currentRoomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
-        renderMessages(currentRoomId);
+        const title = document.getElementById('dmModalTitle');
+        if (title) {
+            const targetUserId = title.innerText.replace('@', '');
+            const currentRoomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
+            renderMessages(currentRoomId);
+        }
     }
 
+    // If the Inbox list is open, refresh the list
     if (chatModal && !chatModal.classList.contains('hidden')) {
-        console.log("🔄 Sync: Inbox Modal is open, refreshing list...");
         renderChatList();
     }
     
-    console.log("✅ Sync: Process complete.");
+    console.log("✅ Sync: All messages processed and UI updated.");
 };
   
 });
@@ -1483,8 +1484,8 @@ window.renderChatList = function() {
     const chats = [];
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key.startsWith('secure_chat_')) {
-            const history = JSON.parse(localStorage.getItem(key));
+        if (key.includes('--chat--')) { 
+        const history = JSON.parse(localStorage.getItem(key));
             if (history && history.length > 0) {
                 const lastMsg = history[history.length - 1];
                 const roomId = key.replace('secure_chat_', '');
