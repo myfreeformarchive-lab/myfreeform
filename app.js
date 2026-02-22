@@ -319,7 +319,7 @@ window.syncIncomingMessages = async function() {
         const roomId = msg.roomId;
 
         console.log(`💾 Sync: Saving to local storage for room: ${roomId}`);
-        saveToLocal(roomId, msg);
+        window.saveToLocal(roomId, msg);
         
         // 2. Delete from Supabase immediately (Ephemeral)
         const { error: delError } = await _supabase
@@ -1391,11 +1391,11 @@ window.sendMessage = async function() {
     };
 
     // STEP 1: Save to local storage (Sender side)
-    saveToLocal(roomId, messageData);
+    window.saveToLocal(roomId, messageData);
 
     // STEP 2: Clear UI Input and Refresh the message list
     input.value = '';
-    renderMessages(roomId);
+    window.renderMessages(roomId);
 
     // STEP 3: Push to Supabase Relay
     try {
