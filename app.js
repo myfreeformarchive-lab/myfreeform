@@ -1418,16 +1418,25 @@ window.sendMessage = async function() {
 /**
  * STEP 1 helper: Save to LocalStorage
  */
-function saveToLocal(roomId, msgObj) {
-    const key = STORAGE_PREFIX + roomId;
-    const history = JSON.parse(localStorage.getItem(key) || '[]');
+window.saveToLocal = function(roomId, msgObj) {
+    // We use the roomId directly as the key now (e.g., "userA--chat--userB")
+    const key = roomId; 
+    
+    let history = [];
+    try {
+        history = JSON.parse(localStorage.getItem(key) || '[]');
+    } catch (e) {
+        console.error("Malformed JSON in local storage, resetting history.");
+        history = [];
+    }
     
     // Avoid duplicates (important for the sync step)
     if (!history.find(m => m.id === msgObj.id)) {
         history.push(msgObj);
         localStorage.setItem(key, JSON.stringify(history));
+        console.log(`💾 Saved to LocalStorage: ${key}`);
     }
-}
+};
 
 /**
  * UI RENDERER
