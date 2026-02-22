@@ -1049,6 +1049,11 @@ function createPostNode(item) {
     ? `<span class="text-brand-500 font-bold text-[11px] bg-brand-50 px-2 py-0.5 rounded-full">${item.uniqueTag}</span>`
     : `<span class="text-slate-400 font-medium text-[11px] bg-slate-50 px-2 py-0.5 rounded-full">#draft</span>`;
 
+  // --- NEW SOCIAL LOGIC ---
+const authorId = item.authorId || 'anon';
+const shortId = authorId.split('-')[0];
+const isMe = item.authorId === MY_USER_ID;
+
   const hasCommentsAccess = item.isFirebase || item.firebaseId;
   const realId = item.isFirebase ? item.id : item.firebaseId;
   const commentCount = item.commentCount || 0; 
@@ -1101,15 +1106,33 @@ function createPostNode(item) {
   `;
 
   const footerHtml = `<div class="mt-6 pt-5 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
+  
+  // Only show DM if it's Global and NOT mine
+const dmButtonHtml = (item.isFirebase && !isMe) ? `
+  <button onclick="openDirectMessage(event, '${item.authorId}')" 
+          class="relative z-30 p-1.5 rounded-full bg-slate-50 text-slate-400 hover:bg-brand-50 hover:text-brand-500 transition-all active:scale-95 cursor-pointer">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-14h1.4c2 0 4 2 4 4v2"></path>
+      <path d="M9 11l.01 0"></path>
+      <path d="M15 11l.01 0"></path>
+    </svg>
+  </button>
+` : '';
 
   el.innerHTML = `
 <div class="animation-container absolute inset-0 flex items-center justify-center pointer-events-none z-30"></div>
  
-<div class="flex justify-between items-start mb-6"> <div class="flex items-center gap-2">
-    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${item.isFirebase ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}">
+<div class="flex justify-between items-start mb-6"> 
+  <div class="flex items-center gap-2">
+    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider 
+      ${item.isFirebase ? 'bg-brand-50 text-brand-600' : 'bg-slate-100 text-slate-500'}">
       ${item.isFirebase ? 'Global' : 'Local'}
     </span>
     <span class="text-xs text-slate-400 font-medium">${time}</span>
+  </div>
+  
+  <div class="flex items-center">
+    ${dmButtonHtml}
   </div>
 </div>
 
@@ -1188,6 +1211,76 @@ ${footerHtml}
 
   return el;
 }
+
+// 1. THE MAIN OPEN FUNCTION
+window.openDirectMessage = function(e, targetUserId) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  
+  const myId = MY_USER_ID;
+  const roomId = [myId, targetUserId].sort().join('--chat--');
+  const shortTarget = targetUserId.split('-')[0];
+  
+  const modal = document.getElementById('dmModal');
+  const title = document.getElementById('dmModalTitle');
+  const container = document.getElementById('dmMessagesContainer');
+  
+ if (modal) {
+    modal.classList.remove('hidden');
+    
+    // 2. Show the FULL target ID in the title
+    if (title) title.innerText = `@${targetUserId}`;
+    
+    if (container) {
+      container.innerHTML = `
+        <div class="flex flex-col items-center text-center py-12">
+          <div class="w-20 h-20 rounded-3xl bg-brand-50 flex items-center justify-center text-brand-500 mb-6 border border-brand-100 shadow-sm animate-pulse">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </div>
+          
+          <div class="px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl mb-4 max-w-[90%]">
+            <p class="text-[9px] text-slate-400 uppercase font-black tracking-widest mb-1">Secure Channel ID</p>
+            <p class="text-[11px] font-mono text-slate-600 break-all leading-relaxed">
+              ${roomId}
+            </p>
+          </div>
+          
+          <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">P2P Handshake Verified</p>
+          
+          <div class="flex gap-1.5 mt-6">
+             <span class="w-1 h-1 bg-brand-400 rounded-full animate-bounce"></span>
+             <span class="w-1 h-1 bg-brand-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+             <span class="w-1 h-1 bg-brand-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+          </div>
+        </div>
+      `;
+    }
+  }
+};
+
+// 2. THE CLOSE FUNCTION
+window.closeDMModal = function() {
+  const modal = document.getElementById('dmModal');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+};
+
+// 3. SECURE LISTENERS (Wrap in a check so it doesn't crash the script)
+document.addEventListener('DOMContentLoaded', () => {
+  const overlay = document.getElementById('dmOverlay');
+  if (overlay) {
+    overlay.addEventListener('click', closeDMModal);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDMModal();
+  });
+});
 
 function showHeartAnimation(container) {
   const rect = container.getBoundingClientRect();
@@ -2841,7 +2934,6 @@ window.addEventListener('popstate', () => {
   document.body.style.overflow = '';
   if (DOM.input) DOM.input.disabled = false;
 });
-
 
 const Ledger = {
   reads: 0,
