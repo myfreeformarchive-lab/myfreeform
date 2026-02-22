@@ -282,22 +282,6 @@ main.max-w-xl.mx-auto {
   backface-visibility: hidden;
 }
 
-/* Styling for the messages that will eventually be injected */
-.dm-message-received {
-    align-self: flex-start;
-    background-color: white;
-    border: 1px border-slate-100;
-    color: #1e293b; /* slate-800 */
-    border-bottom-left-radius: 4px;
-}
-
-.dm-message-sent {
-    align-self: flex-end;
-    background-color: var(--brand-primary, #3b82f6);
-    color: white;
-    border-bottom-right-radius: 4px;
-}
-
 /* 3. Modal Animations: Keyframes and triggers for modal appearance */
 /* Smooth fade and slide effects for better UX */
 
@@ -310,7 +294,8 @@ main.max-w-xl.mx-auto {
 /* Trigger fade for modal overlay when visible */
 #commentModal:not(.hidden) #closeModalOverlay,
 #profileModal:not(.hidden) #profileOverlay,
-#chatModal:not(.hidden) #chatOverlay {
+#chatModal:not(.hidden) #chatOverlay,
+#dmModal:not(.hidden) #dmOverlay { /* Added */
   animation: fadeIn 0.3s ease-out forwards;
 }
 
@@ -323,7 +308,8 @@ main.max-w-xl.mx-auto {
 /* Trigger slide for modal card with easing */
 #commentModal:not(.hidden) #modalCard,
 #profileModal:not(.hidden) > div:last-child,
-#chatModal:not(.hidden) > div:last-child {
+#chatModal:not(.hidden) > div:last-child,
+#dmModal:not(.hidden) > div:last-child { /* Added */
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -346,6 +332,21 @@ main.max-w-xl.mx-auto {
   will-change: transform, opacity;
 }
 
+/* Styling for the messages that will eventually be injected */
+.dm-message-received {
+    align-self: flex-start;
+    background-color: white;
+    border: 1px border-slate-100;
+    color: #1e293b; /* slate-800 */
+    border-bottom-left-radius: 4px;
+}
+
+.dm-message-sent {
+    align-self: flex-end;
+    background-color: var(--brand-primary, #3b82f6);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
 
 /* =========================================
     SHARE SYSTEM 
