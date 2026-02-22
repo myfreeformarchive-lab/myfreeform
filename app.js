@@ -83,6 +83,7 @@ const supabaseUrl = 'https://ipgtvatyzwhkifnsstux.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwZ3R2YXR5endoa2lmbnNzdHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NDcyMzIsImV4cCI6MjA4NjIyMzIzMn0.OH7Dru0KKKdewj1nsWofvI73cT6tKIZbTVMPJA2oPvI'; 
 // Use _supabase (with an underscore) to avoid clashing with the library name
 const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
+window.supabase = _supabase;
 
 window.pendingPostUpdates = 0;
 
@@ -282,6 +283,58 @@ if (DOM.desktopEmojiTrigger && DOM.desktopEmojiPopup) {
       });
     }
   });
+  
+window.syncIncomingMessages = async function() {
+    console.log("🔍 Sync: Checking 'dm_relay' for messages...");
+
+    // 1. Fetch messages
+    const { data, error } = await _supabase
+        .from('dm_relay')
+        .select('*')
+        .eq('receiver_id', MY_USER_ID);
+
+    if (error) {
+        console.error("❌ Sync Error:", error.message);
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        console.log("os Sync: No new messages found on server.");
+        return;
+    }
+
+    console.log(`📩 Sync: Found ${data.length} new messages! Processing...`);
+
+    for (const row of data) {
+        const msg = row.payload;
+        
+        console.log(`💾 Sync: Saving message from ${msg.senderId} to LocalStorage...`);
+        saveToLocal(msg.roomId, msg);
+        
+        console.log(`🗑️ Sync: Deleting message ID ${row.id} from Supabase...`);
+        const { error: delError } = await supabase.from('dm_relay').delete().eq('id', row.id);
+        
+        if (delError) console.error("⚠️ Sync: Failed to delete after download:", delError.message);
+    }
+    
+    // 4. UI Refresh Logs
+    const dmModal = document.getElementById('dmModal');
+    const chatModal = document.getElementById('chatModal');
+
+    if (dmModal && !dmModal.classList.contains('hidden')) {
+        console.log("🔄 Sync: DM Modal is open, refreshing messages...");
+        const targetUserId = document.getElementById('dmModalTitle').innerText.replace('@', '');
+        const currentRoomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
+        renderMessages(currentRoomId);
+    }
+
+    if (chatModal && !chatModal.classList.contains('hidden')) {
+        console.log("🔄 Sync: Inbox Modal is open, refreshing list...");
+        renderChatList();
+    }
+    
+    console.log("✅ Sync: Process complete.");
+};
   
 });
 
@@ -1212,28 +1265,31 @@ ${footerHtml}
   return el;
 }
 
-// 1. THE MAIN OPEN FUNCTION
 window.openDirectMessage = function(e, targetUserId) {
-  if (e) {
-    e.preventDefault();
-    e.stopPropagation();
-  }
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
   
-  const myId = MY_USER_ID;
-  const roomId = [myId, targetUserId].sort().join('--chat--');
-  
-  const modal = document.getElementById('dmModal');
-  const title = document.getElementById('dmModalTitle');
-  const container = document.getElementById('dmMessagesContainer');
-  
-  if (modal) {
-    modal.classList.remove('hidden');
-
-    // --- NEW: Add a history state so the back button closes the modal ---
-    history.pushState({ modalOpen: true }, '');
+    // 1. DIRECT SWAP (Avoids the history.back conflict)
+    const chatModal = document.getElementById('chatModal');
+    const dmModal = document.getElementById('dmModal');
     
+    if (chatModal) chatModal.classList.add('hidden'); // Hide Inbox
+    if (dmModal) dmModal.classList.remove('hidden'); // Show DM
+    
+    // Ensure background remains locked
+    document.body.style.overflow = 'hidden';
+
+    // 2. Setup IDs and Logic
+    const myId = MY_USER_ID;
+    const roomId = [myId, targetUserId].sort().join('--chat--');
+    const title = document.getElementById('dmModalTitle');
+    const container = document.getElementById('dmMessagesContainer');
+  
     if (title) title.innerText = `@${targetUserId}`;
     
+    // 3. Set the Handshake UI
     if (container) {
       container.innerHTML = `
         <div class="flex flex-col items-center text-center py-12">
@@ -1242,25 +1298,16 @@ window.openDirectMessage = function(e, targetUserId) {
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
             </svg>
           </div>
-          
           <div class="px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl mb-4 max-w-[90%]">
             <p class="text-[9px] text-slate-400 uppercase font-black tracking-widest mb-1">Secure Channel ID</p>
-            <p class="text-[11px] font-mono text-slate-600 break-all leading-relaxed">
-              ${roomId}
-            </p>
+            <p class="text-[11px] font-mono text-slate-600 break-all leading-relaxed">${roomId}</p>
           </div>
-          
           <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">P2P Handshake Verified</p>
-          
-          <div class="flex gap-1.5 mt-6">
-             <span class="w-1 h-1 bg-brand-400 rounded-full animate-bounce"></span>
-             <span class="w-1 h-1 bg-brand-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-             <span class="w-1 h-1 bg-brand-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
-          </div>
-        </div>
-      `;
+        </div>`;
     }
-  }
+
+    // 4. Render real messages if they exist
+    window.renderMessages(roomId);
 };
 
 // 2. THE CLOSE FUNCTION
@@ -1296,6 +1343,194 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+// 1. DATA CONFIGURATION
+const STORAGE_PREFIX = "secure_chat_";
+
+/**
+ * MAIN SEND FUNCTION
+ * Triggered by the Send Button or 'Enter' key
+ */
+window.sendMessage = async function() {
+    const input = document.getElementById('dmInput');
+    const container = document.getElementById('dmMessagesContainer');
+    const messageText = input.value.trim();
+    
+    // Safety checks
+    if (!messageText) return;
+    const targetUserId = document.getElementById('dmModalTitle').innerText.replace('@', '');
+    if (!targetUserId) return;
+
+    const roomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
+
+    // Create the Message Object
+    const messageData = {
+        id: crypto.randomUUID(),
+        senderId: MY_USER_ID,
+        receiverId: targetUserId,
+        roomId: roomId,
+        text: messageText,
+        timestamp: Date.now(),
+        status: 'delivered' // Initial status
+    };
+
+    // STEP 1: Save to local storage (Sender side)
+    saveToLocal(roomId, messageData);
+
+    // STEP 2: Clear UI Input and Refresh the message list
+    input.value = '';
+    renderMessages(roomId);
+
+    // STEP 3: Push to Supabase Relay
+    try {
+        const { error } = await _supabase
+            .from('dm_relay')
+            .insert([{
+                id: messageData.id,
+                room_id: roomId,
+                receiver_id: targetUserId,
+                payload: messageData
+            }]);
+
+        if (error) throw error;
+    } catch (err) {
+        console.error("Relay failed:", err.message);
+        // Optional: Update local message UI to show "Failed to send"
+    }
+};
+
+/**
+ * STEP 1 helper: Save to LocalStorage
+ */
+function saveToLocal(roomId, msgObj) {
+    const key = STORAGE_PREFIX + roomId;
+    const history = JSON.parse(localStorage.getItem(key) || '[]');
+    
+    // Avoid duplicates (important for the sync step)
+    if (!history.find(m => m.id === msgObj.id)) {
+        history.push(msgObj);
+        localStorage.setItem(key, JSON.stringify(history));
+    }
+}
+
+/**
+ * UI RENDERER
+ * Pulls from LocalStorage and displays in the modal
+ */
+window.renderMessages = function(roomId) {
+    const container = document.getElementById('dmMessagesContainer');
+    if (!container) return;
+
+    const key = `secure_chat_${roomId}`;
+    const history = JSON.parse(localStorage.getItem(key) || '[]');
+
+    // 1. If no history exists, STOP HERE so the "Splash Screen" stays visible
+    if (history.length === 0) return;
+
+    // 2. If history exists, clear the Splash Screen and show messages
+    container.innerHTML = history.map(msg => {
+        const isMe = msg.senderId === MY_USER_ID;
+        return `
+            <div class="flex ${isMe ? 'justify-end' : 'justify-start'} mb-4">
+                <div class="max-w-[80%] rounded-2xl px-4 py-2 ${
+                    isMe 
+                    ? 'bg-brand-500 text-white rounded-tr-none' 
+                    : 'bg-slate-100 text-slate-800 rounded-tl-none'
+                }">
+                    <p class="text-sm">${msg.text}</p>
+                    <p class="text-[10px] opacity-70 mt-1 ${isMe ? 'text-right' : 'text-left'}">
+                        ${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </p>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // 3. Auto-scroll to the latest message
+    container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+};
+
+// 4. ATTACH LISTENERS
+document.addEventListener('DOMContentLoaded', () => {
+    const sendBtn = document.getElementById('sendDMBtn');
+    const dmInput = document.getElementById('dmInput');
+
+    if (sendBtn) sendBtn.onclick = window.sendMessage;
+
+    if (dmInput) {
+        dmInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                window.sendMessage();
+            }
+        });
+    }
+});
+
+window.renderChatList = function() {
+    const listContainer = document.getElementById('chatListContainer');
+    if (!listContainer) return;
+
+    // 1. Find all chat rooms in LocalStorage
+    const chats = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('secure_chat_')) {
+            const history = JSON.parse(localStorage.getItem(key));
+            if (history && history.length > 0) {
+                const lastMsg = history[history.length - 1];
+                const roomId = key.replace('secure_chat_', '');
+                
+                // Determine the "Other User" ID from the Room ID
+                const participants = roomId.split('--chat--');
+                const otherUser = participants.find(id => id !== MY_USER_ID);
+
+                chats.push({
+                    roomId: roomId,
+                    otherUser: otherUser,
+                    lastText: lastMsg.text,
+                    timestamp: lastMsg.timestamp
+                });
+            }
+        }
+    }
+
+    // 2. Sort by newest message first
+    chats.sort((a, b) => b.timestamp - a.timestamp);
+
+    // 3. Render the HTML
+    if (chats.length === 0) {
+        listContainer.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-20 text-slate-400">
+                <p class="text-sm">No secure messages yet.</p>
+            </div>`;
+        return;
+    }
+
+    listContainer.innerHTML = chats.map(chat => `
+        <div onclick="openDirectMessage(event, '${chat.otherUser}')" 
+             class="flex items-center gap-4 px-4 py-4 border-b border-gray-50 hover:bg-slate-50 cursor-pointer transition-colors active:bg-slate-100">
+            
+            <div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs border border-slate-200 uppercase">
+                ${chat.otherUser.substring(0, 2)}
+            </div>
+
+            <div class="flex-1 min-w-0">
+                <div class="flex justify-between items-baseline mb-0.5">
+                    <h4 class="font-bold text-gray-900 text-sm truncate">@${chat.otherUser}</h4>
+                    <span class="text-[10px] text-gray-400">
+                        ${new Date(chat.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </span>
+                </div>
+                <p class="text-xs text-gray-500 truncate pr-4">${chat.lastText}</p>
+            </div>
+
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+        </div>
+    `).join('');
+};
 
 function showHeartAnimation(container) {
   const rect = container.getBoundingClientRect();
@@ -2928,9 +3163,12 @@ document.getElementById('navProfile').onclick = () => {
   showUIModal(profileModal);
 };
 
-// 3. Open Chat
 document.getElementById('navMessages').onclick = () => {
-  showUIModal(chatModal);
+    // First, show the modal using your existing function
+    showUIModal(chatModal);
+    
+    // Second, run the list logic to populate it
+    window.renderChatList(); 
 };
 
 // 4. Close Listeners (Buttons and Overlays)
@@ -2948,6 +3186,18 @@ window.addEventListener('popstate', () => {
   DOM.modal.classList.add('hidden'); // Your original comment modal
   document.body.style.overflow = '';
   if (DOM.input) DOM.input.disabled = false;
+});
+
+// Listen for clicks on the document itself
+document.addEventListener('click', (e) => {
+    // Check if the clicked element (or its parent) is our send button
+    const btn = e.target.closest('#sendDMBtn');
+    
+    if (btn) {
+        console.log("Found the button via delegation!");
+        e.preventDefault();
+        window.sendMessage();
+    }
 });
 
 const Ledger = {
