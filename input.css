@@ -8,25 +8,37 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ✅ THEME VARIABLES: Define custom CSS properties for fonts and colors */
-/* These extend the design system, providing a full brand palette and font stacks */
-/* Accessible via CSS custom properties (e.g., var(--color-brand-500)) or Tailwind classes */
-@theme {
-  /* Fonts: Define font families with fallbacks for cross-platform compatibility */
-  --font-sans: "Inter", ui-sans-serif, system-ui;        /* Clean sans-serif for UI */
-  --font-serif: "Playfair Display", ui-serif, Georgia;   /* Elegant serif for headings */
-  --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular; /* Monospace for code/timestamps */
-  --font-hand: "Dancing Script", cursive;                 /* Handwritten cursive for emphasis */
+:root {
+  /* This is the master switch. Changing this via JS updates everything else. */
+  --brand-primary: #3f51b5; 
 
-  /* Expanded Brand Palette (Indigo Base): Full spectrum from light to dark */
-  --color-brand-50:  #eef2ff; /* Pale background (e.g., for subtle highlights) */
-  --color-brand-100: #e0e7ff; /* Light hover background (e.g., button hovers) */
-  --color-brand-200: #c7d2fe; /* Subtle borders (e.g., desktop focus rings) */
-  --color-brand-300: #a5b4fc; /* Medium accent */
-  --color-brand-400: #818cf8; /* Lighter brand shade */
-  --color-brand-500: #3f51b5; /* Primary brand color (main buttons, links) */
-  --color-brand-600: #303f9f; /* Darker for hovers/actives */
-  --color-brand-700: #283593; /* Deep accent for strong emphasis */
+  /* Logic to calculate shades based on the master switch */
+  --brand-50:  color-mix(in srgb, var(--brand-primary), white 92%);
+  --brand-100: color-mix(in srgb, var(--brand-primary), white 80%);
+  --brand-200: color-mix(in srgb, var(--brand-primary), white 60%);
+  --brand-300: color-mix(in srgb, var(--brand-primary), white 40%);
+  --brand-400: color-mix(in srgb, var(--brand-primary), white 20%);
+  --brand-500: var(--brand-primary);
+  --brand-600: color-mix(in srgb, var(--brand-primary), black 15%);
+  --brand-700: color-mix(in srgb, var(--brand-primary), black 30%);
+}
+
+@theme {
+  /* Fonts remain static as they don't change with the color theme */
+  --font-sans: "Inter", ui-sans-serif, system-ui;
+  --font-serif: "Playfair Display", ui-serif, Georgia;
+  --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular;
+  --font-hand: "Dancing Script", cursive;
+
+  /* Map the Tailwind classes to the dynamic :root variables */
+  --color-brand-50:  var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
 }
 
 /* ✅ FORM ELEMENT OVERRIDES: Custom styles for textarea and input */
