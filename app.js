@@ -1125,7 +1125,7 @@ const dmButtonHtml = (item.isFirebase && !isMe) ? `
 <div class="flex justify-between items-start mb-6"> 
   <div class="flex items-center gap-2">
     <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider 
-      ${item.isFirebase ? 'bg-brand-50 text-brand-600' : 'bg-slate-100 text-slate-500'}">
+      ${item.isFirebase ? 'bg-brand-50 text-brand-600' : 'bg-slate-100 text-slate-500 lg:bg-slate-200'}">
       ${item.isFirebase ? 'Global' : 'Local'}
     </span>
     <span class="text-xs text-slate-400 font-medium">${time}</span>
