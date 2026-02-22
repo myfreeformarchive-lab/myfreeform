@@ -2462,6 +2462,83 @@ function getOrCreateUserId() {
   return id;
 }
 
+// 1. Show User ID in Modal
+function setupProfile() {
+    const userId = getOrCreateUserId();
+    const displayEl = document.getElementById('displayUserId');
+    if (displayEl) displayEl.textContent = userId;
+}
+
+function updateThemeSelectionUI(activeKey) {
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        if (btn.dataset.theme === activeKey) {
+            // Add a "ring" and a checkmark-like border to show it's selected
+            btn.classList.add('ring-2', 'ring-slate-400', 'ring-offset-2', 'border-white');
+        } else {
+            btn.classList.remove('ring-2', 'ring-slate-400', 'ring-offset-2', 'border-white');
+        }
+    });
+}
+
+// 2. Theme Definitions (Using your Indigo as the base)
+const themes = {
+    indigo: '#3f51b5',
+    rose:   '#e11d48',
+    emerald:'#059669',
+    amber:  '#d97706',
+    violet: '#7c3aed',
+    slate:  '#475569',
+    sky:    '#0ea5e9',
+    orange: '#ea580c'
+};
+
+// 3. Apply Theme Function
+// This takes a hex color and generates the variations 
+function applyTheme(colorKey) {
+    const primaryColor = themes[colorKey];
+    if (!primaryColor) return;
+
+    // We only need to set ONE variable now! 
+    // CSS color-mix handles all the other shades (50, 100, 600, etc.)
+    document.documentElement.style.setProperty('--brand-primary', primaryColor);
+    
+    // Save preference
+    localStorage.setItem('selected_theme', colorKey);
+    
+    // Optional: Visual feedback for the active button
+    updateThemeSelectionUI(colorKey);
+}
+
+// 4. Build Theme Grid UI
+function renderThemeGrid() {
+    const grid = document.getElementById('themeGrid');
+    if (!grid) return;
+    grid.innerHTML = ''; // Clear existing to prevent duplicates
+
+    Object.keys(themes).forEach(key => {
+        const btn = document.createElement('button');
+        // Added 'theme-btn' class for easy tracking
+        btn.className = `theme-btn w-full aspect-square rounded-2xl border-4 border-transparent shadow-sm transition-all active:scale-95 cursor-pointer hover:scale-105`;
+        btn.style.backgroundColor = themes[key];
+        btn.dataset.theme = key;
+        
+        btn.onclick = () => applyTheme(key);
+        grid.appendChild(btn);
+    });
+}
+
+// 5. Initialize
+function initProfileAndTheme() {
+    setupProfile();
+    renderThemeGrid();
+    
+    const savedTheme = localStorage.getItem('selected_theme') || 'indigo';
+    applyTheme(savedTheme);
+}
+
+// Call this once your DOM is ready
+initProfileAndTheme();
+
 function setRandomPlaceholder() {
   const phrases = [
     "What's on your mind?", "Share your ideas...", "What's the vibe today?",
@@ -2470,6 +2547,67 @@ function setRandomPlaceholder() {
   ];
   DOM.input.placeholder = phrases[Math.floor(Math.random() * phrases.length)];
 }
+
+async function resetAppCompletely() {
+  // Use the same container ID your showToast function looks for
+  const toastContainer = document.getElementById('toast-container');
+
+  showDialog(
+    "Nuclear Delete", 
+    "This will permanently delete your ID, all public posts, and every comment. This cannot be undone.", 
+    "Delete Everything", 
+    async () => {
+      try {
+        // 1. Show the initial toast
+        showToast("Wiping system...", "warning");
+
+        // --- THE WIPE LOGIC ---
+        localStorage.clear();
+        sessionStorage.clear();
+
+        const cookies = document.cookie.split(";");
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i];
+          const eqPos = cookie.indexOf("=");
+          const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+        }
+
+        const dbs = await indexedDB.databases();
+        for (const db of dbs) {
+          indexedDB.deleteDatabase(db.name);
+        }
+
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          for (const name of cacheNames) {
+            await caches.delete(name);
+          }
+        }
+
+        document.documentElement.style.removeProperty('--brand-primary');
+
+        // --- THE FIX FOR THE TOAST ---
+        // Force clear the container so the next showToast() actually runs
+        if (toastContainer) toastContainer.innerHTML = ''; 
+
+        showToast("Storage wiped successfully.", "success");
+
+        // 6. Hard Restart
+        setTimeout(() => {
+          window.location.replace(window.location.origin);
+        }, 1000);
+
+      } catch (error) {
+        console.error("Wipe failed:", error);
+        window.location.reload();
+      }
+    }
+  );
+}
+
+// Hook it up to your button
+document.getElementById('resetAppBtn').onclick = resetAppCompletely;
 
 function updateMeter() {
   const kb = (new Blob([localStorage.getItem('freeform_v2') || '']).size / 1024).toFixed(1);
