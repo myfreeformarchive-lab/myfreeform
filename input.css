@@ -280,7 +280,9 @@ main.max-w-xl.mx-auto {
 }
 
 /* Trigger fade for modal overlay when visible */
-#commentModal:not(.hidden) #closeModalOverlay {
+#commentModal:not(.hidden) #closeModalOverlay,
+#profileModal:not(.hidden) #profileOverlay,
+#chatModal:not(.hidden) #chatOverlay {
   animation: fadeIn 0.3s ease-out forwards;
 }
 
@@ -291,8 +293,10 @@ main.max-w-xl.mx-auto {
 }
 
 /* Trigger slide for modal card with easing */
-#commentModal:not(.hidden) #modalCard {
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; /* Smooth, bouncy curve */
+#commentModal:not(.hidden) #modalCard,
+#profileModal:not(.hidden) > div:last-child,
+#chatModal:not(.hidden) > div:last-child {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* 4. Comment Bubbles: Animation for comment appearances */
@@ -304,6 +308,14 @@ main.max-w-xl.mx-auto {
 /* Apply pop-in animation to comment bubbles */
 .comment-bubble {
   animation: popIn 0.2s ease-out forwards; /* Quick, subtle entrance */
+}
+
+.chat-item {
+  animation: popIn 0.2s ease-out forwards;
+}
+
+.relative.w-full.h-full {
+  will-change: transform, opacity;
 }
 
 
