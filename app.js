@@ -1221,16 +1221,17 @@ window.openDirectMessage = function(e, targetUserId) {
   
   const myId = MY_USER_ID;
   const roomId = [myId, targetUserId].sort().join('--chat--');
-  const shortTarget = targetUserId.split('-')[0];
   
   const modal = document.getElementById('dmModal');
   const title = document.getElementById('dmModalTitle');
   const container = document.getElementById('dmMessagesContainer');
   
- if (modal) {
+  if (modal) {
     modal.classList.remove('hidden');
+
+    // --- NEW: Add a history state so the back button closes the modal ---
+    history.pushState({ modalOpen: true }, '');
     
-    // 2. Show the FULL target ID in the title
     if (title) title.innerText = `@${targetUserId}`;
     
     if (container) {
@@ -1265,12 +1266,17 @@ window.openDirectMessage = function(e, targetUserId) {
 // 2. THE CLOSE FUNCTION
 window.closeDMModal = function() {
   const modal = document.getElementById('dmModal');
-  if (modal) {
+  if (modal && !modal.classList.contains('hidden')) {
     modal.classList.add('hidden');
+
+    // --- NEW: If user closed modal via "X" or overlay, remove the history state ---
+    if (history.state && history.state.modalOpen) {
+      history.back();
+    }
   }
 };
 
-// 3. SECURE LISTENERS (Wrap in a check so it doesn't crash the script)
+// 3. SECURE LISTENERS
 document.addEventListener('DOMContentLoaded', () => {
   const overlay = document.getElementById('dmOverlay');
   if (overlay) {
@@ -1279,6 +1285,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeDMModal();
+  });
+
+  // --- NEW: Listen for the Back Button (Popstate) ---
+  window.addEventListener('popstate', (event) => {
+    const modal = document.getElementById('dmModal');
+    // If the modal is open, close it (without calling history.back() again)
+    if (modal && !modal.classList.contains('hidden')) {
+      modal.classList.add('hidden');
+    }
   });
 });
 
