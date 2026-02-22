@@ -94,11 +94,6 @@ if (!window._supabase) {
 
 window.pendingPostUpdates = 0;
 
-window.saveToLocal = saveToLocal;
-window.renderMessages = renderMessages;
-window.renderChatList = renderChatList;
-window.syncIncomingMessages = syncIncomingMessages;
-
   // SVG Thought Bubble 
 function getThoughtBubbleSVG(className = "w-20 h-20") {
     return `<svg class="${className}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
