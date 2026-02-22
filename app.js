@@ -1507,7 +1507,14 @@ window.renderChatList = function() {
         return;
     }
 
-    listContainer.innerHTML = chats.map(chat => `
+    listContainer.innerHTML = chats.map(chat => {
+    // --- Word Limit Logic ---
+    const words = chat.lastText.split(' ');
+    const previewText = words.length > 8 
+        ? words.slice(0, 8).join(' ') + '...' 
+        : chat.lastText;
+
+    return `
         <div onclick="openDirectMessage(event, '${chat.otherUser}')" 
              class="flex items-center gap-4 px-4 py-4 border-b border-gray-50 hover:bg-slate-50 cursor-pointer transition-colors active:bg-slate-100">
             
@@ -1522,14 +1529,15 @@ window.renderChatList = function() {
                         ${new Date(chat.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </span>
                 </div>
-                <p class="text-xs text-gray-500 truncate pr-4">${chat.lastText}</p>
+                <p class="text-xs text-gray-500 truncate pr-4">${previewText}</p>
             </div>
 
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
         </div>
-    `).join('');
+    `;
+}).join('');
 };
 
 function showHeartAnimation(container) {
