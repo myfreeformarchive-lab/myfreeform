@@ -345,7 +345,7 @@ window.syncIncomingMessages = async function() {
         if (title) {
             const targetUserId = title.innerText.replace('@', '');
             const currentRoomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
-            renderMessages(currentRoomId);
+            window.renderMessages(currentRoomId);
         }
     }
 
