@@ -312,7 +312,7 @@ window.syncIncomingMessages = async function() {
         saveToLocal(msg.roomId, msg);
         
         console.log(`🗑️ Sync: Deleting message ID ${row.id} from Supabase...`);
-        const { error: delError } = await supabase.from('dm_relay').delete().eq('id', row.id);
+        const { error: delError } = await _supabase.from('dm_relay').delete().eq('id', row.id);
         
         if (delError) console.error("⚠️ Sync: Failed to delete after download:", delError.message);
     }
