@@ -2549,19 +2549,17 @@ function setRandomPlaceholder() {
 }
 
 async function resetAppCompletely() {
-  // Use the same container ID your showToast function looks for
   const toastContainer = document.getElementById('toast-container');
 
   showDialog(
-    "Nuclear Delete", 
-    "This will permanently delete your ID, all public posts, and every comment. This cannot be undone.", 
-    "Delete Everything", 
+    "Reset Local Data", 
+    "This will wipe your ID and settings from this device. NOTE: This does NOT delete posts or comments already sent to the cloud; it only resets your local app state.", 
+    "Delete Local Data", // Still contains 'Delete' to trigger your red styling
     async () => {
       try {
-        // 1. Show the initial toast
-        showToast("Wiping system...", "warning");
+        showToast("Wiping local data...", "warning");
 
-        // --- THE WIPE LOGIC ---
+        // --- THE SYSTEM WIPE ---
         localStorage.clear();
         sessionStorage.clear();
 
@@ -2587,16 +2585,15 @@ async function resetAppCompletely() {
 
         document.documentElement.style.removeProperty('--brand-primary');
 
-        // --- THE FIX FOR THE TOAST ---
-        // Force clear the container so the next showToast() actually runs
+        // --- TOAST FIX ---
         if (toastContainer) toastContainer.innerHTML = ''; 
+        
+        showToast("App reset successfully.", "success");
 
-        showToast("Storage wiped successfully.", "success");
-
-        // 6. Hard Restart
+        // Hard Restart
         setTimeout(() => {
           window.location.replace(window.location.origin);
-        }, 1000);
+        }, 1200);
 
       } catch (error) {
         console.error("Wipe failed:", error);
