@@ -1262,7 +1262,7 @@ function renderListItems(items) {
   <span onclick="document.getElementById('postInput').scrollIntoView({ behavior: 'smooth', block: 'center' })" 
       class="underline cursor-pointer text-slate-600 hover:text-slate-800 transition-colors">
     write down
-</span>.
+</span>
 </p>
       </div>`;
 	  }
