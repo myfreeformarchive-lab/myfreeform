@@ -1,15 +1,10 @@
-// Minimal cache-first service worker — replace your current sw.js with this.
-// Keeps your existing registration (navigator.serviceWorker.register('sw.js')) as-is.
-
 const CACHE_NAME = 'site-cache-v1';
 
 self.addEventListener('install', event => {
-  // Activate new SW immediately
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
-  // Remove old caches and take control of clients
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.map(k => (k !== CACHE_NAME) ? caches.delete(k) : Promise.resolve()))
@@ -18,15 +13,12 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Only handle same-origin GET requests
   if (event.request.method !== 'GET' || new URL(event.request.url).origin !== location.origin) {
     return;
   }
-
   event.respondWith(
     caches.match(event.request).then(cachedResp => {
       if (cachedResp) {
-        // Return cached response immediately, update the cache in background
         event.waitUntil(
           fetch(event.request).then(networkResp => {
             if (networkResp && networkResp.ok) {
@@ -36,8 +28,6 @@ self.addEventListener('fetch', event => {
         );
         return cachedResp;
       }
-
-      // Not cached — fetch from network and cache the result for later
       return fetch(event.request).then(networkResp => {
         if (networkResp && networkResp.ok) {
           const copy = networkResp.clone();
@@ -45,36 +35,33 @@ self.addEventListener('fetch', event => {
         }
         return networkResp;
       }).catch(() => {
-        // Network failed — return a minimal service-unavailable response
         return new Response('', { status: 503, statusText: 'Service Unavailable' });
       });
     })
   );
 });
 
-// --- NEW: PUSH NOTIFICATION LISTENER ---
+// --- PUSH NOTIFICATION LISTENER ---
 self.addEventListener('push', (event) => {
-    let data = { title: 'New Message', body: 'You have a new secure message.' };
+    let data = { title: 'New Message', body: 'You have a new message.', url: '/?open=chat' };
     
     try {
         if (event.data) {
             data = event.data.json();
         }
     } catch (e) {
-        console.warn("Push event data was not JSON, using default.");
+        console.warn("Push event data was not JSON");
     }
 
     const options = {
         body: data.body,
-        icon: '/logo.png', // Path to your icon
-        badge: '/badge.png', // Small icon for android status bar
+        icon: '/logo.png', 
+        badge: '/badge.png', 
         vibrate: [100, 50, 100],
         data: {
-            url: data.url || '/' // Where to go when clicked
-        },
-        actions: [
-            { action: 'open', title: 'View Message' }
-        ]
+            // Ensure we fallback to the chat parameter if the Edge Function misses it
+            url: data.url || '/?open=chat' 
+        }
     };
 
     event.waitUntil(
@@ -82,22 +69,24 @@ self.addEventListener('push', (event) => {
     );
 });
 
-// Handle clicking the notification
+// --- NOTIFICATION CLICK HANDLER ---
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
-    // Get the URL from the notification data, default to home if not found
-    const targetUrl = event.notification.data?.url || '/';
+    // Use the URL passed from the notification data
+    const targetUrl = event.notification.data?.url || '/?open=chat';
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // 1. If a tab is already open, focus it and navigate to the chat
+            // Check if a tab is already open
             for (const client of windowClients) {
-                if (client.url.includes('myfreeform.page') && 'focus' in client) {
+                const clientUrl = new URL(client.url);
+                if (clientUrl.hostname === location.hostname) {
+                    // Navigate the existing tab to the chat URL and focus it
                     return client.navigate(targetUrl).then(c => c.focus());
                 }
             }
-            // 2. If no tab is open, open a new one
+            // If no tab is open, open a new one with the chat parameter
             if (clients.openWindow) {
                 return clients.openWindow(targetUrl);
             }
