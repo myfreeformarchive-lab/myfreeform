@@ -43,22 +43,22 @@ self.addEventListener('fetch', event => {
 
 // --- PUSH NOTIFICATION LISTENER ---
 self.addEventListener('push', (event) => {
-    let data = { title: 'New Message', body: 'You have a new message.', data: { url: '/?open=chat' } };
+    let data = { title: 'New Message', body: 'You have a new message.' };
     
     if (event.data) {
         data = event.data.json();
     }
+
+    const senderId = data.senderId || 'Someone';
 
     const options = {
         body: data.body,
         icon: '/logo.png', 
         badge: '/badge.png', 
         vibrate: [100, 50, 100],
-        // Pass your actions through
-        actions: data.actions || [], 
+        actions: data.actions || [],
         data: {
-            // FIX: Match the nested 'data.url' coming from your Edge Function
-            url: data.data?.url || '/?open=chat' 
+            url: `https://myfreeform.page/?open=chat&user=${senderId}`
         }
     };
 
@@ -70,7 +70,6 @@ self.addEventListener('push', (event) => {
 // --- NOTIFICATION CLICK HANDLER ---
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
-
     const targetUrl = event.notification.data.url;
 
     event.waitUntil(
