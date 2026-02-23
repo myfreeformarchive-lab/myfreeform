@@ -92,6 +92,18 @@ if (!window._supabase) {
     console.log("✅ _supabase is now connected to the console!");
 }
 
+// Add this or make sure your login logic sets MY_USER_ID
+let MY_USER_ID;
+
+_supabase.auth.getSession().then(({ data: { session } }) => {
+  if (session) {
+    MY_USER_ID = session.user.id;
+    console.log("Logged in as:", MY_USER_ID);
+  } else {
+    console.error("No user logged in! Push won't work.");
+  }
+});
+
 window.pendingPostUpdates = 0;
 
   // SVG Thought Bubble 
