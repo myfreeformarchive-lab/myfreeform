@@ -1438,7 +1438,7 @@ window.openDirectMessage = function(e, targetUserId) {
 	
 	// --- ADD THIS LINE BELOW ---
     // This creates a "fake" page in the browser history so the back button doesn't close the app
-    history.pushState({ modalOpen: true }, ""); 
+    history.pushState({ modal: 'dm' }, ""); 
     // ---------------------------
     
     // Ensure background remains locked
@@ -3403,32 +3403,28 @@ window.addEventListener('popstate', (event) => {
     const dmModal = document.getElementById('dmModal');
     const chatModal = document.getElementById('chatModal');
     const profileModal = document.getElementById('profileModal');
-    const commentModal = document.getElementById('commentModal');
+    
+    // The state we are currently LANDING ON after the back button was pressed
+    const currentState = event.state;
 
-    // Check if we are closing a DM specifically
-    const wasInDM = dmModal && !dmModal.classList.contains('hidden');
-
-    // 1. Hide the active modals
-    if (dmModal) dmModal.classList.add('hidden');
-    if (profileModal) profileModal.classList.add('hidden');
-    if (commentModal) commentModal.classList.add('hidden');
-
-    // 2. THE LOGIC FIX: 
-    // If the user hits back from a DM, show the Inbox list instead of closing everything
-    if (wasInDM && chatModal) {
-        chatModal.classList.remove('hidden');
-        // We don't reset overflow here because we're still in a modal
-    } else {
-        // If we weren't in a DM, hide the chat list too and restore scroll
+    // SCENARIO A: Backing out of everything to the Home Feed
+    if (!currentState || !currentState.modal) {
+        if (dmModal) dmModal.classList.add('hidden');
         if (chatModal) chatModal.classList.add('hidden');
+        if (profileModal) profileModal.classList.add('hidden');
         document.body.style.overflow = '';
+        return; // Stop here, we are back at the website root
     }
 
-    // Cleanup logic
-    if (typeof activePostId !== 'undefined') activePostId = null;
-    if (typeof commentsUnsubscribe === 'function') { 
-        commentsUnsubscribe(); 
-        commentsUnsubscribe = null; 
+    // SCENARIO B: Backing out of a DM into the Inbox
+    // If the state we landed on is 'open' (the state pushed by showUIModal for the Inbox)
+    if (currentState.modal === 'open') {
+        if (dmModal) dmModal.classList.add('hidden');
+        if (chatModal) {
+            chatModal.classList.remove('hidden');
+            window.renderChatList(); // Refresh list so it's up to date
+        }
+        document.body.style.overflow = 'hidden';
     }
 });
 
