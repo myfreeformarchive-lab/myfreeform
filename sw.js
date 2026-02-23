@@ -1,3 +1,4 @@
+// Minimal cache-first service worker
 const CACHE_NAME = 'site-cache-v1';
 
 self.addEventListener('install', event => {
@@ -16,16 +17,36 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET' || new URL(event.request.url).origin !== location.origin) {
     return;
   }
+
   event.respondWith(
     caches.match(event.request).then(cachedResp => {
-      return cachedResp || fetch(event.request);
+      if (cachedResp) {
+        event.waitUntil(
+          fetch(event.request).then(networkResp => {
+            if (networkResp && networkResp.ok) {
+              caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResp.clone()));
+            }
+          }).catch(() => {})
+        );
+        return cachedResp;
+      }
+
+      return fetch(event.request).then(networkResp => {
+        if (networkResp && networkResp.ok) {
+          const copy = networkResp.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+        }
+        return networkResp;
+      }).catch(() => {
+        return new Response('', { status: 503, statusText: 'Service Unavailable' });
+      });
     })
   );
 });
 
-// --- PUSH NOTIFICATION LISTENER ---
+// --- PUSH NOTIFICATION HANDLER ---
 self.addEventListener('push', (event) => {
-    let data = { title: 'New Message', body: 'You have a new message.', url: 'https://myfreeform.page/?open=chat' };
+    let data = { title: 'New Message', body: 'You have a new message.' };
     
     if (event.data) {
         data = event.data.json();
@@ -36,6 +57,7 @@ self.addEventListener('push', (event) => {
         icon: '/logo.png', 
         badge: '/badge.png', 
         vibrate: [100, 50, 100],
+        // Pass the URL and actions through
         actions: data.actions || [],
         data: {
             url: data.url
@@ -47,7 +69,7 @@ self.addEventListener('push', (event) => {
     );
 });
 
-// --- NOTIFICATION CLICK HANDLER ---
+// --- CLICK HANDLER ---
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
     const targetUrl = event.notification.data.url;
