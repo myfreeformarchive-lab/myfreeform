@@ -3500,30 +3500,39 @@ window.addEventListener('popstate', (event) => {
     const chatModal = document.getElementById('chatModal');
     const profileModal = document.getElementById('profileModal');
     const commentModal = document.getElementById('commentModal');
-
+    
+    const allModals = [dmModal, chatModal, profileModal, commentModal];
     const state = event.state;
 
-    // 1. If no state, hide EVERYTHING and go back to the website
+    // 1. If NO state exists (User is back at the main website/feed)
     if (!state || !state.modal) {
-        [dmModal, chatModal, profileModal, commentModal].forEach(m => m?.classList.add('hidden'));
+        allModals.forEach(m => m?.classList.add('hidden'));
         document.body.style.overflow = '';
         return;
     }
 
-    // 2. Logic for DM transition
-    if (state.modal === 'dm') {
-        // This case actually shouldn't trigger on 'back' unless you go 'forward'
-        // but it's good for consistency.
-        dmModal?.classList.remove('hidden');
-    }
+    // 2. Clear the slate first 
+    // This prevents "Double Layering" where one modal sits behind another
+    allModals.forEach(m => m?.classList.add('hidden'));
 
-    // 3. Logic for closing a DM
-    // If we land back on the 'open' state (the Inbox state)
+    // 3. Handle the "Inbox" List layer
     if (state.modal === 'open') {
-        dmModal?.classList.add('hidden');
         chatModal?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
+
+    // 4. Handle the "Direct Message" layer
+    if (state.modal === 'dm') {
+        dmModal?.classList.remove('hidden');
+        // If your DM is a sub-layer of the Inbox, you might want 
+        // chatModal to stay visible in the background, but usually, 
+        // it's cleaner to keep it hidden or use a z-index.
+        document.body.style.overflow = 'hidden';
+    }
+
+    // 5. Handle other modals
+    if (state.modal === 'profile') profileModal?.classList.remove('hidden');
+    if (state.modal === 'comment') commentModal?.classList.remove('hidden');
 });
 
 const Ledger = {
