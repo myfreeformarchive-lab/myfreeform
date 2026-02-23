@@ -290,7 +290,28 @@ if (DOM.desktopEmojiTrigger && DOM.desktopEmojiPopup) {
       });
     }
   });
+
+// --- INITIALIZE REALTIME ---
+if (MY_USER_ID) {
+	window.syncIncomingMessages();
+    const dmSubscription = _supabase
+        .channel('dm-relay-changes')
+        .on('postgres_changes', { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'dm_relay',
+            filter: `receiver_id=eq.${MY_USER_ID}` 
+        }, (payload) => {
+            console.log("%c 🔔 REALTIME: New message detected!", "background: #22c55e; color: white; padding: 2px 5px;");
+            window.syncIncomingMessages();
+        })
+        .subscribe();
+} else {
+    console.warn("⚠️ Realtime not started: MY_USER_ID is missing.");
+}
   
+});
+
 window.syncIncomingMessages = async function() {
     console.log("🔍 Sync: Checking 'dm_relay' for messages...");
 
@@ -351,26 +372,6 @@ window.syncIncomingMessages = async function() {
     
     console.log("✅ Sync: All messages processed and UI updated.");
 };
-
-// --- INITIALIZE REALTIME ---
-if (MY_USER_ID) {
-    const dmSubscription = _supabase
-        .channel('dm-relay-changes')
-        .on('postgres_changes', { 
-            event: 'INSERT', 
-            schema: 'public', 
-            table: 'dm_relay',
-            filter: `receiver_id=eq.${MY_USER_ID}` 
-        }, (payload) => {
-            console.log("%c 🔔 REALTIME: New message detected!", "background: #22c55e; color: white; padding: 2px 5px;");
-            window.syncIncomingMessages();
-        })
-        .subscribe();
-} else {
-    console.warn("⚠️ Realtime not started: MY_USER_ID is missing.");
-}
-  
-});
 
 // ==========================================
 // 0. NEW: ATOMIC COUNTER SYSTEM
