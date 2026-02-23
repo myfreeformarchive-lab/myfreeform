@@ -71,22 +71,26 @@ self.addEventListener('push', (event) => {
 
 // --- NOTIFICATION CLICK HANDLER ---
 self.addEventListener('notificationclick', (event) => {
+    // 1. Close the notification immediately
     event.notification.close();
 
-    // Use the URL passed from the notification data
+    // 2. Extract the URL we sent from the Edge Function
+    // We look in event.notification.data.url because that's where we put it
     const targetUrl = event.notification.data?.url || '/?open=chat';
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // Check if a tab is already open
+            // 3. Check if your site is already open in any tab
             for (const client of windowClients) {
                 const clientUrl = new URL(client.url);
+                // Matches if it's your domain
                 if (clientUrl.hostname === location.hostname) {
-                    // Navigate the existing tab to the chat URL and focus it
+                    // Update the existing tab to the chat URL and bring it to the front
                     return client.navigate(targetUrl).then(c => c.focus());
                 }
             }
-            // If no tab is open, open a new one with the chat parameter
+
+            // 4. If the site isn't open at all, open a new tab with the target URL
             if (clients.openWindow) {
                 return clients.openWindow(targetUrl);
             }
