@@ -440,6 +440,14 @@ async function enableNotifications() {
 
 window.enableNotifications = enableNotifications;
 
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('open') === 'chat') {
+        // Replace this with your actual function name that opens the modal
+        openMessageModal(); 
+    }
+});
+
 // ==========================================
 // 0. NEW: ATOMIC COUNTER SYSTEM
 // ==========================================
