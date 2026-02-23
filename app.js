@@ -79,6 +79,8 @@ let isRefilling = false;
 
 let totalGlobalPosts = 0;
 
+let feedSafetyTimeout;
+
 const supabaseUrl = 'https://ipgtvatyzwhkifnsstux.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwZ3R2YXR5endoa2lmbnNzdHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NDcyMzIsImV4cCI6MjA4NjIyMzIzMn0.OH7Dru0KKKdewj1nsWofvI73cT6tKIZbTVMPJA2oPvI'; 
 // Use _supabase (with an underscore) to avoid clashing with the library name
@@ -440,25 +442,32 @@ async function enableNotifications() {
 
 window.enableNotifications = enableNotifications;
 
-window.openDirectMessage = openDirectMessage;
+// 1. Link your existing function to the global window object
+// This MUST stay at the bottom of the file so 'openDirectMessage' is already defined above it.
+if (typeof openDirectMessage === 'function') {
+    window.openDirectMessage = openDirectMessage;
+}
 
+// 2. The Logic to auto-open
 function handleAutoOpen() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('open') === 'chat') {
-        console.log("Auto-open triggered for chat...");
+        console.log("🚀 URL detected: Opening Direct Messages...");
         
-        // We call it with 'null' for the event and a fallback for the ID
-        // Note: In the future, you could pass ?open=chat&user=ID to open a specific person
         const targetId = params.get('user') || 'General'; 
 
+        // Wait 500ms to ensure the UI elements like #dmModal are actually in the DOM
         setTimeout(() => {
             if (typeof window.openDirectMessage === 'function') {
                 window.openDirectMessage(null, targetId);
+            } else {
+                console.error("❌ openDirectMessage is still not defined on window.");
             }
         }, 500);
     }
 }
 
+// 3. Listen for the page load
 window.addEventListener('load', handleAutoOpen);
 
 // ==========================================
