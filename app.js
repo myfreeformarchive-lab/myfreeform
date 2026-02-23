@@ -440,13 +440,26 @@ async function enableNotifications() {
 
 window.enableNotifications = enableNotifications;
 
-window.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('open') === 'chat') {
-        // Replace this with your actual function name that opens the modal
-        openMessageModal(); 
+window.openDirectMessage = openDirectMessage;
+
+function handleAutoOpen() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('open') === 'chat') {
+        console.log("Auto-open triggered for chat...");
+        
+        // We call it with 'null' for the event and a fallback for the ID
+        // Note: In the future, you could pass ?open=chat&user=ID to open a specific person
+        const targetId = params.get('user') || 'General'; 
+
+        setTimeout(() => {
+            if (typeof window.openDirectMessage === 'function') {
+                window.openDirectMessage(null, targetId);
+            }
+        }, 500);
     }
-});
+}
+
+window.addEventListener('load', handleAutoOpen);
 
 // ==========================================
 // 0. NEW: ATOMIC COUNTER SYSTEM
