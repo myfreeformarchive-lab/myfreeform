@@ -1435,6 +1435,11 @@ window.openDirectMessage = function(e, targetUserId) {
         console.error("❌ ERROR: Could not find #dmModal in the HTML!");
         return;
     }
+	
+	// --- ADD THIS LINE BELOW ---
+    // This creates a "fake" page in the browser history so the back button doesn't close the app
+    history.pushState({ modalOpen: true }, ""); 
+    // ---------------------------
     
     // Ensure background remains locked
     document.body.style.overflow = 'hidden';
@@ -1481,6 +1486,9 @@ window.closeDMModal = function() {
   const modal = document.getElementById('dmModal');
   if (modal && !modal.classList.contains('hidden')) {
     modal.classList.add('hidden');
+	
+	// Restore scrolling when modal closes
+    document.body.style.overflow = '';
 
     // --- NEW: If user closed modal via "X" or overlay, remove the history state ---
     if (history.state && history.state.modalOpen) {
@@ -1499,15 +1507,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeDMModal();
   });
-
-  // --- NEW: Listen for the Back Button (Popstate) ---
-  window.addEventListener('popstate', (event) => {
-    const modal = document.getElementById('dmModal');
-    // If the modal is open, close it (without calling history.back() again)
-    if (modal && !modal.classList.contains('hidden')) {
-      modal.classList.add('hidden');
-    }
-  });
+  
 });
 
 /**
@@ -3291,24 +3291,6 @@ function runMigration() {
 }
 
 /**
- * BACK BUTTON INTERCEPTOR
- * Intercepts hardware back button/gestures to close the modal instead of exiting the site
- */
-window.addEventListener('popstate', (event) => {
-  // If the modal is visible, close it
-  if (!DOM.modal.classList.contains('hidden')) {
-    // We update UI directly here. 
-    // Do NOT call closeModal() here because closeModal calls history.back(), 
-    // which would cause an infinite loop or double-back.
-    DOM.modal.classList.add('hidden');
-    document.body.style.overflow = '';
-    activePostId = null;
-    if (commentsUnsubscribe) { commentsUnsubscribe(); commentsUnsubscribe = null; }
-    if (DOM.input) DOM.input.disabled = false;
-  }
-});
-
-/**
  * BACKGROUND/RESUME KEYBOARD SUPPRESSION
  * Prevents the keyboard from auto-popping when re-entering the app
  */
@@ -3405,16 +3387,6 @@ document.getElementById('profileOverlay').onclick = () => hideUIModal(profileMod
 document.getElementById('closeChatBtn').onclick = () => hideUIModal(chatModal);
 document.getElementById('chatOverlay').onclick = () => hideUIModal(chatModal);
 
-// 5. Sync with your existing Back Button popstate logic
-window.addEventListener('popstate', () => {
-  // Hide all modals if the user clicks the physical back button
-  profileModal.classList.add('hidden');
-  chatModal.classList.add('hidden');
-  DOM.modal.classList.add('hidden'); // Your original comment modal
-  document.body.style.overflow = '';
-  if (DOM.input) DOM.input.disabled = false;
-});
-
 // Listen for clicks on the document itself
 document.addEventListener('click', (e) => {
     // Check if the clicked element (or its parent) is our send button
@@ -3424,6 +3396,39 @@ document.addEventListener('click', (e) => {
         console.log("Found the button via delegation!");
         e.preventDefault();
         window.sendMessage();
+    }
+});
+
+window.addEventListener('popstate', (event) => {
+    const dmModal = document.getElementById('dmModal');
+    const chatModal = document.getElementById('chatModal');
+    const profileModal = document.getElementById('profileModal');
+    const commentModal = document.getElementById('commentModal');
+
+    // Check if we are closing a DM specifically
+    const wasInDM = dmModal && !dmModal.classList.contains('hidden');
+
+    // 1. Hide the active modals
+    if (dmModal) dmModal.classList.add('hidden');
+    if (profileModal) profileModal.classList.add('hidden');
+    if (commentModal) commentModal.classList.add('hidden');
+
+    // 2. THE LOGIC FIX: 
+    // If the user hits back from a DM, show the Inbox list instead of closing everything
+    if (wasInDM && chatModal) {
+        chatModal.classList.remove('hidden');
+        // We don't reset overflow here because we're still in a modal
+    } else {
+        // If we weren't in a DM, hide the chat list too and restore scroll
+        if (chatModal) chatModal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    // Cleanup logic
+    if (typeof activePostId !== 'undefined') activePostId = null;
+    if (typeof commentsUnsubscribe === 'function') { 
+        commentsUnsubscribe(); 
+        commentsUnsubscribe = null; 
     }
 });
 
