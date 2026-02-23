@@ -631,3 +631,26 @@ main.max-w-xl.mx-auto {
     will-change: auto;
   }
 }
+
+/* Only affects the icon inside our specific stencil container */
+.stencil-avatar svg {
+    transition: transform 0.2s ease;
+}
+
+/* Fun hover effect: make the icon pop or rotate slightly */
+.stencil-avatar:hover svg {
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* If you REALLY want to show the initials on hover as a 'secret' */
+.stencil-avatar .initials {
+    display: none;
+}
+
+.stencil-avatar:hover .initials {
+    display: block;
+}
+
+.stencil-avatar:hover svg {
+    display: none;
+}
