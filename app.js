@@ -1589,18 +1589,19 @@ window.renderMessages = function(roomId) {
     container.innerHTML = history.map(msg => {
     const isMe = msg.senderId === MY_USER_ID;
     return `
-        <div class="flex ${isMe ? 'justify-end' : 'justify-start'} mb-4 w-full">
+        <div class="flex ${isMe ? 'justify-end' : 'justify-start'} mb-4 w-full px-2">
             <div class="max-w-[85%] md:max-w-[75%] rounded-2xl px-4 py-2 ${
                 isMe 
                 ? 'bg-brand-500 text-white rounded-tr-none' 
                 : 'bg-slate-100 lg:bg-slate-200 text-slate-800 rounded-tl-none'
             }">
-                <p class="text-sm break-words">${msg.text}</p>
-                
-                <div class="flex ${isMe ? 'justify-end' : 'justify-start'} mt-1">
-                    <span class="text-[10px] opacity-70">
-                        ${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </span>
+                <div class="flow-root">
+                    <p class="text-sm inline break-words leading-normal">
+                        ${msg.text}&nbsp;
+                        <span class="float-right mt-2 ml-4 text-[10px] opacity-70 leading-none">
+                            ${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </span>
+                    </p>
                 </div>
             </div>
         </div>
