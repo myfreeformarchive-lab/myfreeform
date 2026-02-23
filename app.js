@@ -1705,35 +1705,81 @@ window.renderChatList = function() {
     }
 
     listContainer.innerHTML = chats.map(chat => {
-        const words = chat.lastText.split(' ');
-        const previewText = words.length > 8 
-            ? words.slice(0, 8).join(' ') + '...' 
-            : chat.lastText;
+    const words = (chat.lastText || "").split(' ');
+    const previewText = words.length > 8 
+        ? words.slice(0, 8).join(' ') + '...' 
+        : chat.lastText;
 
-        return `
-            <div onclick="window.openDirectMessage(event, '${chat.otherUser}')" 
-                 class="flex items-center gap-4 px-4 py-4 border-b border-gray-50 hover:bg-slate-50 cursor-pointer transition-colors active:bg-slate-100">
-                
-                <div class="w-12 h-12 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 font-bold text-xs border border-brand-100 uppercase">
-                    ${chat.otherUser.substring(0, 2)}
+    return `
+        <div onclick="window.openDirectMessage(event, '${chat.otherUser}')" 
+             class="group flex items-center gap-4 px-4 py-4 border-b border-gray-50 hover:bg-slate-50 cursor-pointer transition-colors active:bg-slate-100">
+            
+            <div class="w-12 h-12 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 font-bold text-xs border border-brand-100 uppercase">
+                ${chat.otherUser.substring(0, 2)}
+            </div>
+
+            <div class="flex-1 min-w-0">
+                <div class="flex justify-between items-baseline mb-0.5">
+                    <h4 class="font-bold text-gray-900 text-sm truncate">@${chat.otherUser}</h4>
+                    <span class="text-[10px] text-gray-400">
+                        ${new Date(chat.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </span>
                 </div>
+                <p class="text-xs text-gray-500 truncate pr-4">${previewText}</p>
+            </div>
 
-                <div class="flex-1 min-w-0">
-                    <div class="flex justify-between items-baseline mb-0.5">
-                        <h4 class="font-bold text-gray-900 text-sm truncate">@${chat.otherUser}</h4>
-                        <span class="text-[10px] text-gray-400">
-                            ${new Date(chat.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                        </span>
-                    </div>
-                    <p class="text-xs text-gray-500 truncate pr-4">${previewText}</p>
-                </div>
-
+            <div class="flex items-center gap-2">
+                <button onclick="window.deleteConversation(event, '${chat.roomId}')" 
+                        class="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </button>
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                 </svg>
             </div>
-        `;
-    }).join('');
+        </div>
+    `;
+}).join('');
+};
+
+window.deleteConversation = function(event, roomId) {
+    // 1. Prevent the chat from opening
+    event.stopPropagation();
+    event.preventDefault();
+
+    // 2. Extract the username for a personalized message
+    const otherUser = roomId.split('--chat--').find(id => id !== MY_USER_ID);
+
+    // 3. Trigger the Pretty Dialog
+    showDialog(
+        "Delete Chat?", 
+        `All messages with @${otherUser} will be removed from this device.`, 
+        "Delete", 
+        () => {
+            // This code runs ONLY if the user clicks the Red "Delete" button
+            
+            // Perform Deletion
+            localStorage.removeItem(roomId);
+
+            // Clear active view if it's the same room
+            const container = document.getElementById('dmMessagesContainer');
+            if (container && window.currentChatRoomId === roomId) {
+                container.innerHTML = '';
+                // Optional: Close the DM modal if you want to kick them back to the list
+                // window.closeDMModal(); 
+            }
+
+            // Refresh the List
+            window.renderChatList();
+
+            // 4. Show the Success Toast
+            showToast("Conversation deleted");
+            
+            console.log(`🗑️ Conversation ${roomId} deleted via custom dialog.`);
+        }
+    );
 };
 
 function showHeartAnimation(container) {
