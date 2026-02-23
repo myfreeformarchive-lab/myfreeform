@@ -44,35 +44,39 @@ self.addEventListener('fetch', event => {
 // --- PUSH NOTIFICATION LISTENER ---
 // --- PUSH NOTIFICATION LISTENER ---
 self.addEventListener('push', (event) => {
-    let data = { title: 'New Message', body: 'You have a new message.', url: '/?open=chat' };
+    let payload = { 
+        title: 'New Message', 
+        body: 'You have a new message.', 
+        url: '/?open=chat' 
+    };
     
     try {
         if (event.data) {
-            data = event.data.json();
+            payload = event.data.json();
         }
     } catch (e) {
         console.warn("Push event data was not JSON");
     }
 
+    // Logic: Check data.data.url first (new format), then data.url (old format), then default
+    const finalUrl = payload.data?.url || payload.url || '/?open=chat';
+
     const options = {
-        body: data.body,
+        body: payload.body,
         icon: '/logo.png', 
         badge: '/badge.png', 
         vibrate: [200, 100, 200],
-        // --- ADD THESE THREE LINES ---
-        sound: data.sound || '/sounds/notification.mp3', 
-        actions: data.actions || [], 
-        tag: data.tag || 'new-dm',
-        // ------------------------------
+        sound: payload.sound || '/sounds/notification.mp3',
+        actions: payload.actions || [],
+        tag: payload.tag || 'new-dm',
         renotify: true,
         data: {
-            // Check both locations for the URL
-            url: data.data?.url || data.url || '/?open=chat' 
+            url: finalUrl 
         }
     };
 
     event.waitUntil(
-        self.registration.showNotification(data.title, options)
+        self.registration.showNotification(payload.title, options)
     );
 });
 
