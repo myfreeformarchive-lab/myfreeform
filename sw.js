@@ -85,7 +85,22 @@ self.addEventListener('push', (event) => {
 // Handle clicking the notification
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
+
+    // Get the URL from the notification data, default to home if not found
+    const targetUrl = event.notification.data?.url || '/';
+
     event.waitUntil(
-        clients.openWindow(event.notification.data.url)
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+            // 1. If a tab is already open, focus it and navigate to the chat
+            for (const client of windowClients) {
+                if (client.url.includes('myfreeform.page') && 'focus' in client) {
+                    return client.navigate(targetUrl).then(c => c.focus());
+                }
+            }
+            // 2. If no tab is open, open a new one
+            if (clients.openWindow) {
+                return clients.openWindow(targetUrl);
+            }
+        })
     );
 });
