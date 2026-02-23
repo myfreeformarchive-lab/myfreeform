@@ -1436,6 +1436,8 @@ window.openDirectMessage = function(e, targetUserId) {
         return;
     }
 	
+	const comingFromList = chatModal && !chatModal.classList.contains('hidden');
+	
 	// --- TRACK THE SOURCE ---
     history.pushState({ 
         modal: 'dm', 
