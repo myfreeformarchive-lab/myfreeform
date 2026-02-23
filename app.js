@@ -381,7 +381,7 @@ window.subscribeToPush = async function() {
     
     if (!subscription) {
         // Replace with your real VAPID Public Key
-        const PUBLIC_VAPID_KEY = 'YOUR_GENERATED_PUBLIC_KEY'; 
+        const PUBLIC_VAPID_KEY = 'BGeg4CsgjinWsVpRKe3hQKm0DIY2OyjRQ732owFaozFYkY9WuV1lQ3b-J-Z93b7ZbqnS-586JdR9yjsGW7-8PbU'; 
         
         subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
