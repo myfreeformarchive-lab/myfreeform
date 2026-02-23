@@ -1705,6 +1705,10 @@ window.renderChatList = function() {
     }
 
     listContainer.innerHTML = chats.map(chat => {
+	
+	const stencil = window.getStencilData(chat.otherUser);
+const initials = chat.otherUser.substring(0, 2).toUpperCase();
+	
     const words = (chat.lastText || "").split(' ');
     const previewText = words.length > 8 
         ? words.slice(0, 8).join(' ') + '...' 
@@ -1714,9 +1718,17 @@ window.renderChatList = function() {
         <div onclick="window.openDirectMessage(event, '${chat.otherUser}')" 
              class="group flex items-center gap-4 px-4 py-4 border-b border-gray-50 hover:bg-slate-50 cursor-pointer transition-colors active:bg-slate-100">
             
-            <div class="w-12 h-12 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 font-bold text-xs border border-brand-100 uppercase">
-                ${chat.otherUser.substring(0, 2)}
-            </div>
+            <div class="stencil-avatar w-12 h-12 flex-shrink-0 flex items-center justify-center ${stencil.radius} shadow-sm overflow-hidden relative"
+             style="background-color: ${stencil.color}">
+            
+            <svg class="w-7 h-7 text-white fill-current drop-shadow-sm" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="${stencil.path}" />
+            </svg>
+
+            <span class="initials absolute text-[10px] font-bold text-white uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">
+                ${initials}
+            </span>
+        </div>
 
             <div class="flex-1 min-w-0">
                 <div class="flex justify-between items-baseline mb-0.5">
@@ -1742,6 +1754,41 @@ window.renderChatList = function() {
         </div>
     `;
 }).join('');
+};
+
+// Helper to get a unique but consistent icon/shape based on User ID
+window.getStencilData = function(userId) {
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+        hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    hash = Math.abs(hash);
+
+    const icons = [
+        'M12 2a9 9 0 0 0-9 9v11l3-3 3 3 3-3 3 3 3-3 3 3V11a9 9 0 0 0-9-9zm-3 10a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm6 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4z', // Ghost
+        'M12 3L2 18h20L12 3zm0 5l5 9H7l5-9z', // Wizard
+        'M5 16l-2-11 5.5 5L12 4l3.5 6 5.5-5-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z', // Crown
+        'M7 2v11h3v9l7-12h-4l4-8z', // Bolt
+        'M18.8 15C17 13.5 16 11 16 8.5V8c0-2.2-1.8-4-4-4S8 5.8 8 8v.5c0 2.5-1 5-2.8 6.5C4.5 15.6 4 16.2 4 17c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2 0-.8-.5-1.4-1.2-2zM12 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4z', // Santa
+        'M12 2c-4.4 0-8 3.6-8 8 0 2.2 1.8 4 4 4h1l-1 4 4-2 4 2-1-4h1c2.2 0 4-1.8 4-4 0-4.4-3.6-8-8-8zm-3 8a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm6 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z', // Dragon
+        'M12 2c-4.4 0-8 3.1-8 7 0 2.5 1.8 4.6 4.3 6l-.3 3c0 .6.4 1 1 1h6c.6 0 1-.4 1-1l-.3-3c2.5-1.4 4.3-3.5 4.3-6 0-3.9-3.6-7-8-7zm-3 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm6 0a2 2 0 1 1 0-4 2 2 0 0 1 0 4z', // Skull
+        'M21 16.5C21 16.88 20.79 17.21 20.47 17.38L12.57 21.82C12.41 21.94 12.21 22 12 22C11.79 22 11.59 21.94 11.43 21.82L3.53 17.38C3.21 17.21 3 16.88 3 16.5V7.5C3 7.12 3.21 6.79 3.53 6.62L11.43 2.18C11.59 2.06 11.79 2 12 2C12.21 2 12.41 2.06 12.57 2.18L20.47 6.62C20.79 6.79 21 7.12 21 7.5V16.5Z', // Robot
+        'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z', // Eye
+        'M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z', // Key
+        'M12 2a7 7 0 0 0-7 7c0 2.3 1.1 4.3 2.8 5.6L6 22h2l1-3h6l1 3h2l-1.8-7.4c1.7-1.3 2.8-3.3 2.8-5.6a7 7 0 0 0-7-7zM9 9a1 1 0 1 1 2 0 1 1 0 0 1-2 0zm5 1a1 1 0 1 1 0-2 1 1 0 0 1 0 2z', // Alien
+        'M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z' // Shield
+    ];
+
+    // Generate a unique HSL color based on the hash
+    // We keep saturation and lightness consistent so it stays "on brand"
+    const hue = hash % 360;
+    const color = `hsl(${hue}, 65%, 45%)`;
+
+    return {
+        path: icons[hash % icons.length],
+        radius: ['rounded-none', 'rounded-xl', 'rounded-full'][hash % 3],
+        color: color
+    };
 };
 
 window.deleteConversation = function(event, roomId) {
