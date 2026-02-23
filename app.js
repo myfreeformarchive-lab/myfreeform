@@ -1282,6 +1282,8 @@ ${footerHtml}
 }
 
 window.openDirectMessage = function(e, targetUserId) {
+	console.log("%c 🚀 STEP 1: openDirectMessage triggered!", "color: white; background: red; font-size: 16px; font-weight: bold;");
+    console.log("📍 Target User:", targetUserId);
     if (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -1300,6 +1302,7 @@ window.openDirectMessage = function(e, targetUserId) {
     // 2. Setup IDs and Logic
     const myId = MY_USER_ID;
     const roomId = [myId, targetUserId].sort().join('--chat--');
+	console.log(`%c 🆔 STEP 2: Room ID generated: ${roomId}`, "color: yellow; background: black; font-size: 12px;");
     const title = document.getElementById('dmModalTitle');
     const container = document.getElementById('dmMessagesContainer');
   
@@ -1307,6 +1310,7 @@ window.openDirectMessage = function(e, targetUserId) {
     
     // 3. Set the Handshake UI
     if (container) {
+		console.log("%c 🏗️ STEP 3: Setting Handshake UI...", "color: cyan; font-weight: bold;");
       container.innerHTML = `
         <div class="flex flex-col items-center text-center py-12">
           <div class="w-20 h-20 rounded-3xl bg-brand-50 flex items-center justify-center text-brand-500 mb-6 border border-brand-100 shadow-sm animate-pulse">
@@ -1321,9 +1325,15 @@ window.openDirectMessage = function(e, targetUserId) {
           <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">P2P Handshake Verified</p>
         </div>`;
     }
-
-    // 4. Render real messages if they exist
-    window.renderMessages(roomId);
+	
+	// 4. Render real messages if they exist
+    console.log(`%c 🔍 STEP 4: Calling window.renderMessages('${roomId}')...`, "color: white; background: green; font-weight: bold;");
+    
+    if (typeof window.renderMessages !== 'function') {
+        console.error("%c ❌ ERROR: window.renderMessages is NOT a function!", "color: white; background: red; font-size: 18px;");
+    } else {
+        window.renderMessages(roomId);
+    }
 };
 
 // 2. THE CLOSE FUNCTION
@@ -1443,6 +1453,9 @@ window.saveToLocal = function(roomId, msgObj) {
  * Pulls from LocalStorage and displays in the modal
  */
 window.renderMessages = function(roomId) {
+	console.log(`%c 📥 renderMessages started for: ${roomId}`, "color: orange; font-weight: bold;");
+    const data = localStorage.getItem(roomId);
+    console.log("📦 Raw LocalStorage Content:", data);
     const container = document.getElementById('dmMessagesContainer');
     if (!container) return;
 
