@@ -42,66 +42,44 @@ self.addEventListener('fetch', event => {
 });
 
 // --- PUSH NOTIFICATION LISTENER ---
-// --- PUSH NOTIFICATION LISTENER ---
 self.addEventListener('push', (event) => {
-    let payload = { 
-        title: 'New Message', 
-        body: 'You have a new message.', 
-        url: '/?open=chat' 
-    };
+    let data = { title: 'New Message', body: 'You have a new message.', data: { url: '/?open=chat' } };
     
-    try {
-        if (event.data) {
-            payload = event.data.json();
-        }
-    } catch (e) {
-        console.warn("Push event data was not JSON");
+    if (event.data) {
+        data = event.data.json();
     }
 
-    // Logic: Check data.data.url first (new format), then data.url (old format), then default
-    const finalUrl = payload.data?.url || payload.url || '/?open=chat';
-
     const options = {
-        body: payload.body,
+        body: data.body,
         icon: '/logo.png', 
         badge: '/badge.png', 
-        vibrate: [200, 100, 200],
-        sound: payload.sound || '/sounds/notification.mp3',
-        actions: payload.actions || [],
-        tag: payload.tag || 'new-dm',
-        renotify: true,
+        vibrate: [100, 50, 100],
+        // Pass your actions through
+        actions: data.actions || [], 
         data: {
-            url: finalUrl 
+            // FIX: Match the nested 'data.url' coming from your Edge Function
+            url: data.data?.url || '/?open=chat' 
         }
     };
 
     event.waitUntil(
-        self.registration.showNotification(payload.title, options)
+        self.registration.showNotification(data.title, options)
     );
 });
 
 // --- NOTIFICATION CLICK HANDLER ---
 self.addEventListener('notificationclick', (event) => {
-    // 1. Close the notification immediately
     event.notification.close();
 
-    // 2. Extract the URL we sent from the Edge Function
-    // We look in event.notification.data.url because that's where we put it
-    const targetUrl = event.notification.data?.url || '/?open=chat';
+    const targetUrl = event.notification.data.url;
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // 3. Check if your site is already open in any tab
             for (const client of windowClients) {
-                const clientUrl = new URL(client.url);
-                // Matches if it's your domain
-                if (clientUrl.hostname === location.hostname) {
-                    // Update the existing tab to the chat URL and bring it to the front
+                if (new URL(client.url).hostname === location.hostname) {
                     return client.navigate(targetUrl).then(c => c.focus());
                 }
             }
-
-            // 4. If the site isn't open at all, open a new tab with the target URL
             if (clients.openWindow) {
                 return clients.openWindow(targetUrl);
             }
