@@ -1427,6 +1427,7 @@ window.openDirectMessage = function(e, targetUserId) {
     // 1. DIRECT SWAP (Avoids the history.back conflict)
     const chatModal = document.getElementById('chatModal');
     const dmModal = document.getElementById('dmModal');
+	const comingFromList = chatModal && !chatModal.classList.contains('hidden');
     
     if (chatModal) chatModal.classList.add('hidden'); // Hide Inbox
     if (dmModal) dmModal.classList.remove('hidden'); // Show DM
@@ -1484,18 +1485,15 @@ window.openDirectMessage = function(e, targetUserId) {
 
 // 2. THE CLOSE FUNCTION
 window.closeDMModal = function() {
-  const modal = document.getElementById('dmModal');
-  if (modal && !modal.classList.contains('hidden')) {
-    modal.classList.add('hidden');
-	
-	// Restore scrolling when modal closes
-    document.body.style.overflow = '';
-
-    // --- NEW: If user closed modal via "X" or overlay, remove the history state ---
-    if (history.state && history.state.modalOpen) {
-      history.back();
+    // If there's a modal state in history, just go back.
+    // Our popstate listener (which you just shared) will handle the CSS.
+    if (window.history.state && (window.history.state.modal === 'dm' || window.history.state.modalOpen)) {
+        window.history.back();
+    } else {
+        // Fallback for safety only
+        document.getElementById('dmModal')?.classList.add('hidden');
+        document.body.style.overflow = '';
     }
-  }
 };
 
 // 3. SECURE LISTENERS
@@ -3345,9 +3343,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Generic function to open ANY modal (Profile, Chat, etc.)
 function showUIModal(modalElement) {
-  if (window.history.state?.modal !== 'open') {
+  // Only push a state if the current state isn't already a modal
+  // This prevents double-pushing if you switch between Profile and Inbox
+  if (!window.history.state || !window.history.state.modal) {
     history.pushState({ modal: 'open' }, '');
   }
+
   if (DOM.input) DOM.input.disabled = true;
   
   modalElement.classList.remove('hidden');
@@ -3356,12 +3357,12 @@ function showUIModal(modalElement) {
 
 // Generic function to close ANY modal
 function hideUIModal(modalElement) {
-  if (window.history.state?.modal === 'open') {
-    window.history.back();
-  }
-  modalElement.classList.add('hidden');
-  document.body.style.overflow = '';
-  if (DOM.input) DOM.input.disabled = false;
+    if (window.history.state && window.history.state.modal === 'open') {
+        window.history.back();
+    } else {
+        modalElement.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
 }
 
 // 1. Get references to the new elements
@@ -3429,6 +3430,10 @@ window.addEventListener('popstate', (event) => {
         chatModal?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
+	// ADD THIS AT THE BOTTOM:
+    if (DOM.input) DOM.input.disabled = false;
+    // If the DM input is focused, blur it so the keyboard drops on mobile
+    document.getElementById('dmInput')?.blur();
 });
 
 const Ledger = {
