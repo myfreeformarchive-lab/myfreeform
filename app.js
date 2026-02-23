@@ -96,10 +96,11 @@ if (!window._supabase) {
 
 _supabase.auth.getSession().then(({ data: { session } }) => {
   if (session) {
-    MY_USER_ID = session.user.id;
-    console.log("Logged in as:", MY_USER_ID);
+    // This makes it global so EVERY function and the CONSOLE can see it
+    window.MY_USER_ID = session.user.id; 
+    console.log("✅ Global ID set:", window.MY_USER_ID);
   } else {
-    console.error("No user logged in! Push won't work.");
+    console.error("❌ Login session not found");
   }
 });
 
