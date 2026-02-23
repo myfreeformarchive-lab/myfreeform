@@ -93,7 +93,6 @@ if (!window._supabase) {
 }
 
 // Add this or make sure your login logic sets MY_USER_ID
-let MY_USER_ID;
 
 _supabase.auth.getSession().then(({ data: { session } }) => {
   if (session) {
