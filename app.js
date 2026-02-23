@@ -1587,22 +1587,25 @@ window.renderMessages = function(roomId) {
 
     // 2. If history exists, render the messages
     container.innerHTML = history.map(msg => {
-        const isMe = msg.senderId === MY_USER_ID;
-        return `
-            <div class="flex ${isMe ? 'justify-end' : 'justify-start'} mb-4">
-                <div class="max-w-[80%] rounded-2xl px-4 py-2 ${
-                    isMe 
-                    ? 'bg-brand-500 text-white rounded-tr-none' 
-                    : 'bg-slate-100 lg:bg-slate-200 text-slate-800 rounded-tl-none'
-                }">
-                    <p class="text-sm">${msg.text}</p>
-                    <p class="text-[10px] opacity-70 mt-1 flex ${isMe ? 'justify-end' : 'justify-start'}">
-    ${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-</p>
+    const isMe = msg.senderId === MY_USER_ID;
+    return `
+        <div class="flex ${isMe ? 'justify-end' : 'justify-start'} mb-4 w-full">
+            <div class="max-w-[85%] md:max-w-[75%] rounded-2xl px-4 py-2 ${
+                isMe 
+                ? 'bg-brand-500 text-white rounded-tr-none' 
+                : 'bg-slate-100 lg:bg-slate-200 text-slate-800 rounded-tl-none'
+            }">
+                <p class="text-sm break-words">${msg.text}</p>
+                
+                <div class="flex ${isMe ? 'justify-end' : 'justify-start'} mt-1">
+                    <span class="text-[10px] opacity-70">
+                        ${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </span>
                 </div>
             </div>
-        `;
-    }).join('');
+        </div>
+    `;
+}).join('');
 
     // 3. Auto-scroll to the latest message
     container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
