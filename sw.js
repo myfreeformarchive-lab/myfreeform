@@ -1,66 +1,65 @@
-// Minimal cache-first service worker
 const CACHE_NAME = 'site-cache-v1';
 
 self.addEventListener('install', event => {
-  self.skipWaiting();
+    self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.map(k => (k !== CACHE_NAME) ? caches.delete(k) : Promise.resolve()))
-    ).then(() => self.clients.claim())
-  );
+    event.waitUntil(
+        caches.keys().then(keys =>
+            Promise.all(keys.map(k => (k !== CACHE_NAME) ? caches.delete(k) : Promise.resolve()))
+        ).then(() => self.clients.claim())
+    );
 });
 
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET' || new URL(event.request.url).origin !== location.origin) {
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then(cachedResp => {
-      if (cachedResp) {
-        event.waitUntil(
-          fetch(event.request).then(networkResp => {
-            if (networkResp && networkResp.ok) {
-              caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResp.clone()));
+    if (event.request.method !== 'GET' || new URL(event.request.url).origin !== location.origin) {
+        return;
+    }
+    event.respondWith(
+        caches.match(event.request).then(cachedResp => {
+            if (cachedResp) {
+                event.waitUntil(
+                    fetch(event.request).then(networkResp => {
+                        if (networkResp && networkResp.ok) {
+                            caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResp.clone()));
+                        }
+                    }).catch(() => {})
+                );
+                return cachedResp;
             }
-          }).catch(() => {})
-        );
-        return cachedResp;
-      }
-
-      return fetch(event.request).then(networkResp => {
-        if (networkResp && networkResp.ok) {
-          const copy = networkResp.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-        }
-        return networkResp;
-      }).catch(() => {
-        return new Response('', { status: 503, statusText: 'Service Unavailable' });
-      });
-    })
-  );
+            return fetch(event.request).then(networkResp => {
+                if (networkResp && networkResp.ok) {
+                    const copy = networkResp.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+                }
+                return networkResp;
+            }).catch(() => {
+                return new Response('', { status: 503, statusText: 'Service Unavailable' });
+            });
+        })
+    );
 });
 
 // --- PUSH NOTIFICATION HANDLER ---
 self.addEventListener('push', (event) => {
-    let data = { title: 'New Message', body: 'You have a new message.' };
+    let data = { title: 'New Message', body: 'You have a new message.', senderId: 'Someone' };
     
     if (event.data) {
         data = event.data.json();
     }
+
+    const senderId = data.senderId || 'Someone';
 
     const options = {
         body: data.body,
         icon: '/logo.png', 
         badge: '/badge.png', 
         vibrate: [100, 50, 100],
-        // Pass the URL and actions through
-        actions: data.actions || [],
+        actions: data.actions || [{ action: 'open', title: 'Open Message' }],
         data: {
-            url: data.url
+            // This builds the exact URL your frontend handleAutoOpen looks for
+            url: `https://myfreeform.page/?open=chat&user=${senderId}`
         }
     };
 
@@ -76,11 +75,13 @@ self.addEventListener('notificationclick', (event) => {
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+            // Try to find an existing tab and navigate it
             for (const client of windowClients) {
                 if (new URL(client.url).hostname === location.hostname) {
                     return client.navigate(targetUrl).then(c => c.focus());
                 }
             }
+            // If no tab is open, open a new one
             if (clients.openWindow) {
                 return clients.openWindow(targetUrl);
             }
