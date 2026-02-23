@@ -92,18 +92,6 @@ if (!window._supabase) {
     console.log("✅ _supabase is now connected to the console!");
 }
 
-// Add this or make sure your login logic sets MY_USER_ID
-
-_supabase.auth.getSession().then(({ data: { session } }) => {
-  if (session) {
-    // This makes it global so EVERY function and the CONSOLE can see it
-    window.MY_USER_ID = session.user.id; 
-    console.log("✅ Global ID set:", window.MY_USER_ID);
-  } else {
-    console.error("❌ Login session not found");
-  }
-});
-
 window.pendingPostUpdates = 0;
 
   // SVG Thought Bubble 
@@ -433,15 +421,16 @@ window.enableNotifications = async function() {
             applicationServerKey: convertedKey
         });
 
+        // We use the MY_USER_ID that was set by getOrCreateUserId() at the start
         const { error } = await _supabase
             .from('user_push_tokens') 
             .upsert({ 
                 user_id: MY_USER_ID, 
-                token: subscription 
+                token: JSON.stringify(subscription) // Database needs this as a string or json
             });
 
         if (error) throw error;
-        console.log("🔔 Notifications Linked!");
+        console.log("🔔 Notifications Linked for user:", MY_USER_ID);
     } catch (err) {
         console.error("Subscription failed:", err);
     }
