@@ -351,6 +351,24 @@ window.syncIncomingMessages = async function() {
     
     console.log("✅ Sync: All messages processed and UI updated.");
 };
+
+// --- INITIALIZE REALTIME ---
+if (MY_USER_ID) {
+    const dmSubscription = _supabase
+        .channel('dm-relay-changes')
+        .on('postgres_changes', { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'dm_relay',
+            filter: `receiver_id=eq.${MY_USER_ID}` 
+        }, (payload) => {
+            console.log("%c 🔔 REALTIME: New message detected!", "background: #22c55e; color: white; padding: 2px 5px;");
+            window.syncIncomingMessages();
+        })
+        .subscribe();
+} else {
+    console.warn("⚠️ Realtime not started: MY_USER_ID is missing.");
+}
   
 });
 
@@ -1281,6 +1299,36 @@ ${footerHtml}
   return el;
 }
 
+window.viewStorage = function() {
+    console.log("%c 🔍 GLOBAL LOCALSTORAGE READER ", "background: #000; color: #0f0; font-family: monospace; font-size: 14px; padding: 5px;");
+
+    if (localStorage.length === 0) {
+        console.log("%c LocalStorage is currently empty.", "color: #888; font-style: italic;");
+        return;
+    }
+
+    const allData = {};
+
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const rawValue = localStorage.getItem(key);
+        
+        try {
+            // Try to parse as JSON so it looks nice in the console
+            allData[key] = JSON.parse(rawValue);
+        } catch (e) {
+            // If it's just a regular string, keep it as is
+            allData[key] = rawValue;
+        }
+    }
+
+    // 1. Interactive Table for a bird's-eye view
+    console.table(allData);
+
+    // 2. Expandable Object for deep inspection
+    console.log("📂 Expand the object below for full details:", allData);
+};
+
 window.openDirectMessage = function(e, targetUserId) {
 	console.log("%c 🚀 STEP 1: openDirectMessage triggered!", "color: white; background: red; font-size: 16px; font-weight: bold;");
     console.log("📍 Target User:", targetUserId);
@@ -1295,6 +1343,11 @@ window.openDirectMessage = function(e, targetUserId) {
     
     if (chatModal) chatModal.classList.add('hidden'); // Hide Inbox
     if (dmModal) dmModal.classList.remove('hidden'); // Show DM
+	
+	if (!dmModal) {
+        console.error("❌ ERROR: Could not find #dmModal in the HTML!");
+        return;
+    }
     
     // Ensure background remains locked
     document.body.style.overflow = 'hidden';
@@ -1369,9 +1422,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
-
-// 1. DATA CONFIGURATION
-const STORAGE_PREFIX = "secure_chat_";
 
 /**
  * MAIN SEND FUNCTION
@@ -1453,19 +1503,25 @@ window.saveToLocal = function(roomId, msgObj) {
  * Pulls from LocalStorage and displays in the modal
  */
 window.renderMessages = function(roomId) {
-	console.log(`%c 📥 renderMessages started for: ${roomId}`, "color: orange; font-weight: bold;");
-    const data = localStorage.getItem(roomId);
-    console.log("📦 Raw LocalStorage Content:", data);
+    console.log(`%c 📥 renderMessages started for: ${roomId}`, "color: orange; font-weight: bold;");
+    
+    // Check if the container exists
     const container = document.getElementById('dmMessagesContainer');
     if (!container) return;
 
-    const key = `secure_chat_${roomId}`;
-    const history = JSON.parse(localStorage.getItem(key) || '[]');
+    // --- THE FIX: Remove 'secure_chat_' prefix ---
+    // We want the key to match exactly what's in LocalStorage: "user1--chat--user2"
+    const history = JSON.parse(localStorage.getItem(roomId) || '[]');
+    
+    console.log("📦 Loaded History Count:", history.length);
 
     // 1. If no history exists, STOP HERE so the "Splash Screen" stays visible
-    if (history.length === 0) return;
+    if (history.length === 0) {
+        console.warn("⚠️ No messages found in LocalStorage for room:", roomId);
+        return;
+    }
 
-    // 2. If history exists, clear the Splash Screen and show messages
+    // 2. If history exists, render the messages
     container.innerHTML = history.map(msg => {
         const isMe = msg.senderId === MY_USER_ID;
         return `
@@ -1509,73 +1565,81 @@ window.renderChatList = function() {
     const listContainer = document.getElementById('chatListContainer');
     if (!listContainer) return;
 
-    // 1. Find all chat rooms in LocalStorage
     const chats = [];
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
+        
+        // Only look for our specific P2P room format
         if (key.includes('--chat--')) { 
-        const history = JSON.parse(localStorage.getItem(key));
-            if (history && history.length > 0) {
-                const lastMsg = history[history.length - 1];
-                const roomId = key.replace('secure_chat_', '');
-                
-                // Determine the "Other User" ID from the Room ID
-                const participants = roomId.split('--chat--');
-                const otherUser = participants.find(id => id !== MY_USER_ID);
+            try {
+                const history = JSON.parse(localStorage.getItem(key));
+                if (history && Array.isArray(history) && history.length > 0) {
+                    const lastMsg = history[history.length - 1];
+                    
+                    // The key IS the roomId now. No replacement needed.
+                    const roomId = key; 
+                    
+                    const participants = roomId.split('--chat--');
+                    const otherUser = participants.find(id => id !== MY_USER_ID);
 
-                chats.push({
-                    roomId: roomId,
-                    otherUser: otherUser,
-                    lastText: lastMsg.text,
-                    timestamp: lastMsg.timestamp
-                });
+                    // Only push if we successfully identified the other person
+                    if (otherUser) {
+                        chats.push({
+                            roomId: roomId,
+                            otherUser: otherUser,
+                            lastText: lastMsg.text || "",
+                            timestamp: lastMsg.timestamp || Date.now()
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error("Error parsing chat history for key:", key, e);
             }
         }
     }
 
-    // 2. Sort by newest message first
+    // Sort: Newest messages at the top
     chats.sort((a, b) => b.timestamp - a.timestamp);
 
-    // 3. Render the HTML
     if (chats.length === 0) {
         listContainer.innerHTML = `
             <div class="flex flex-col items-center justify-center py-20 text-slate-400">
-                <p class="text-sm">No secure messages yet.</p>
+                <p class="text-sm font-medium">No secure messages yet.</p>
+                <p class="text-[10px] mt-1 opacity-60 uppercase tracking-widest">End-to-End Encrypted</p>
             </div>`;
         return;
     }
 
     listContainer.innerHTML = chats.map(chat => {
-    // --- Word Limit Logic ---
-    const words = chat.lastText.split(' ');
-    const previewText = words.length > 8 
-        ? words.slice(0, 8).join(' ') + '...' 
-        : chat.lastText;
+        const words = chat.lastText.split(' ');
+        const previewText = words.length > 8 
+            ? words.slice(0, 8).join(' ') + '...' 
+            : chat.lastText;
 
-    return `
-        <div onclick="openDirectMessage(event, '${chat.otherUser}')" 
-             class="flex items-center gap-4 px-4 py-4 border-b border-gray-50 hover:bg-slate-50 cursor-pointer transition-colors active:bg-slate-100">
-            
-            <div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs border border-slate-200 uppercase">
-                ${chat.otherUser.substring(0, 2)}
-            </div>
-
-            <div class="flex-1 min-w-0">
-                <div class="flex justify-between items-baseline mb-0.5">
-                    <h4 class="font-bold text-gray-900 text-sm truncate">@${chat.otherUser}</h4>
-                    <span class="text-[10px] text-gray-400">
-                        ${new Date(chat.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </span>
+        return `
+            <div onclick="window.openDirectMessage(event, '${chat.otherUser}')" 
+                 class="flex items-center gap-4 px-4 py-4 border-b border-gray-50 hover:bg-slate-50 cursor-pointer transition-colors active:bg-slate-100">
+                
+                <div class="w-12 h-12 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 font-bold text-xs border border-brand-100 uppercase">
+                    ${chat.otherUser.substring(0, 2)}
                 </div>
-                <p class="text-xs text-gray-500 truncate pr-4">${previewText}</p>
-            </div>
 
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-        </div>
-    `;
-}).join('');
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-baseline mb-0.5">
+                        <h4 class="font-bold text-gray-900 text-sm truncate">@${chat.otherUser}</h4>
+                        <span class="text-[10px] text-gray-400">
+                            ${new Date(chat.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-500 truncate pr-4">${previewText}</p>
+                </div>
+
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </div>
+        `;
+    }).join('');
 };
 
 function showHeartAnimation(container) {
@@ -2996,8 +3060,32 @@ async function resetAppCompletely() {
 document.getElementById('resetAppBtn').onclick = resetAppCompletely;
 
 function updateMeter() {
-  const kb = (new Blob([localStorage.getItem('freeform_v2') || '']).size / 1024).toFixed(1);
-  DOM.storage.textContent = `${kb} KB used`;
+  let totalBytes = 0;
+
+  // Loop through every single item in LocalStorage
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    const value = localStorage.getItem(key);
+    
+    // We measure the size of the key and the value combined
+    totalBytes += new Blob([key + value]).size;
+  }
+
+  // Convert bytes to KB (1024 bytes = 1 KB)
+  const kb = (totalBytes / 1024).toFixed(1);
+
+  // Update the UI
+  if (DOM.storage) {
+    DOM.storage.textContent = `${kb} KB used`;
+    
+    // Optional: Add a visual warning if getting close to the 5MB limit
+    // 5MB is roughly 5120 KB
+    if (kb > 4000) {
+        DOM.storage.style.color = '#ef4444'; // Red if > 4MB
+    } else {
+        DOM.storage.style.color = ''; // Default
+    }
+  }
 }
 
 function cleanText(str) {
