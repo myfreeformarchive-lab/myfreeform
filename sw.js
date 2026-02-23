@@ -51,3 +51,41 @@ self.addEventListener('fetch', event => {
     })
   );
 });
+
+// --- NEW: PUSH NOTIFICATION LISTENER ---
+self.addEventListener('push', (event) => {
+    let data = { title: 'New Message', body: 'You have a new secure message.' };
+    
+    try {
+        if (event.data) {
+            data = event.data.json();
+        }
+    } catch (e) {
+        console.warn("Push event data was not JSON, using default.");
+    }
+
+    const options = {
+        body: data.body,
+        icon: '/logo.png', // Path to your icon
+        badge: '/badge.png', // Small icon for android status bar
+        vibrate: [100, 50, 100],
+        data: {
+            url: data.url || '/' // Where to go when clicked
+        },
+        actions: [
+            { action: 'open', title: 'View Message' }
+        ]
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(data.title, options)
+    );
+});
+
+// Handle clicking the notification
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    event.waitUntil(
+        clients.openWindow(event.notification.data.url)
+    );
+});
