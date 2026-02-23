@@ -42,6 +42,7 @@ self.addEventListener('fetch', event => {
 });
 
 // --- PUSH NOTIFICATION LISTENER ---
+// --- PUSH NOTIFICATION LISTENER ---
 self.addEventListener('push', (event) => {
     let data = { title: 'New Message', body: 'You have a new message.', url: '/?open=chat' };
     
@@ -57,10 +58,16 @@ self.addEventListener('push', (event) => {
         body: data.body,
         icon: '/logo.png', 
         badge: '/badge.png', 
-        vibrate: [100, 50, 100],
+        vibrate: [200, 100, 200],
+        // --- ADD THESE THREE LINES ---
+        sound: data.sound || '/sounds/notification.mp3', 
+        actions: data.actions || [], 
+        tag: data.tag || 'new-dm',
+        // ------------------------------
+        renotify: true,
         data: {
-            // Ensure we fallback to the chat parameter if the Edge Function misses it
-            url: data.url || '/?open=chat' 
+            // Check both locations for the URL
+            url: data.data?.url || data.url || '/?open=chat' 
         }
     };
 
