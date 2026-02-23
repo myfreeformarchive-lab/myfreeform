@@ -18,38 +18,18 @@ self.addEventListener('fetch', event => {
   }
   event.respondWith(
     caches.match(event.request).then(cachedResp => {
-      if (cachedResp) {
-        event.waitUntil(
-          fetch(event.request).then(networkResp => {
-            if (networkResp && networkResp.ok) {
-              caches.open(CACHE_NAME).then(cache => cache.put(event.request, networkResp.clone()));
-            }
-          }).catch(() => {})
-        );
-        return cachedResp;
-      }
-      return fetch(event.request).then(networkResp => {
-        if (networkResp && networkResp.ok) {
-          const copy = networkResp.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-        }
-        return networkResp;
-      }).catch(() => {
-        return new Response('', { status: 503, statusText: 'Service Unavailable' });
-      });
+      return cachedResp || fetch(event.request);
     })
   );
 });
 
 // --- PUSH NOTIFICATION LISTENER ---
 self.addEventListener('push', (event) => {
-    let data = { title: 'New Message', body: 'You have a new message.' };
+    let data = { title: 'New Message', body: 'You have a new message.', url: 'https://myfreeform.page/?open=chat' };
     
     if (event.data) {
         data = event.data.json();
     }
-
-    const senderId = data.senderId || 'Someone';
 
     const options = {
         body: data.body,
@@ -58,7 +38,7 @@ self.addEventListener('push', (event) => {
         vibrate: [100, 50, 100],
         actions: data.actions || [],
         data: {
-            url: `https://myfreeform.page/?open=chat&user=${senderId}`
+            url: data.url
         }
     };
 
