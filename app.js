@@ -399,7 +399,7 @@ window.subscribeToPush = async function() {
     if (!error) console.log("🔔 Push Subscription synced to Supabase!");
 };
 
-// Helper to convert VAPID key for the browser
+// --- NOTIFICATION SETUP ---
 function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -407,13 +407,11 @@ function urlBase64ToUint8Array(base64String) {
     return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 }
 
-async function enableNotifications() {
+window.enableNotifications = async function() {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return console.log("Permission denied");
 
     const registration = await navigator.serviceWorker.ready;
-    
-    // YOUR ACTUAL PUBLIC KEY
     const PUBLIC_VAPID_KEY = 'BGeg4CsgjinWsVpRKe3hQKm0DIY2OyjRQ732owFaozFYkY9WuV1lQ3b-J-Z93b7ZbqnS-586JdR9yjsGW7-8PbU'; 
     const convertedKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY);
 
@@ -423,7 +421,6 @@ async function enableNotifications() {
             applicationServerKey: convertedKey
         });
 
-        // Use UPSERT so it updates the token if the user re-enables
         const { error } = await _supabase
             .from('user_push_tokens') 
             .upsert({ 
@@ -438,34 +435,27 @@ async function enableNotifications() {
     }
 }
 
-window.enableNotifications = enableNotifications;
-
-// 1. Link your existing function to the global window object
-// This MUST stay at the bottom of the file so 'openDirectMessage' is already defined above it.
-if (typeof openDirectMessage === 'function') {
-    window.openDirectMessage = openDirectMessage;
-}
-
-// 2. The Logic to auto-open
+// --- AUTO-OPEN LOGIC ---
 function handleAutoOpen() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('open') === 'chat') {
-        console.log("🚀 URL detected: Opening Direct Messages...");
-        
-        const targetId = params.get('user') || 'General'; 
+        const targetId = params.get('user'); 
+        if (!targetId) return;
 
-        // Wait 500ms to ensure the UI elements like #dmModal are actually in the DOM
-        setTimeout(() => {
+        console.log(`🚀 Auto-opening chat with: ${targetId}`);
+
+        const checkExist = setInterval(() => {
             if (typeof window.openDirectMessage === 'function') {
                 window.openDirectMessage(null, targetId);
-            } else {
-                console.error("❌ openDirectMessage is still not defined on window.");
+                clearInterval(checkExist);
             }
-        }, 500);
+        }, 100);
+
+        // Stop checking after 5 seconds
+        setTimeout(() => clearInterval(checkExist), 5000);
     }
 }
 
-// 3. Listen for the page load
 window.addEventListener('load', handleAutoOpen);
 
 // ==========================================
