@@ -438,6 +438,8 @@ async function enableNotifications() {
     }
 }
 
+window.enableNotifications = enableNotifications;
+
 // ==========================================
 // 0. NEW: ATOMIC COUNTER SYSTEM
 // ==========================================
