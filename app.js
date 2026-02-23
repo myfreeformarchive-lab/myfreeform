@@ -413,8 +413,8 @@ async function enableNotifications() {
 
     const registration = await navigator.serviceWorker.ready;
     
-    // IMPORTANT: Use your actual Public Key here
-    const PUBLIC_VAPID_KEY = 'YOUR_GENERATED_PUBLIC_KEY'; 
+    // YOUR ACTUAL PUBLIC KEY
+    const PUBLIC_VAPID_KEY = 'BGeg4CsgjinWsVpRKe3hQKm0DIY2OyjRQ732owFaozFYkY9WuV1lQ3b-J-Z93b7ZbqnS-586JdR9yjsGW7-8PbU'; 
     const convertedKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY);
 
     try {
@@ -423,14 +423,16 @@ async function enableNotifications() {
             applicationServerKey: convertedKey
         });
 
+        // Use UPSERT so it updates the token if the user re-enables
         const { error } = await _supabase
-            .from('user_push_tokens') // Use the table we just made!
+            .from('user_push_tokens') 
             .upsert({ 
                 user_id: MY_USER_ID, 
                 token: subscription 
             });
 
-        if (!error) console.log("🔔 Notifications Linked!");
+        if (error) throw error;
+        console.log("🔔 Notifications Linked!");
     } catch (err) {
         console.error("Subscription failed:", err);
     }
