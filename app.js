@@ -373,6 +373,69 @@ window.syncIncomingMessages = async function() {
     console.log("✅ Sync: All messages processed and UI updated.");
 };
 
+window.subscribeToPush = async function() {
+    const registration = await navigator.serviceWorker.ready;
+    
+    // Check if they already have a subscription
+    let subscription = await registration.pushManager.getSubscription();
+    
+    if (!subscription) {
+        // Replace with your real VAPID Public Key
+        const PUBLIC_VAPID_KEY = 'YOUR_GENERATED_PUBLIC_KEY'; 
+        
+        subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: PUBLIC_VAPID_KEY
+        });
+    }
+
+    // SAVE THIS TO SUPABASE
+    // We need to know which token belongs to which user
+    const { error } = await _supabase
+        .from('profiles') // or a new 'push_subscriptions' table
+        .update({ push_token: JSON.stringify(subscription) })
+        .eq('id', MY_USER_ID);
+
+    if (!error) console.log("🔔 Push Subscription synced to Supabase!");
+};
+
+// Helper to convert VAPID key for the browser
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
+
+async function enableNotifications() {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return console.log("Permission denied");
+
+    const registration = await navigator.serviceWorker.ready;
+    
+    // IMPORTANT: Use your actual Public Key here
+    const PUBLIC_VAPID_KEY = 'YOUR_GENERATED_PUBLIC_KEY'; 
+    const convertedKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY);
+
+    try {
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: convertedKey
+        });
+
+        const { error } = await _supabase
+            .from('user_push_tokens') // Use the table we just made!
+            .upsert({ 
+                user_id: MY_USER_ID, 
+                token: subscription 
+            });
+
+        if (!error) console.log("🔔 Notifications Linked!");
+    } catch (err) {
+        console.error("Subscription failed:", err);
+    }
+}
+
 // ==========================================
 // 0. NEW: ATOMIC COUNTER SYSTEM
 // ==========================================
