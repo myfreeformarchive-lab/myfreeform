@@ -1436,10 +1436,11 @@ window.openDirectMessage = function(e, targetUserId) {
         return;
     }
 	
-	// --- ADD THIS LINE BELOW ---
-    // This creates a "fake" page in the browser history so the back button doesn't close the app
-    history.pushState({ modal: 'dm' }, ""); 
-    // ---------------------------
+	// --- TRACK THE SOURCE ---
+    history.pushState({ 
+        modal: 'dm', 
+        fromList: comingFromList 
+    }, "");
     
     // Ensure background remains locked
     document.body.style.overflow = 'hidden';
@@ -3403,27 +3404,29 @@ window.addEventListener('popstate', (event) => {
     const dmModal = document.getElementById('dmModal');
     const chatModal = document.getElementById('chatModal');
     const profileModal = document.getElementById('profileModal');
-    
-    // The state we are currently LANDING ON after the back button was pressed
-    const currentState = event.state;
+    const commentModal = document.getElementById('commentModal');
 
-    // SCENARIO A: Backing out of everything to the Home Feed
-    if (!currentState || !currentState.modal) {
-        if (dmModal) dmModal.classList.add('hidden');
-        if (chatModal) chatModal.classList.add('hidden');
-        if (profileModal) profileModal.classList.add('hidden');
+    const state = event.state;
+
+    // 1. If no state, hide EVERYTHING and go back to the website
+    if (!state || !state.modal) {
+        [dmModal, chatModal, profileModal, commentModal].forEach(m => m?.classList.add('hidden'));
         document.body.style.overflow = '';
-        return; // Stop here, we are back at the website root
+        return;
     }
 
-    // SCENARIO B: Backing out of a DM into the Inbox
-    // If the state we landed on is 'open' (the state pushed by showUIModal for the Inbox)
-    if (currentState.modal === 'open') {
-        if (dmModal) dmModal.classList.add('hidden');
-        if (chatModal) {
-            chatModal.classList.remove('hidden');
-            window.renderChatList(); // Refresh list so it's up to date
-        }
+    // 2. Logic for DM transition
+    if (state.modal === 'dm') {
+        // This case actually shouldn't trigger on 'back' unless you go 'forward'
+        // but it's good for consistency.
+        dmModal?.classList.remove('hidden');
+    }
+
+    // 3. Logic for closing a DM
+    // If we land back on the 'open' state (the Inbox state)
+    if (state.modal === 'open') {
+        dmModal?.classList.add('hidden');
+        chatModal?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
 });
