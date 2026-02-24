@@ -3500,14 +3500,23 @@ window.addEventListener('popstate', (event) => {
     const chatModal = document.getElementById('chatModal');
     const profileModal = document.getElementById('profileModal');
     const commentModal = document.getElementById('commentModal');
-    
     const allModals = [dmModal, chatModal, profileModal, commentModal];
+    
     const state = event.state;
 
-    // Just hide everything and reset the scroll whenever the user hits 'Back'
-    // This stops the "Stupid Chat" from reopening.
+    // 1. First, hide everything to be safe
     allModals.forEach(m => m?.classList.add('hidden'));
     document.body.style.overflow = '';
+
+    // 2. ONLY re-open the Chat if we specifically land back on the 'open' state
+    // This allows the DM -> Chat transition to work when hitting 'Back'
+    if (state?.modal === 'open') {
+        chatModal?.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    // Everything else (Profile, Comments) stays hidden because we 
+    // didn't write any logic to re-open them here.
 });
 
 const Ledger = {
