@@ -25,7 +25,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ==========================================
-// 1. STATE & DOM lala
+// 1. STATE & DOM
 // ==========================================
 const DOM = {
   input: document.getElementById('postInput'),
@@ -3504,35 +3504,10 @@ window.addEventListener('popstate', (event) => {
     const allModals = [dmModal, chatModal, profileModal, commentModal];
     const state = event.state;
 
-    // 1. If NO state exists (User is back at the main website/feed)
-    if (!state || !state.modal) {
-        allModals.forEach(m => m?.classList.add('hidden'));
-        document.body.style.overflow = '';
-        return;
-    }
-
-    // 2. Clear the slate first 
-    // This prevents "Double Layering" where one modal sits behind another
+    // Just hide everything and reset the scroll whenever the user hits 'Back'
+    // This stops the "Stupid Chat" from reopening.
     allModals.forEach(m => m?.classList.add('hidden'));
-
-    // 3. Handle the "Inbox" List layer
-    if (state.modal === 'open') {
-        chatModal?.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-    }
-
-    // 4. Handle the "Direct Message" layer
-    if (state.modal === 'dm') {
-        dmModal?.classList.remove('hidden');
-        // If your DM is a sub-layer of the Inbox, you might want 
-        // chatModal to stay visible in the background, but usually, 
-        // it's cleaner to keep it hidden or use a z-index.
-        document.body.style.overflow = 'hidden';
-    }
-
-    // 5. Handle other modals
-    if (state.modal === 'profile') profileModal?.classList.remove('hidden');
-    if (state.modal === 'comment') commentModal?.classList.remove('hidden');
+    document.body.style.overflow = '';
 });
 
 const Ledger = {
