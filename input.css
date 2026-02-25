@@ -44,8 +44,6 @@
 /* ✅ FORM ELEMENT OVERRIDES: Custom styles for textarea and input */
 /* Ensures consistent cursor (text insertion beam) and prevents word breaking for better UX */
 textarea, input {
-  /* Custom text cursor: Vertical beam icon for better visual feedback */
-  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="black" d="M10 2h2v1h-3v10h3v1h-8v-1h3V3H4V2h6z"/></svg>') 8 8, text;
   /* Word-break: Keeps words intact to avoid awkward line breaks in input */
   word-break: keep-all; 
 }
