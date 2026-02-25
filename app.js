@@ -3286,46 +3286,44 @@ function cleanText(str) {
 function renderSmartText(rawText) {
     if (!rawText) return "";
     const urlPattern = /((?<!@)(?:(?:https?:\/\/|www\.)[^\s()<>[\]{}|\\^%§¶•°¬!]+|(?:\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:\/[^\s()<>[\]{}|\\^%§¶•°¬!]*)?)|(?:\b[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s()<>[\]{}|\\^%§¶•°¬!]*)?)))/ig;
+    
     return rawText.replace(urlPattern, (url) => {
         try {
-     const leadingMatch = url.match(/^[([<{]+/);
-     const leadingPunct = leadingMatch ? leadingMatch[0] : '';
-     const trailingMatch = url.match(/[\])>}§$%&*~^@!#<>¶•°¬!,.;:]+$/);
-     const trailingPunct = trailingMatch ? trailingMatch[0] : '';
-     let cleanUrl = url.substring(leadingPunct.length, url.length - trailingPunct.length);
-     if (!cleanUrl) return url; 
-     let tempUrl = /^https?:\/\//i.test(cleanUrl) ? cleanUrl : `https://${cleanUrl}`;
-     const urlObj = new URL(tempUrl);
-               
+            const leadingMatch = url.match(/^[([<{]+/);
+            const leadingPunct = leadingMatch ? leadingMatch[0] : '';
+            const trailingMatch = url.match(/[\])>}§$%&*~^@!#<>¶•°¬!,.;:]+$/);
+            const trailingPunct = trailingMatch ? trailingMatch[0] : '';
+            
+            let cleanUrl = url.substring(leadingPunct.length, url.length - trailingPunct.length);
+            if (!cleanUrl) return url; 
+            
+            let tempUrl = /^https?:\/\//i.test(cleanUrl) ? cleanUrl : `https://${cleanUrl}`;
+            const urlObj = new URL(tempUrl);
+                   
             const domain = urlObj.hostname.includes('xn--') && typeof punycode !== 'undefined' 
-    ? punycode.toUnicode(urlObj.hostname).replace('www.', '')
-    : decodeURI(urlObj.hostname).replace('www.', '');
-			
-            const pathParts = urlObj.pathname.split('/').filter(p => p.length > 0);      
-            const firstPath = pathParts.length > 0 ? `/${decodeURI(pathParts[0])}` : '';
-            let displayLink = domain + firstPath;
-            if (displayLink.length > 30) {
-                const parts = displayLink.split('/');
-                if (parts.length > 1) {
-                    const d = parts[0];
-                    const lastPart = parts[parts.length - 1];                  
-                    if (d.length + lastPart.length + 4 < 30) {
-                        displayLink = `${d}/.../${lastPart}`;
-                    } else {
-                        displayLink = displayLink.slice(0, 27) + '...';
-                    }
-                } else {
-                    displayLink = displayLink.slice(0, 27) + '...';
-                }
+                ? punycode.toUnicode(urlObj.hostname).replace('www.', '')
+                : decodeURI(urlObj.hostname).replace('www.', '');
+
+            // --- MODERN PRETTY ADJUSTMENT ---
+            // 1. Get the parts (e.g., ['en', 'wikipedia', 'org'])
+            const domainParts = domain.split('.');
+            let brandName = domainParts[0];
+
+            // 2. Skip technical subdomains to find the real brand
+            const techSubdomains = ['en', 'm', 'www', 'mobile', 'dev'];
+            if (techSubdomains.includes(brandName) && domainParts.length > 1) {
+                brandName = domainParts[1];
             }
-    return `${leadingPunct}<a href="javascript:void(0)" 
 
-                onclick="event.stopPropagation(); openExitModal('${cleanUrl}')" 
+            // 3. Final Display Link (The brand only)
+            let displayLink = brandName;
 
-                class="text-blue-500 hover:text-blue-400 underline decoration-1 underline-offset-4"
-
-                >${displayLink}</a>${trailingPunct}`;
-				
+            return `${leadingPunct}<a href="javascript:void(0)" 
+    onclick="event.stopPropagation(); openExitModal('${tempUrl}')" 
+    class="dm-pretty-link"
+    title="${tempUrl}"
+    ><span>${displayLink}</span></a>${trailingPunct}`;
+                
         } catch (e) {
             return url;
         }
