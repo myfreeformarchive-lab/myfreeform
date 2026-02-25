@@ -1617,6 +1617,8 @@ window.renderMessages = function(roomId) {
     // 2. If history exists, render the messages
     container.innerHTML = history.map(msg => {
     const isMe = msg.senderId === MY_USER_ID;
+	// Process the text to catch links and turn them into pretty pills
+        const processedText = renderSmartText(msg.text);
     return `
         <div class="flex ${isMe ? 'justify-end' : 'justify-start'} mb-4 w-full px-2">
             <div class="max-w-[85%] md:max-w-[75%] rounded-2xl px-4 py-2 ${
@@ -1626,7 +1628,7 @@ window.renderMessages = function(roomId) {
             }">
                 <div class="flow-root">
                     <p class="text-sm inline break-words leading-normal">
-                        ${msg.text}&nbsp;
+                        ${processedText}&nbsp;
                         <span class="float-right mt-2 ml-4 text-[10px] opacity-70 leading-none">
                             ${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </span>
