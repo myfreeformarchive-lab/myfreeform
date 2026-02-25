@@ -3421,10 +3421,20 @@ document.addEventListener('DOMContentLoaded', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    // 2. Focus Textarea when clicking section
-    document.getElementById('inputSection')?.addEventListener('click', () => {
+    document.getElementById('inputSection')?.addEventListener('click', (e) => {
+    // 1. Check if the element being clicked is specifically the textarea
+    if (e.target.id === 'postInput') {
+        console.log("You clicked the textarea specifically.");
+        
+        // 2. This is the line you requested, firing ONLY inside this 'if' block
         document.getElementById('postInput')?.focus();
-    });
+        
+    } else {
+        // This runs for the background, buttons, or toggle
+        console.log("You clicked the background or a button.");
+        // No focus command here, so nothing happens to the cursor
+    }
+});
 
     // 3 & 4. Tabs
     document.getElementById('tabPublic')?.addEventListener('click', () => switchTab('public'));
