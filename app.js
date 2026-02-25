@@ -1519,30 +1519,34 @@ document.addEventListener('DOMContentLoaded', () => {
 window.sendMessage = async function() {
     const input = document.getElementById('dmInput');
     const container = document.getElementById('dmMessagesContainer');
-    const messageText = input.value.trim();
     
-    // Safety checks
+    // 1. Grab raw text and immediately sanitize it using your helper
+    const rawText = input.value.trim();
+    const messageText = getSafeText(rawText);
+    
+    // Safety checks: if empty after sanitization, stop.
     if (!messageText) return;
+
     const targetUserId = document.getElementById('dmModalTitle').innerText.replace('@', '');
     if (!targetUserId) return;
 
     const roomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
 
-    // Create the Message Object
+    // Create the Message Object with the sanitized text
     const messageData = {
         id: crypto.randomUUID(),
         senderId: MY_USER_ID,
         receiverId: targetUserId,
         roomId: roomId,
-        text: messageText,
+        text: messageText, // Now safe from injection
         timestamp: Date.now(),
-        status: 'delivered' // Initial status
+        status: 'delivered' 
     };
 
     // STEP 1: Save to local storage (Sender side)
     window.saveToLocal(roomId, messageData);
 
-    // STEP 2: Clear UI Input and Refresh the message list
+    // STEP 2: Clear UI Input and Refresh
     input.value = '';
     window.renderMessages(roomId);
 
@@ -1560,7 +1564,7 @@ window.sendMessage = async function() {
         if (error) throw error;
     } catch (err) {
         console.error("Relay failed:", err.message);
-        // Optional: Update local message UI to show "Failed to send"
+        // Optional: Trigger a UI "retry" state or toast here
     }
 };
 
