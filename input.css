@@ -657,49 +657,55 @@ main.max-w-xl.mx-auto {
     display: inline-flex;
     align-items: center;
     color: inherit;               
-    font-weight: 700;             
+    font-weight: 800;             
     text-decoration: none;        
-    background-color: #f1f1f1;    
-    padding: 2px 8px;
-    border-radius: 4px;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border-bottom: 2px solid #ccc;
-    gap: 6px; 
-    
-    /* Limit the pill's total width */
+    padding: 0 2px;               
+    gap: 4px; 
     max-width: 180px; 
-    /* Important: prevent the pill itself from growing */
     min-width: 0; 
+    vertical-align: baseline; 
+    
+    /* 1. Set the initial faint border */
+    border-bottom: 1.5px solid rgba(71, 85, 105, 0.2);
+    
+    /* 2. Transition only the border and colors, not the whole element opacity */
+    transition: border-color 0.25s ease, color 0.2s ease;
 }
 
-/* THE FIX: Target the span for the ellipsis */
+/* Specific fix for the "Me" bubble: make the initial line a faint white */
+.bg-brand-500 .dm-pretty-link {
+    border-bottom-color: rgba(255, 255, 255, 0.3);
+}
+
 .dm-pretty-link span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    display: block; /* Allows ellipsis to trigger */
+    display: block;
 }
 
 .dm-pretty-link::after {
     content: '';
-    flex-shrink: 0; /* Ensures arrow stays visible */
+    flex-shrink: 0;
     width: 5px;
     height: 5px;
     border-top: 1.5px solid currentColor;
     border-right: 1.5px solid currentColor;
     transform: rotate(45deg);
-    opacity: 0.6;
+    opacity: 0.4;             
     transition: all 0.2s ease;
+    margin-bottom: 2px;       
 }
 
-/* Hover effects remain the samee */
+/* --- THE NEW HOVER LOGIC --- */
+
 .dm-pretty-link:hover {
-    background-color: #000;
-    color: #fff;
-    border-bottom-color: #000;
+    cursor: pointer;
+    /* The word stays solid, only the border-color "wakes up" */
+    border-bottom-color: currentColor; 
 }
 
 .dm-pretty-link:hover::after {
-    opacity: 1;
-    transform: rotate(45deg) translate(1px, -1px);
+    opacity: 1;               /* Arrow still wakes up */
+    transform: rotate(45deg) translate(1.5px, -1.5px);
 }
