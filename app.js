@@ -1639,7 +1639,7 @@ window.renderMessages = function(roomId) {
     `;
 }).join('');
 
-    // 3. Auto-scroll to the latest message
+    // 3. Auto-scroll to the latest messagee
     container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
 };
 
