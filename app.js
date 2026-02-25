@@ -3315,7 +3315,7 @@ function renderSmartText(rawText) {
                 brandName = domainParts[1];
             }
 
-            // 3. Final Display Link (The brand only)
+            // 3. Final Display Link (The brand onlyy)
             let displayLink = brandName;
 
             return `${leadingPunct}<a href="javascript:void(0)" 
