@@ -652,3 +652,54 @@ main.max-w-xl.mx-auto {
 .stencil-avatar:hover svg {
     display: none;
 }
+
+.dm-pretty-link {
+    display: inline-flex;
+    align-items: center;
+    color: inherit;               
+    font-weight: 700;             
+    text-decoration: none;        
+    background-color: #f1f1f1;    
+    padding: 2px 8px;
+    border-radius: 4px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border-bottom: 2px solid #ccc;
+    gap: 6px; 
+    
+    /* Limit the pill's total width */
+    max-width: 180px; 
+    /* Important: prevent the pill itself from growing */
+    min-width: 0; 
+}
+
+/* THE FIX: Target the span for the ellipsis */
+.dm-pretty-link span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block; /* Allows ellipsis to trigger */
+}
+
+.dm-pretty-link::after {
+    content: '';
+    flex-shrink: 0; /* Ensures arrow stays visible */
+    width: 5px;
+    height: 5px;
+    border-top: 1.5px solid currentColor;
+    border-right: 1.5px solid currentColor;
+    transform: rotate(45deg);
+    opacity: 0.6;
+    transition: all 0.2s ease;
+}
+
+/* Hover effects remain the same */
+.dm-pretty-link:hover {
+    background-color: #000;
+    color: #fff;
+    border-bottom-color: #000;
+}
+
+.dm-pretty-link:hover::after {
+    opacity: 1;
+    transform: rotate(45deg) translate(1px, -1px);
+}
