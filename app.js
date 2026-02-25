@@ -139,7 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedFont = font;
       localStorage.setItem('freeform_font_pref', font);
       applyFontPreference(font); 
-      DOM.input.focus();
     });
   });
 
