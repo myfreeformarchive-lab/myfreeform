@@ -697,7 +697,7 @@ main.max-w-xl.mx-auto {
     margin-bottom: 2px;       
 }
 
-/* --- THE NEW HOVER LOGIC --- */
+/* --- THE NEW HOVER LOGIC ---- */
 
 .dm-pretty-link:hover {
     cursor: pointer;
