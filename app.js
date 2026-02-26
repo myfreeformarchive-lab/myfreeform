@@ -143,7 +143,16 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   DOM.modalOverlay.addEventListener('click', () => closeModal());
-  closeBtn.addEventListener('click', () => closeModal());
+
+// 2. ONLY add the listener if the button actually exists on the page
+if (closeBtn) {
+    closeBtn.addEventListener('click', () => closeModal()); 
+} else {
+    // This helps you debug in Eruda if the ID is actually different
+    console.warn("Eruda Debug: Element with ID 'closeBtn' not found.");
+}
+
+
   DOM.sendComment.addEventListener('click', postComment);
   
   DOM.commentInput.addEventListener('keypress', (e) => {
