@@ -1483,7 +1483,7 @@ window.openDirectMessage = function(e, targetUserId) {
     }
 };
 
-// 2. THE CLOSE FUNCTION
+// 2. THE CLOSE FUNCTIONn
 window.closeDMModal = function(shouldFocus = false) {
   const modal = document.getElementById('dmModal');
   const overlay = document.getElementById('dmOverlay');
