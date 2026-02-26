@@ -3440,18 +3440,21 @@ document.addEventListener('DOMContentLoaded', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    document.getElementById('inputSection')?.addEventListener('click', (e) => {
-    // 1. Check if the element being clicked is specifically the textarea
+ document.getElementById('inputSection')?.addEventListener('click', (e) => {
+    const input = document.getElementById('postInput');
+    
+    // 1. Only run if the user specifically tapped the textarea
     if (e.target.id === 'postInput') {
-        console.log("You clicked the textarea specifically.");
-        
-        // 2. This is the line you requested, firing ONLY inside this 'if' block
-        document.getElementById('postInput')?.focus();
-        
+        // 2. Only force focus if it's NOT already the active element
+        // This stops the 'sticky keyboard' bug when trying to back out.
+        if (document.activeElement !== input) {
+            console.log("Directing focus to textarea.");
+            input.focus();
+        }
     } else {
-        // This runs for the background, buttons, or toggle
-        console.log("You clicked the background or a button.");
-        // No focus command here, so nothing happens to the cursor
+        // If they click the background/toggle, let the event pass through
+        // This ensures the toggle and buttons still work.
+        console.log("Clicked background or button.");
     }
 });
 
