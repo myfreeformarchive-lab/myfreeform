@@ -142,8 +142,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  DOM.modalOverlay.addEventListener('click', closeModal);
-  DOM.closeBtn.addEventListener('click', closeModal);
+  DOM.modalOverlay.addEventListener('click', () => closeModal());
+  closeBtn.addEventListener('click', () => closeModal());
   DOM.sendComment.addEventListener('click', postComment);
   
   DOM.commentInput.addEventListener('keypress', (e) => {
@@ -1484,17 +1484,28 @@ window.openDirectMessage = function(e, targetUserId) {
 };
 
 // 2. THE CLOSE FUNCTION
-window.closeDMModal = function() {
+window.closeDMModal = function(shouldFocus = false) {
   const modal = document.getElementById('dmModal');
   if (modal && !modal.classList.contains('hidden')) {
     modal.classList.add('hidden');
-	
-	// Restore scrolling when modal closes
+    
+    // Restore scrolling
     document.body.style.overflow = '';
 
-    // --- NEW: If user closed modal via "X" or overlay, remove the history state ---
-    if (history.state && history.state.modalOpen) {
+    // Handle History
+    if (history.state && (history.state.modalOpen || history.state.modal === 'open')) {
       history.back();
+    }
+
+    // THE GLOBAL FOCUS FIX
+    if (DOM.input) {
+      DOM.input.disabled = false;
+      
+      if (shouldFocus) {
+        setTimeout(() => {
+          DOM.input.focus();
+        }, 50);
+      } 
     }
   }
 };
@@ -1503,11 +1514,11 @@ window.closeDMModal = function() {
 document.addEventListener('DOMContentLoaded', () => {
   const overlay = document.getElementById('dmOverlay');
   if (overlay) {
-    overlay.addEventListener('click', closeDMModal);
+    overlay.addEventListener('click', () => window.closeDMModal());
   }
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeDMModal();
+    if (e.key === 'Escape') window.closeDMModal();
   });
   
 });
@@ -2765,14 +2776,14 @@ function openModal(post) {
   }
 }
 
-function closeModal() {
-  // 1. Navigation: Handle the hardware back button logic
+function closeModal(shouldFocus = false) {
+  // 1. Navigation
   if (window.history.state?.modal === 'open') {
     window.history.back();
   }
-	
+
   // 2. UI Reset
-  DOM.modal.classList.add('hidden');
+  DOM.modal?.classList.add('hidden');
   document.body.style.overflow = ''; 
 
   // 3. Listener Cleanup
@@ -2781,26 +2792,31 @@ function closeModal() {
     commentsUnsubscribe = null; 
   }
 
-  // 🚀 THE FIX: Stop the modal's specific live-count watcher
-  // This ensures the "phone hangs up" on this post when you walk away
   if (typeof modalAutoUnsubscribe !== 'undefined' && modalAutoUnsubscribe) {
     modalAutoUnsubscribe();
-    // We set it to null so it's ready for the next post
-    // Note: ensure modalAutoUnsubscribe is declared with 'let' at the top of your script
   }
   
   if (activePostId && activePostListeners.has(activePostId)) {
     const unsubscribe = activePostListeners.get(activePostId);
     if (typeof unsubscribe === 'function') {
-      unsubscribe(); // This triggers _supabase.removeChannel()
+      unsubscribe(); 
     }
-    activePostListeners.delete(activePostId); // Wipe from the Map
+    activePostListeners.delete(activePostId); 
   }
   
   activePostId = null;
   
+  // 4. Focus Logic
   if (DOM.input) {
     DOM.input.disabled = false;
+    
+    if (shouldFocus) {
+      setTimeout(() => {
+        DOM.input.focus();
+        const length = DOM.input.value.length;
+        DOM.input.setSelectionRange(length, length);
+      }, 50);
+    }
   }
 }
 
@@ -3463,13 +3479,30 @@ function showUIModal(modalElement) {
 }
 
 // Generic function to close ANY modal
-function hideUIModal(modalElement) {
+function hideUIModal(modalElement, shouldFocus = false) {
   if (window.history.state?.modal === 'open') {
     window.history.back();
   }
+  
   modalElement.classList.add('hidden');
   document.body.style.overflow = '';
-  if (DOM.input) DOM.input.disabled = false;
+
+  if (DOM.input) {
+    DOM.input.disabled = false;
+    
+    // Smooth refocus: Wait for the next tick to ensure 
+    // the UI is interactive before grabbing focus.
+	if (shouldFocus) {
+    setTimeout(() => {
+      DOM.input.focus();
+      
+      // Optional: Move cursor to the end of text if there's content
+      const val = DOM.input.value;
+      DOM.input.value = '';
+      DOM.input.value = val;
+    }, 50); 
+	}
+  }
 }
 
 // 1. Get references to the new elements
@@ -3526,6 +3559,12 @@ window.addEventListener('popstate', (event) => {
     if (state?.modal === 'open') {
         chatModal?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
+    } else {
+        // If we land back on the main page (state is null or not 'open')
+        // We MUST re-enable the main input and focus it
+        if (DOM.input) {
+            DOM.input.disabled = false;
+        }
     }
     
     // Everything else (Profile, Comments) stays hidden because we 
