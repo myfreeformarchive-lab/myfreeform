@@ -3552,13 +3552,14 @@ document.addEventListener('click', (e) => {
     }
 });
 
-window.addEventListener('popstate', (event) => {
+
+    window.addEventListener('popstate', (event) => {
     const dmModal = document.getElementById('dmModal');
     const chatModal = document.getElementById('chatModal');
     const profileModal = document.getElementById('profileModal');
     const commentModal = document.getElementById('commentModal');
     const allModals = [dmModal, chatModal, profileModal, commentModal];
-    
+
     const state = event.state;
 
     // 1. First, hide everything to be safe
@@ -3566,21 +3567,33 @@ window.addEventListener('popstate', (event) => {
     document.body.style.overflow = '';
 
     // 2. ONLY re-open the Chat if we specifically land back on the 'open' state
-    // This allows the DM -> Chat transition to work when hitting 'Back'
     if (state?.modal === 'open') {
         chatModal?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     } else {
-        // If we land back on the main page (state is null or not 'open')
-        // We MUST re-enable the main input and focus it
+        // --- 🚀 THE FIX STARTS HERE ---
+        
+        // A. Force the browser to release the "active" focus
+        document.activeElement?.blur();
+
+        // B. The "Caret Killer": Clear internal text selection memory
+        // This is what removes that black line (oklch caret)
+        window.getSelection()?.removeAllRanges();
+
         if (DOM.input) {
-            DOM.input.disabled = false;
+            // C. Visual Flush: Briefly toggle disabled to force a redraw
+            DOM.input.disabled = true;
+            
+            setTimeout(() => {
+                DOM.input.disabled = false;
+                console.log("UI Sync: Caret cleared, Swipes enabled.");
+            }, 50); 
         }
+        
+        // --- THE FIX ENDS HERE ---
     }
-    
-    // Everything else (Profile, Comments) stays hidden because we 
-    // didn't write any logic to re-open them here.
 });
+
 
 const Ledger = {
   reads: 0,
