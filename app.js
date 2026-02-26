@@ -1486,8 +1486,10 @@ window.openDirectMessage = function(e, targetUserId) {
 // 2. THE CLOSE FUNCTION
 window.closeDMModal = function(shouldFocus = false) {
   const modal = document.getElementById('dmModal');
+  const overlay = document.getElementById('dmOverlay');
   if (modal && !modal.classList.contains('hidden')) {
     modal.classList.add('hidden');
+	if (overlay) overlay.classList.add('hidden');
     
     // Restore scrolling
     document.body.style.overflow = '';
