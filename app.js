@@ -227,7 +227,11 @@ function handleSwipeGesture() {
     const swipeDistanceY = touchEndY - touchStartY;
     const threshold = 60; // Min distance in pixels to trigger a switch
 
-    if (!DOM.modal.classList.contains('hidden')) return;
+    const anyModalOpen = !document.getElementById('dmModal')?.classList.contains('hidden') || 
+                         !document.getElementById('chatModal')?.classList.contains('hidden') ||
+                         !DOM.modal?.classList.contains('hidden');
+	
+	if (anyModalOpen) return;
     
     if (Math.abs(swipeDistanceY) > Math.abs(swipeDistanceX)) {
         return; 
