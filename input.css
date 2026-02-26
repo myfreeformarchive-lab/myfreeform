@@ -709,3 +709,8 @@ main.max-w-xl.mx-auto {
     opacity: 1;               /* Arrow still wakes up */
     transform: rotate(45deg) translate(1.5px, -1.5px);
 }
+
+.hidden {
+  display: none !important;
+  pointer-events: none;
+}
