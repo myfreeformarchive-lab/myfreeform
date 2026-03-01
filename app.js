@@ -1,3 +1,5 @@
+history.scrollRestoration = 'manual';
+
 if (window.chrome && chrome.runtime && chrome.runtime.id) {
   document.body.classList.add('extension-view');
 }
