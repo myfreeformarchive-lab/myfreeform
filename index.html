@@ -302,35 +302,35 @@
     <!-- Public Tab: Displays global discovery feed of shared posts -->
     <button id="tabPublic" 
       style="padding-top: 12px; padding-bottom: 12px;"
-      class="flex-1 flex items-center justify-center text-sm font-semibold text-slate-500 hover:text-slate-700 border-b-2 border-b-transparent transition-all">
+      class="flex-1 pb-3 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-all">
       Discover Global
     </button>
 
     <!-- Private Tab: Displays user's personal archive (default active) -->
     <button id="tabPrivate" 
       style="padding-top: 12px; padding-bottom: 12px;"
-      class="flex-1 flex items-center justify-center text-sm font-bold text-brand-600 border-b-2 border-b-brand-500 transition-all">
+      class="flex-1 pb-3 text-sm font-bold text-brand-600 border-b-2 border-brand-500 transition-all">
       My Archive
     </button>
   </div>
   
 <!-- ✅ Fix tab flicker: apply correct active tab before app.js loads -->
-  <script>
-    (function() {
-      const tab = localStorage.getItem('freeform_tab_pref') || 'private';
-      const activeClass = "flex-1 flex items-center justify-center text-sm font-bold text-brand-600 border-b-2 border-b-brand-500 transition-all";
-      const inactiveClass = "flex-1 flex items-center justify-center text-sm font-semibold text-slate-500 hover:text-slate-700 border-b-2 border-b-transparent transition-all";
-      const pub = document.getElementById('tabPublic');
-      const priv = document.getElementById('tabPrivate');
-      if (tab === 'public') {
-        pub.className = activeClass;
-        priv.className = inactiveClass;
-      } else {
-        priv.className = activeClass;
-        pub.className = inactiveClass;
-      }
-    })();
-  </script>  
+<script>
+  (function() {
+    const tab = localStorage.getItem('freeform_tab_pref') || 'private';
+    const activeClass = "flex-1 pb-3 text-sm font-bold text-brand-600 border-b-2 border-brand-500 transition-all";
+    const inactiveClass = "flex-1 pb-3 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-all";
+    const pub = document.getElementById('tabPublic');
+    const priv = document.getElementById('tabPrivate');
+    if (tab === 'public') {
+      pub.className = activeClass;
+      priv.className = inactiveClass;
+    } else {
+      priv.className = activeClass;
+      pub.className = inactiveClass;
+    }
+  })();
+</script>
 
 <!-- 
   The feed area displays posts, with skeleton loaders during initial load and an infinite scroll trigger.
