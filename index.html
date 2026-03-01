@@ -290,6 +290,16 @@
       </div>
     </div>
   </section>
+  
+  <script>
+  (function() {
+    const isPublic = localStorage.getItem('freeform_toggle_pref') === 'true';
+    const toggle = document.getElementById('publicToggle');
+    const label = document.getElementById('publicLabel');
+    if (toggle) toggle.checked = isPublic;
+    if (label) label.textContent = isPublic ? 'Public' : 'Private';
+  })();
+</script>
 
 <!-- 
   The tabs section allows switching between public/global feed and private archive.
