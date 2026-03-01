@@ -3651,13 +3651,13 @@ document.addEventListener('click', (e) => {
     }
 });
 
-function dismissNotifPrompt() {
+window.dismissNotifPrompt = function() {
     document.getElementById('notif-prompt').style.display = 'none';
 }
 
-async function requestNotifPermission() {
+window.requestNotifPermission = async function() {
     dismissNotifPrompt();
-    await enableNotifications(); // calls your existing function
+    await enableNotifications();
 }
 
 // Show the prompt only if permission hasn't been decided yet
