@@ -55,6 +55,7 @@ const DOM = {
 };
 
 let currentTab = localStorage.getItem('freeform_tab_pref') || 'private';
+updateTabClasses();
 const MY_USER_ID = getOrCreateUserId(); 
 const BATCH_SIZE = 15;
 let currentLimit = BATCH_SIZE;
