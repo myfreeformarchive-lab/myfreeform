@@ -95,7 +95,7 @@ window._supabase = window._supabase || (typeof _supabase !== 'undefined' ? _supa
 if (!window._supabase) {
     console.error("❌ Still can't find the Supabase client. Try typing 'supabase' or 'db' to see if it's named differently.");
 } else {
-    console.log("✅ _supabase is now connected to the console!");
+   // console.log("✅ _supabase is now connected to the console!");
 }
 
 window.pendingPostUpdates = 0;
@@ -315,7 +315,7 @@ if (MY_USER_ID) {
             table: 'dm_relay',
             filter: `receiver_id=eq.${MY_USER_ID}` 
         }, (payload) => {
-            console.log("%c 🔔 REALTIME: New message detected!", "background: #22c55e; color: white; padding: 2px 5px;");
+          //  console.log("%c 🔔 REALTIME: New message detected!", "background: #22c55e; color: white; padding: 2px 5px;");
             window.syncIncomingMessages();
         })
         .subscribe();
@@ -326,7 +326,7 @@ if (MY_USER_ID) {
 });
 
 window.syncIncomingMessages = async function() {
-    console.log("🔍 Sync: Checking 'dm_relay' for messages...");
+   // console.log("🔍 Sync: Checking 'dm_relay' for messages...");
 
     // 1. Fetch messages where I am the receiver
     const { data, error } = await _supabase
@@ -340,11 +340,11 @@ window.syncIncomingMessages = async function() {
     }
 
     if (!data || data.length === 0) {
-        console.log("📥 Sync: No new messages found.");
+      //  console.log("📥 Sync: No new messages found.");
         return;
     }
 
-    console.log(`📩 Sync: Found ${data.length} messages. Processing...`);
+  //  console.log(`📩 Sync: Found ${data.length} messages. Processing...`);
 
     for (const row of data) {
         const msg = row.payload;
@@ -352,7 +352,7 @@ window.syncIncomingMessages = async function() {
         // Use the raw roomId directly from the message payload
         const roomId = msg.roomId;
 
-        console.log(`💾 Sync: Saving to local storage for room: ${roomId}`);
+    //    console.log(`💾 Sync: Saving to local storage for room: ${roomId}`);
         window.saveToLocal(roomId, msg);
         
         // 2. Delete from Supabase immediately (Ephemeral)
@@ -383,7 +383,7 @@ window.syncIncomingMessages = async function() {
         renderChatList();
     }
     
-    console.log("✅ Sync: All messages processed and UI updated.");
+   // console.log("✅ Sync: All messages processed and UI updated.");
 };
 
 window.subscribeToPush = async function() {
@@ -409,7 +409,7 @@ window.subscribeToPush = async function() {
         .update({ push_token: JSON.stringify(subscription) })
         .eq('id', MY_USER_ID);
 
-    if (!error) console.log("🔔 Push Subscription synced to Supabase!");
+   // if (!error) console.log("🔔 Push Subscription synced to Supabase!");
 };
 
 // --- NOTIFICATION SETUP ---
@@ -422,7 +422,7 @@ function urlBase64ToUint8Array(base64String) {
 
 window.enableNotifications = async function() {
     const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return console.log("Permission denied");
+   // if (permission !== 'granted') return console.log("Permission denied");
 
     const registration = await navigator.serviceWorker.ready;
     const PUBLIC_VAPID_KEY = 'BGeg4CsgjinWsVpRKe3hQKm0DIY2OyjRQ732owFaozFYkY9WuV1lQ3b-J-Z93b7ZbqnS-586JdR9yjsGW7-8PbU'; 
@@ -443,7 +443,7 @@ window.enableNotifications = async function() {
             });
 
         if (error) throw error;
-        console.log("🔔 Notifications Linked for user:", MY_USER_ID);
+    //    console.log("🔔 Notifications Linked for user:", MY_USER_ID);
     } catch (err) {
         console.error("Subscription failed:", err);
     }
@@ -500,7 +500,7 @@ async function getNextUniqueTag() {
     };
 
     // --- PASTE LOG HERE ---
-    console.log("Success:", result); 
+   // console.log("Success:", result); 
     // ---------------------
 
     return result;
@@ -509,7 +509,7 @@ async function getNextUniqueTag() {
     const tempResult = { num: tempNum, tag: `#temp${tempNum.toString().slice(-4)}` };
 
     // --- PASTE LOG HERE FOR ERRORS ---
-    console.log("Failed, using temp tag:", tempResult, "Error:", e);
+  //  console.log("Failed, using temp tag:", tempResult, "Error:", e);
     // --------------------------------
 
     return tempResult;
@@ -529,7 +529,7 @@ function startDripFeed() {
   async function drip() {
     if (currentTab !== 'public' || myId !== currentDripId) return;
     if (postBuffer.length === 0) {
-		console.log("%c🚰 Drip Feed: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
+	//	console.log("%c🚰 Drip Feed: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
       await refillBufferRandomly(5);
 	  Ledger.log("refillBuffer", 1, 0, 0);
     }
@@ -550,7 +550,7 @@ function startDripFeed() {
   return Math.floor(Math.random() * (maxSecs - minSecs + 1) + minSecs) * 1000;
 };
 const Variable = getRandomDelay(20, 40);
-console.log(`Next drip in: ${Variable / 1000} seconds`);
+//console.log(`Next drip in: ${Variable / 1000} seconds`);
 dripTimeout = setTimeout(drip, Variable);
   }
   drip();
@@ -561,7 +561,7 @@ function updateUISurgically(id, data) {
   const finalComments = data.commentCount ?? 0;
   const finalLikes = data.likeCount ?? 0;
   
-  console.log(`Updating UI for [${id}] -> Likes: ${finalLikes}, Comments: ${finalComments}`);
+//  console.log(`Updating UI for [${id}] -> Likes: ${finalLikes}, Comments: ${finalComments}`);
 
   updateLocalPostWithServerData(id, finalComments, finalLikes);
 
@@ -574,7 +574,7 @@ function updateUISurgically(id, data) {
 
     const commentSpan = postEl.querySelector(`.count-comment-${id}`);
     if (commentSpan) commentSpan.textContent = finalComments;
-	console.log(`✅ DOM updated for post ${id}`);
+	//console.log(`✅ DOM updated for post ${id}`);
   } else {
 	  console.warn(`⚠️ Post ${id} not found in DOM. (Maybe it scrolled off?)`);
   }
@@ -592,7 +592,7 @@ function watchPostCounts(postId) {
       return; 
   }
   
-  console.log(`[Watch] 📡 Fetching initial stats for: ${postId}`);
+ // console.log(`[Watch] 📡 Fetching initial stats for: ${postId}`);
 
   // 3. FIRE-AND-FORGET (No 'await')
   // We trigger the fetch, but we do NOT pause the code here.
@@ -605,7 +605,7 @@ function watchPostCounts(postId) {
 		window.pendingPostUpdates--;
 		
 		if (window.pendingPostUpdates === 0) {
-             console.log(`[watchPostCounts] 🟢 GREEN LIGHT. All updates finished.`);
+           //  console.log(`[watchPostCounts] 🟢 GREEN LIGHT. All updates finished.`);
         }
 		
         if (data) {
@@ -629,7 +629,7 @@ function watchPostCounts(postId) {
         filter: `id=eq.${postId}` 
     }, (payload) => {
 		
-		console.log(`[Realtime] ⚡ Event: ${payload.eventType} for ${postId}`, payload.new || "");
+	//	console.log(`[Realtime] ⚡ Event: ${payload.eventType} for ${postId}`, payload.new || "");
 
       if (payload.eventType === 'UPDATE') {
         const uiData = {
@@ -660,18 +660,18 @@ function watchPostCounts(postId) {
     })
     .subscribe((status) => {
       // --- LOG 3: CONNECTION STATUS ---
-      console.log(`[Socket] 🛰️ Status for ${postId}: ${status}`);
+  //    console.log(`[Socket] 🛰️ Status for ${postId}: ${status}`);
     });
 
 // 5. CLEANUP
   const unsubscribe = () => {
     const currentState = channel.state; // 'closed', 'errored', 'joined', or 'joining'
     
-    console.log(`[Socket Debug] 🔴 Removing ${postId}. State was: ${currentState}`);
+  //  console.log(`[Socket Debug] 🔴 Removing ${postId}. State was: ${currentState}`);
 
     _supabase.removeChannel(channel)
       .then(() => {
-        console.log(`[Socket Debug] ✅ Successfully cleaned up ${postId}`);
+  //      console.log(`[Socket Debug] ✅ Successfully cleaned up ${postId}`);
       })
       .catch((err) => {
         // This is where that WebSocket error usually gets swallowed or throws
@@ -684,7 +684,7 @@ function watchPostCounts(postId) {
 
 async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed = false) {
     const placeholder = document.getElementById('public-placeholder');
-    console.log(`%c🔄 Starting refillBufferRandomly (Target: ${count})`, "color: cyan; font-weight: bold;");
+  //  console.log(`%c🔄 Starting refillBufferRandomly (Target: ${count})`, "color: cyan; font-weight: bold;");
 	
 	if (isRefilling) {
         console.warn("🛑 Refill already in progress. Ignoring this request.");
@@ -710,7 +710,7 @@ async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed =
         const searchMaxId = maxId;
         const minId = 1;
 
-        console.log(`📊 DB Stats: Searching Entire DB | Range: ${minId} to ${searchMaxId} (Total: ${maxId})`);
+   //     console.log(`📊 DB Stats: Searching Entire DB | Range: ${minId} to ${searchMaxId} (Total: ${maxId})`);
         
         let attempts = 0;
         const MAX_ATTEMPTS = 25;
@@ -719,7 +719,7 @@ async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed =
             attempts++;
             const rand = Math.floor(Math.random() * (searchMaxId - minId + 1) + minId);    
             
-            console.log(`[Attempt ${attempts}] 🎲 Random ID: ${rand}`);      
+        //    console.log(`[Attempt ${attempts}] 🎲 Random ID: ${rand}`);      
             
             const q = query(
                 collection(db, "globalPosts"), 
@@ -740,15 +740,15 @@ async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed =
                                    postBuffer.some(p => p.id === post.id); 			
 
 // --- DEBUG LOG START ---
-                console.log(`🔍 Check: Found Post ${post.serialId}. Duplicate? ${isDuplicate}`);
-                console.log(`📂 Current Session "Seen" Count: ${processedIds.size}`);
+            //    console.log(`🔍 Check: Found Post ${post.serialId}. Duplicate? ${isDuplicate}`);
+            //    console.log(`📂 Current Session "Seen" Count: ${processedIds.size}`);
                 // --- DEBUG LOG END ---								   
                 
                 if (!isDuplicate) {
 					
                     postBuffer.push(post);
 					processedIds.add(post.id);
-                    console.log(`  ✅ Added Post ${post.serialId}. Buffer: ${postBuffer.length}/${count}`);
+              //      console.log(`  ✅ Added Post ${post.serialId}. Buffer: ${postBuffer.length}/${count}`);
                     
                     if (placeholder) {
                         placeholder.remove();   
@@ -757,25 +757,25 @@ async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed =
                     }      
                 } else {
                     const reason = (!ignoreProcessed && processedIds.has(post.id)) ? "Already Processed" : "In Buffer";
-                    console.log(`  ❌ Skip: Post ${post.serialId} (${reason})`);
+            //        console.log(`  ❌ Skip: Post ${post.serialId} (${reason})`);
                 }
                 
             } else {
-                console.log(`  ❓ No post found >= ${rand}. (Might be at the very end of DB)`);
+          //      console.log(`  ❓ No post found >= ${rand}. (Might be at the very end of DB)`);
                 continue; 
             }
         }
 		
 		// --- FINAL DEBUG SUMMARY ---
         if (processedIds.size > 0) {
-            console.log("📝 List of IDs currently in processedIds:");
+         //   console.log("📝 List of IDs currently in processedIds:");
             console.table(Array.from(processedIds)); 
         }
 
         if (attempts >= MAX_ATTEMPTS && postBuffer.length < count) {
             console.warn(`🛑 MAX_ATTEMPTS reached. Only found ${postBuffer.length}/${count} posts.`);
         }
-		console.log("🔓 Refill complete. Gate opened.");
+	//	console.log("🔓 Refill complete. Gate opened.");
     } catch (err) {
         console.error("🔥 Error in refillBufferRandomly:", err);
     } finally {
@@ -949,7 +949,7 @@ function renderPrivateBatch() {
 }
 
 async function subscribeArchiveSync() {
-	console.log(`[Private Debug] 🛰️ subscribeArchiveSync starting. Tab: ${currentTab}`);
+	//console.log(`[Private Debug] 🛰️ subscribeArchiveSync starting. Tab: ${currentTab}`);
   if (publicUnsubscribe) { 
     await publicUnsubscribe(); // Wait for the old one to die before born-ing the new one
     publicUnsubscribe = null; 
@@ -1004,13 +1004,13 @@ async function subscribeArchiveSync() {
     if (!channel) return;
 
     const state = channel.state;
-    console.log(`[Socket Debug] 🔴 Unsubscribing. State: ${state}`);
+  //  console.log(`[Socket Debug] 🔴 Unsubscribing. State: ${state}`);
 
     // If it's still joining, Supabase might throw if we remove it too fast
     try {
       if (state === 'joined' || state === 'joining') {
         await _supabase.removeChannel(channel);
-        console.log(`[Socket Debug] ✅ Channel removed.`);
+     //   console.log(`[Socket Debug] ✅ Channel removed.`);
       }
     } catch (e) {
       console.warn(`[Socket Debug] ⚠️ Handled WebSocket race condition:`, e.message);
@@ -1432,8 +1432,8 @@ window.viewStorage = function() {
 };
 
 window.openDirectMessage = function(e, targetUserId) {
-	console.log("%c 🚀 STEP 1: openDirectMessage triggered!", "color: white; background: red; font-size: 16px; font-weight: bold;");
-    console.log("📍 Target User:", targetUserId);
+//	console.log("%c 🚀 STEP 1: openDirectMessage triggered!", "color: white; background: red; font-size: 16px; font-weight: bold;");
+  //  console.log("📍 Target User:", targetUserId);
     if (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -1467,7 +1467,7 @@ window.openDirectMessage = function(e, targetUserId) {
     // 2. Setup IDs and Logic
     const myId = MY_USER_ID;
     const roomId = [myId, targetUserId].sort().join('--chat--');
-	console.log(`%c 🆔 STEP 2: Room ID generated: ${roomId}`, "color: yellow; background: black; font-size: 12px;");
+	//console.log(`%c 🆔 STEP 2: Room ID generated: ${roomId}`, "color: yellow; background: black; font-size: 12px;");
     const title = document.getElementById('dmModalTitle');
     const container = document.getElementById('dmMessagesContainer');
   
@@ -1475,7 +1475,7 @@ window.openDirectMessage = function(e, targetUserId) {
     
     // 3. Set the Handshake UI
     if (container) {
-		console.log("%c 🏗️ STEP 3: Setting Handshake UI...", "color: cyan; font-weight: bold;");
+	//	console.log("%c 🏗️ STEP 3: Setting Handshake UI...", "color: cyan; font-weight: bold;");
       container.innerHTML = `
         <div class="flex flex-col items-center text-center py-12">
           <div class="w-20 h-20 rounded-3xl bg-brand-50 flex items-center justify-center text-brand-500 mb-6 border border-brand-100 shadow-sm animate-pulse">
@@ -1492,7 +1492,7 @@ window.openDirectMessage = function(e, targetUserId) {
     }
 	
 	// 4. Render real messages if they exist
-    console.log(`%c 🔍 STEP 4: Calling window.renderMessages('${roomId}')...`, "color: white; background: green; font-weight: bold;");
+   // console.log(`%c 🔍 STEP 4: Calling window.renderMessages('${roomId}')...`, "color: white; background: green; font-weight: bold;");
     
     if (typeof window.renderMessages !== 'function') {
         console.error("%c ❌ ERROR: window.renderMessages is NOT a function!", "color: white; background: red; font-size: 18px;");
@@ -1627,7 +1627,7 @@ window.saveToLocal = function(roomId, msgObj) {
  * Pulls from LocalStorage and displays in the modal
  */
 window.renderMessages = function(roomId) {
-    console.log(`%c 📥 renderMessages started for: ${roomId}`, "color: orange; font-weight: bold;");
+  //  console.log(`%c 📥 renderMessages started for: ${roomId}`, "color: orange; font-weight: bold;");
     
     // Check if the container exists
     const container = document.getElementById('dmMessagesContainer');
@@ -1637,7 +1637,7 @@ window.renderMessages = function(roomId) {
     // We want the key to match exactly what's in LocalStorage: "user1--chat--user2"
     const history = JSON.parse(localStorage.getItem(roomId) || '[]');
     
-    console.log("📦 Loaded History Count:", history.length);
+ //   console.log("📦 Loaded History Count:", history.length);
 
     // 1. If no history exists, STOP HERE so the "Splash Screen" stays visible
     if (history.length === 0) {
@@ -1860,7 +1860,7 @@ window.deleteConversation = function(event, roomId) {
             // 4. Show the Success Toast
             showToast("Conversation deleted");
             
-            console.log(`🗑️ Conversation ${roomId} deleted via custom dialog.`);
+           console.log(`🗑️ Conversation ${roomId} deleted via custom dialog.`);
         }
     );
 };
@@ -1911,7 +1911,7 @@ function renderListItems(items) {
   }
 	
 	if (window.pendingPostUpdates > 0) {
-      console.log(`[renderListItems] 🚦 RED LIGHT. Waiting for ${window.pendingPostUpdates} updates to finish.`);
+    //  console.log(`[renderListItems] 🚦 RED LIGHT. Waiting for ${window.pendingPostUpdates} updates to finish.`);
       return; 
   }
 
@@ -2001,7 +2001,7 @@ function showPublicPlaceholder(type) {
       </div>`;
 
     // 🕒 THE 3-SECOND PANIC TIMER
-    console.log("[UI] Scanning started. 3s timeout armed.");
+  //  console.log("[UI] Scanning started. 3s timeout armed.");
     
     setTimeout(() => {
       const stillScanning = document.getElementById('public-placeholder');
@@ -2038,7 +2038,7 @@ async function handleBruteForce() {
             document.getElementById('public-placeholder').outerHTML = '';
         }
     }
-	console.log("%c🚰 Brute Force: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
+	//console.log("%c🚰 Brute Force: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
     await refillBufferRandomly(5, false, true);
 
     if (postBuffer.length > 0) {
@@ -2134,15 +2134,15 @@ document.addEventListener('click', (e) => {
 // ==========================================
 function setupInfiniteScroll() {
   // 1. If an observer already exists, kill it first
-  console.log("%c📜 setupInfiniteScroll initiated", "color: orange; font-weight: bold;");
+ // console.log("%c📜 setupInfiniteScroll initiated", "color: orange; font-weight: bold;");
   if (scrollObserver) {
-	  console.log("  Previous observer disconnected.");
+	//  console.log("  Previous observer disconnected.");
     scrollObserver.disconnect();
   }
 
   // 2. Create the new observer
   scrollObserver = new IntersectionObserver((entries) => {
-	  console.log(`  👁️ Scroll Check: Intersecting? ${entries[0].isIntersecting} | isLoadingMore? ${isLoadingMore} | Tab: ${currentTab}`);
+//	  console.log(`  👁️ Scroll Check: Intersecting? ${entries[0].isIntersecting} | isLoadingMore? ${isLoadingMore} | Tab: ${currentTab}`);
     if (entries[0].isIntersecting && !isLoadingMore) {
       // Only trigger if we are actually on the public tab
       if (currentTab === 'public') {
@@ -2170,8 +2170,8 @@ function setupInfiniteScroll() {
 }
 
 function loadMoreData() {
-	console.log("%c🚀 loadMoreData triggered", "color: magenta; font-weight: bold;");
-	console.log(`[Scroll Debug] Buffer: ${postBuffer.length}, Visible: ${visiblePosts.length}, Tab: ${currentTab}`);
+//	console.log("%c🚀 loadMoreData triggered", "color: magenta; font-weight: bold;");
+	//console.log(`[Scroll Debug] Buffer: ${postBuffer.length}, Visible: ${visiblePosts.length}, Tab: ${currentTab}`);
   if (isLoadingMore) {
     console.log("  ⛔ Blocked: isLoadingMore is already TRUE (Prev load still running?)");
     return;
@@ -2183,7 +2183,7 @@ function loadMoreData() {
   DOM.loadTrigger.style.opacity = '1';
 
   if (currentTab === 'private') {
-	  console.log("  📂 Path: Private Tab");
+//	  console.log("  📂 Path: Private Tab");
     currentLimit += BATCH_SIZE;
     renderPrivateBatch();
     isLoadingMore = false;
@@ -2193,22 +2193,22 @@ function loadMoreData() {
 	  console.log("%c🚰 Loadmoredata: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
     // Discovery Mode: Fetch a batch of random posts to append to the bottom
     refillBufferRandomly(5, true).then(() => {
-		console.log(`  📦 Refill Promise Resolved. Buffer contains: ${postBuffer.length} posts`);
+	//	console.log(`  📦 Refill Promise Resolved. Buffer contains: ${postBuffer.length} posts`);
       if (postBuffer.length === 0) {
 		  console.warn("  ⚠️ Random buffer EMPTY. Fallback to Chronological (subscribePublicFeed).");
-		  console.log(`[Fallback Debug] Calling subscribePublicFeed. IsAppending: ${isAppending}`);
+	//	  console.log(`[Fallback Debug] Calling subscribePublicFeed. IsAppending: ${isAppending}`);
           // If randomizer found nothing, fallback to chronological
           isAppending = true;
           subscribePublicFeed().then(() => {
-			  console.log("  🔄 Fallback feed loaded.");
+	//		  console.log("  🔄 Fallback feed loaded.");
               isLoadingMore = false;
               isAppending = false;
               DOM.loadTrigger.style.visibility = 'hidden';
-			  console.log("  ✅ Fallback complete. Lock released.");
+		//	  console.log("  ✅ Fallback complete. Lock released.");
           });
       } else {
           // Append the random "discoveries" to the bottom
-		  console.log(`  ✨ Injecting ${postBuffer.length} posts from buffer...`);
+	//	  console.log(`  ✨ Injecting ${postBuffer.length} posts from buffer...`);
           while(postBuffer.length > 0) {
             const p = postBuffer.shift();
             visiblePosts.push(p);
@@ -2216,7 +2216,7 @@ function loadMoreData() {
           }
           isLoadingMore = false;
           DOM.loadTrigger.style.visibility = 'hidden';
-		  console.log("  ✅ Injection complete. Lock released.");
+		//  console.log("  ✅ Injection complete. Lock released.");
       }
     });
   }
