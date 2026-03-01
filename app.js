@@ -1452,6 +1452,7 @@ window.openDirectMessage = function(e, targetUserId) {
     // 1. DIRECT SWAP (Avoids the history.back conflict)
     const chatModal = document.getElementById('chatModal');
     const dmModal = document.getElementById('dmModal');
+	const comingFromList = chatModal && !chatModal.classList.contains('hidden');
     
     if (chatModal) chatModal.classList.add('hidden'); // Hide Inbox
     if (dmModal) dmModal.classList.remove('hidden'); // Show DM
@@ -1460,8 +1461,6 @@ window.openDirectMessage = function(e, targetUserId) {
         console.error("❌ ERROR: Could not find #dmModal in the HTML!");
         return;
     }
-	
-	const comingFromList = chatModal && !chatModal.classList.contains('hidden');
 	
 	// --- TRACK THE SOURCE ---
     history.pushState({ 
