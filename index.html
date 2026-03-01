@@ -90,6 +90,28 @@
   <link rel="apple-touch-icon" href="icon.png">
   <meta name="theme-color" content="#ffffff">
   
+  <script>
+  (function() {
+    history.scrollRestoration = 'manual';
+
+    // ✅ ADD HERE
+    const _themes = {
+      indigo:  '#3f51b5',
+      rose:    '#e11d48',
+      emerald: '#059669',
+      amber:   '#d97706',
+      violet:  '#7c3aed',
+      slate:   '#475569',
+      sky:     '#0ea5e9',
+      orange:  '#ea580c'
+    };
+    const _theme = localStorage.getItem('selected_theme') || 'indigo';
+    document.documentElement.style.setProperty('--brand-primary', _themes[_theme] || _themes.indigo);
+
+    // rest of your existing script below...
+  })();
+</script>
+  
 <!-- Tailwind config style via tailwindcss-windows-x64.exe -i input.css -o style.css --minify -->
   <style>
   /*! tailwindcss v4.1.18 | MIT License | https://tailwindcss.com */
