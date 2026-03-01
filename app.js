@@ -1,7 +1,21 @@
+history.scrollRestoration = 'manual';
+
 const _t = (label) => console.log(`%c ⏱️ ${label}`, "color: white; background: #333; font-size: 11px;", `${performance.now().toFixed(1)}ms`);
 _t('app.js start');
 
-history.scrollRestoration = 'manual';
+const ghostObserver = new PerformanceObserver((list) => {
+    list.getEntries().forEach(entry => {
+        if (entry.value > 0.01) {
+            console.log(`%c 👻 LAYOUT SHIFT: ${entry.value.toFixed(6)}`, "color: white; background: red; font-size: 12px;");
+            entry.sources.forEach(source => {
+                console.log('Element:', source.node);
+                console.log('Before:', source.previousRect);
+                console.log('After:', source.currentRect);
+            });
+        }
+    });
+});
+ghostObserver.observe({ type: 'layout-shift', buffered: false });
 
 if (window.chrome && chrome.runtime && chrome.runtime.id) {
   document.body.classList.add('extension-view');
