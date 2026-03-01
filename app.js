@@ -3578,6 +3578,9 @@ document.addEventListener('click', (e) => {
 
 
 window.addEventListener('popstate', (event) => {
+    const state = event.state;
+
+    // 1. SELECT EVERYTHING
     const dmModal = document.getElementById('dmModal');
     const dmOverlay = document.getElementById('dmOverlay');
     const chatModal = document.getElementById('chatModal');
@@ -3585,49 +3588,57 @@ window.addEventListener('popstate', (event) => {
     const profileModal = document.getElementById('profileModal');
     const profileOverlay = document.getElementById('profileOverlay');
     const commentModal = document.getElementById('commentModal');
-    const commentOverlay = document.getElementById('commentOverlay'); // 👈 Added
+    const commentOverlay = document.getElementById('commentOverlay');
     
     const allModals = [dmModal, chatModal, profileModal, commentModal];
-    const allOverlays = [dmOverlay, chatOverlay, profileOverlay, commentOverlay]; // 👈 Added
+    const allOverlays = [dmOverlay, chatOverlay, profileOverlay, commentOverlay];
 
-    const state = event.state;
-
-    // 1. CLEAR EVERYTHING (Foreground & Background)
-    // This ensures that when you go "Back", any leftover modal from the previous state is nuked.
-    allModals.forEach(m => m?.classList.add('hidden'));
-    allOverlays.forEach(o => o?.classList.add('hidden'));
-    document.body.style.overflow = '';
-
-    // 2. ROUTING LOGIC
-    if (state?.modal === 'open') {
-        chatModal?.classList.remove('hidden');
-        chatOverlay?.classList.remove('hidden'); 
-        document.body.style.overflow = 'hidden';
-        if (typeof window.renderChatList === 'function') window.renderChatList();
-    } 
-    else if (state?.modal === 'dm') {
-        dmModal?.classList.remove('hidden');
-        dmOverlay?.classList.remove('hidden'); 
-        document.body.style.overflow = 'hidden';
+    // 2. THE RESET (Only hide if we are going back to the feed)
+    if (!state) {
+        allModals.forEach(m => m?.classList.add('hidden'));
+        allOverlays.forEach(o => o?.classList.add('hidden'));
+        document.body.style.overflow = '';
         
+        // Feed UI Reset
+        document.activeElement?.blur();
+        window.getSelection()?.removeAllRanges();
+        if (window.DOM?.input) {
+            window.DOM.input.disabled = true;
+            setTimeout(() => { window.DOM.input.disabled = false; }, 50);
+        }
+        return; // Exit early, we are done.
+    }
+
+    // 3. THE ROUTER (Show the right modal based on the state)
+    
+    // Handle DM Modal
+    if (state.modal === 'dm') {
+        allModals.forEach(m => m?.classList.add('hidden')); // Clear others
+        dmModal?.classList.remove('hidden');
+        dmOverlay?.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
         if (state.targetUserId) {
             const roomId = [MY_USER_ID, state.targetUserId].sort().join('--chat--');
             window.renderMessages(roomId);
         }
     } 
-    else {
-        // HOME FEED STATE
-        // This is where you land when you hit "Back" from the last modal.
-        document.activeElement?.blur();
-        window.getSelection()?.removeAllRanges();
-
-        if (window.DOM?.input) {
-            window.DOM.input.disabled = true;
-            setTimeout(() => {
-                window.DOM.input.disabled = false;
-                console.log("UI: Feed Resumed, Caret Cleared.");
-            }, 50); 
-        }
+    // Handle Chat/Inbox Modal
+    else if (state.modal === 'open') {
+        allModals.forEach(m => m?.classList.add('hidden')); // Clear others
+        chatModal?.classList.remove('hidden');
+        chatOverlay?.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        if (typeof window.renderChatList === 'function') window.renderChatList();
+    }
+    // 🚀 THE SAVIOR: Handle Profile & Comment Modals
+    // This part ensures your other modals don't get "fucked"
+    else if (state.modal === 'profile' || state.modal === 'comment') {
+        allModals.forEach(m => m?.classList.add('hidden'));
+        const targetModal = document.getElementById(state.modal + 'Modal');
+        const targetOverlay = document.getElementById(state.modal + 'Overlay');
+        targetModal?.classList.remove('hidden');
+        targetOverlay?.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
     }
 });
 
