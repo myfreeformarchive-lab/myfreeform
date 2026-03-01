@@ -924,6 +924,7 @@ function updateToggleUI() {
     : "text-xs font-semibold text-slate-500 transition-colors";
 }
 let feedSafetyTimeout = null;
+
 function loadFeed() {
 	console.log(`%c 🍔 loadFeed called — currentTab: ${currentTab}`, "color: white; background: darkred; font-size: 14px;");
 	if (feedSafetyTimeout) clearTimeout(feedSafetyTimeout);
@@ -2194,23 +2195,14 @@ function setupInfiniteScroll() {
 
   // 2. Create the new observer
   scrollObserver = new IntersectionObserver((entries) => {
-//	  console.log(`  👁️ Scroll Check: Intersecting? ${entries[0].isIntersecting} | isLoadingMore? ${isLoadingMore} | Tab: ${currentTab}`);
     if (entries[0].isIntersecting && !isLoadingMore) {
-      // Only trigger if we are actually on the public tab
-      if (currentTab === 'public') {
-		  console.log("     ✅ Conditions met! Triggering loadMoreData()...");
-        loadMoreData();
-      } else {
-        console.log(`     ⛔ Blocked: Wrong tab ('${currentTab}')`);
-      }
-    } else if (entries[0].isIntersecting && isLoadingMore) {
-       console.log("     ⏳ Blocked: Already loading data.");
+        loadMoreData(); // ✅ loadMoreData already handles private vs public internally
     }
-  }, { 
+}, { 
     root: null, 
     threshold: 0.1,
-    rootMargin: '150px' // Increased margin for a smoother "Discovery" feel
-  });
+    rootMargin: '150px'
+});
   
   // 3. Start watching the trigger
   if (DOM.loadTrigger) {
