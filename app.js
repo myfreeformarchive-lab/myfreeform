@@ -944,8 +944,10 @@ function renderPrivateBatch() {
   allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
   
   const visible = allPrivatePosts.slice(0, currentLimit);
+  DOM.list.style.minHeight = DOM.list.offsetHeight + 'px'; // ✅ lock height
   DOM.list.innerHTML = ''; 
   renderListItems(visible);
+  DOM.list.style.minHeight = '';
   DOM.loadTrigger.style.display = (currentLimit >= allPrivatePosts.length) ? 'none' : 'flex';
 }
 
