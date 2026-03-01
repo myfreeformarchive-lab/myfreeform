@@ -2026,8 +2026,8 @@ function showPublicPlaceholder(type) {
       </div>`;
   } else if (type === 'scanning') {
     html = `
-      <div id="public-placeholder" class="text-center py-20 opacity-50 font-medium italic">
-        Scanning the horizon...
+      <div id="public-placeholder" class="flex flex-col items-center justify-center w-full text-center px-6" style="min-height: calc(100vh - 418px);">
+        <p class="text-slate-400 opacity-50 font-medium italic">Scanning the horizon...</p>
       </div>`;
 
     // 🕒 THE 3-SECOND PANIC TIMER
