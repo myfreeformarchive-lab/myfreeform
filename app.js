@@ -3596,6 +3596,7 @@ window.addEventListener('popstate', (event) => {
     else if (state?.modal === 'dm') {
         // 🚀 THIS WAS MISSING: Re-show the DM modal
         dmModal?.classList.remove('hidden');
+		document.getElementById('dmOverlay')?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
         
         // Optional: If you stored targetUserId in the state, 
