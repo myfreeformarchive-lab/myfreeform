@@ -1442,6 +1442,7 @@ window.openDirectMessage = function(e, targetUserId) {
         history.pushState({ modal: 'dm', fromList: true }, "");
         dmHistoryPushed = 1;
     }
+	console.log(`%c 🚩 FLAG after open: dmHistoryPushed = ${dmHistoryPushed} (${dmHistoryPushed === 1 ? 'LIST entry — history pushed' : 'ICON entry — no history'})`, "color: white; background: purple; font-size: 14px; font-weight: bold;");
     // Icon entry: dmHistoryPushed stays 0, nothing pushed
 
     document.body.style.overflow = 'hidden';
@@ -1492,6 +1493,7 @@ window.closeDMModal = function(shouldFocus = false) {
             dmHistoryPushed = 0; // reset BEFORE back() so popstate sees clean state
             history.back();
         }
+		console.log(`%c 🚩 FLAG after close: dmHistoryPushed = ${dmHistoryPushed} (${dmHistoryPushed === 0 ? 'reset — clean' : 'NOT reset — check this!'})`, "color: white; background: darkblue; font-size: 14px; font-weight: bold;");
         // If flag is 0 (icon entry) — do nothing with history
 
         if (DOM.input) {
@@ -3555,6 +3557,7 @@ window.addEventListener('popstate', (event) => {
         chatModal?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
         dmHistoryPushed = 0; // ✅ sync flag if user used browser back instead of close button
+		console.log(`%c 🚩 FLAG in popstate: dmHistoryPushed = ${dmHistoryPushed} (reset via browser back)`, "color: white; background: darkgreen; font-size: 14px; font-weight: bold;");
     } else {
         document.activeElement?.blur();
         window.getSelection()?.removeAllRanges();
