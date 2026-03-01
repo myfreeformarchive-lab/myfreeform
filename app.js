@@ -937,7 +937,7 @@ function loadFeed() {
     renderPrivateBatch();
     subscribeArchiveSync();
   } else {
-	DOM.loadTrigger.style.display = 'flex';
+	DOM.loadTrigger.style.visibility = 'visible';
 	
 	// 🟢 NEW: Start the 5-second timer
     feedSafetyTimeout = setTimeout(() => {
@@ -1071,7 +1071,7 @@ async function subscribePublicFeed() {
         startDripFeed(); // Only start the loop on first load
     }
 
-    DOM.loadTrigger.style.opacity = '0';
+    DOM.loadTrigger.style.visibility = 'hidden';
 
     // ============================================================
     // 3. Ego-Listener (Tweaked: The "Instant Feedback" Loop)
