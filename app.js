@@ -336,6 +336,7 @@ if (DOM.desktopEmojiTrigger && DOM.desktopEmojiPopup) {
 // --- INITIALIZE REALTIME ---
 if (MY_USER_ID) {
 	window.syncIncomingMessages();
+	enableNotifications();
     const dmSubscription = _supabase
         .channel('dm-relay-changes')
         .on('postgres_changes', { 
