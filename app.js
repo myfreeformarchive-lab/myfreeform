@@ -860,13 +860,13 @@ function switchTab(tab) {
     currentTab = tab;
     localStorage.setItem('freeform_tab_pref', tab);
     currentLimit = BATCH_SIZE;
-	window.scrollTo({ top: 0, behavior: 'instant' });
     updateTabClasses();
     loadFeed();
     if (tab === 'public') setupInfiniteScroll();
     requestAnimationFrame(() => {
       DOM.list.style.opacity = '1'; 
       DOM.list.style.transform = 'translateX(0)'; 
+	  window.scrollTo({ top: 0, behavior: 'instant' });
       setTimeout(refreshSnap, 100); 
     });
 
