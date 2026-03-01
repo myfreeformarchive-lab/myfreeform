@@ -1442,49 +1442,54 @@ window.viewStorage = function() {
 };
 
 window.openDirectMessage = function(e, targetUserId) {
-	console.log("%c 🚀 STEP 1: openDirectMessage triggered!", "color: white; background: red; font-size: 16px; font-weight: bold;");
-    console.log("📍 Target User:", targetUserId);
+    console.log("%c 🚀 STEP 1: openDirectMessage triggered!", "color: white; background: red; font-size: 16px; font-weight: bold;");
+    
     if (e) {
         e.preventDefault();
         e.stopPropagation();
     }
-  
-    // 1. DIRECT SWAP (Avoids the history.back conflict)
+
     const chatModal = document.getElementById('chatModal');
     const dmModal = document.getElementById('dmModal');
-	const comingFromList = chatModal && !chatModal.classList.contains('hidden');
+    const dmOverlay = document.getElementById('dmOverlay'); // Need this reference!
+
+    // 1. Check source BEFORE hiding chatModal
+    const comingFromList = chatModal && !chatModal.classList.contains('hidden');
     
-    if (chatModal) chatModal.classList.add('hidden'); // Hide Inbox
-    if (dmModal) dmModal.classList.remove('hidden'); // Show DM
-	
-	if (!dmModal) {
+    // 2. Clear previous UI states
+    if (chatModal) chatModal.classList.add('hidden');
+    // Also hide chatOverlay if it's separate to avoid layering bugs
+    document.getElementById('chatOverlay')?.classList.add('hidden');
+
+    // 3. THE FIX: Force show both Modal and Overlay
+    if (!dmModal) {
         console.error("❌ ERROR: Could not find #dmModal in the HTML!");
         return;
     }
-	
-	// --- TRACK THE SOURCE ---
-    history.pushState({ 
-    modal: 'dm', 
-    fromList: comingFromList,
-    targetUserId: targetUserId // <--- Crucial for the popstate render!
-}, "");
+
+    dmModal.classList.remove('hidden');
+    if (dmOverlay) dmOverlay.classList.remove('hidden'); // 👈 THIS fixes the "choke"
     
-    // Ensure background remains locked
     document.body.style.overflow = 'hidden';
 
-    // 2. Setup IDs and Logic
-    const myId = MY_USER_ID;
-    const roomId = [myId, targetUserId].sort().join('--chat--');
-	console.log(`%c 🆔 STEP 2: Room ID generated: ${roomId}`, "color: yellow; background: black; font-size: 12px;");
+    // 4. TRACK THE SOURCE IN HISTORY
+    // Use 'wasInboxOpen' to make it clear for the popstate router
+    history.pushState({ 
+        modal: 'dm', 
+        fromList: comingFromList,
+        targetUserId: targetUserId 
+    }, "");
+
+    // 5. Setup IDs and Logic
+    const roomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
     const title = document.getElementById('dmModalTitle');
     const container = document.getElementById('dmMessagesContainer');
-  
+
     if (title) title.innerText = `@${targetUserId}`;
     
-    // 3. Set the Handshake UI
+    // 6. Set the Handshake UI
     if (container) {
-		console.log("%c 🏗️ STEP 3: Setting Handshake UI...", "color: cyan; font-weight: bold;");
-      container.innerHTML = `
+        container.innerHTML = `
         <div class="flex flex-col items-center text-center py-12">
           <div class="w-20 h-20 rounded-3xl bg-brand-50 flex items-center justify-center text-brand-500 mb-6 border border-brand-100 shadow-sm animate-pulse">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1498,14 +1503,12 @@ window.openDirectMessage = function(e, targetUserId) {
           <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">P2P Handshake Verified</p>
         </div>`;
     }
-	
-	// 4. Render real messages if they exist
-    console.log(`%c 🔍 STEP 4: Calling window.renderMessages('${roomId}')...`, "color: white; background: green; font-weight: bold;");
     
-    if (typeof window.renderMessages !== 'function') {
-        console.error("%c ❌ ERROR: window.renderMessages is NOT a function!", "color: white; background: red; font-size: 18px;");
-    } else {
+    // 7. Render messages
+    if (typeof window.renderMessages === 'function') {
         window.renderMessages(roomId);
+    } else {
+        console.error("❌ ERROR: window.renderMessages not found!");
     }
 };
 
@@ -3575,38 +3578,45 @@ document.addEventListener('click', (e) => {
 
 window.addEventListener('popstate', (event) => {
     const dmModal = document.getElementById('dmModal');
+    const dmOverlay = document.getElementById('dmOverlay');
     const chatModal = document.getElementById('chatModal');
+    const chatOverlay = document.getElementById('chatOverlay');
     const profileModal = document.getElementById('profileModal');
+    const profileOverlay = document.getElementById('profileOverlay');
     const commentModal = document.getElementById('commentModal');
+    
     const allModals = [dmModal, chatModal, profileModal, commentModal];
+    const allOverlays = [dmOverlay, chatOverlay, profileOverlay];
 
     const state = event.state;
 
-    // 1. Hide everything first to reset the UI
+    // 1. CLEAR EVERYTHING (Foreground & Background)
     allModals.forEach(m => m?.classList.add('hidden'));
+    allOverlays.forEach(o => o?.classList.add('hidden'));
     document.body.style.overflow = '';
 
-    // 2. Route to the correct modal based on state
+    // 2. ROUTING LOGIC
     if (state?.modal === 'open') {
-        // This is your Inbox/Chat list
+        // Landing back on the Inbox/Chat List
         chatModal?.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-    } 
-    else if (state?.modal === 'dm') {
-        // 🚀 THIS WAS MISSING: Re-show the DM modal
-        dmModal?.classList.remove('hidden');
-		document.getElementById('dmOverlay')?.classList.remove('hidden');
+        chatOverlay?.classList.remove('hidden'); // 👈 Match foreground with background
         document.body.style.overflow = 'hidden';
         
-        // Optional: If you stored targetUserId in the state, 
-        // you could re-render the messages here to ensure they are fresh.
+        if (typeof window.renderChatList === 'function') window.renderChatList();
+    } 
+    else if (state?.modal === 'dm') {
+        // Navigating back/forward into a specific DM
+        dmModal?.classList.remove('hidden');
+        dmOverlay?.classList.remove('hidden'); // 👈 Ensure backdrop is visible
+        document.body.style.overflow = 'hidden';
+        
         if (state.targetUserId) {
             const roomId = [MY_USER_ID, state.targetUserId].sort().join('--chat--');
             window.renderMessages(roomId);
         }
     } 
     else {
-        // This runs when we are back on the main feed (no modals open)
+        // Back to the Main Feed (Home)
         document.activeElement?.blur();
         window.getSelection()?.removeAllRanges();
 
