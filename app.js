@@ -423,7 +423,7 @@ window.subscribeToPush = async function() {
     
     if (!subscription) {
         // Replace with your real VAPID Public Key
-        const PUBLIC_VAPID_KEY = 'BGeg4CsgjinWsVpRKe3hQKm0DIY2OyjRQ732owFaozFYkY9WuV1lQ3b-J-Z93b7ZbqnS-586JdR9yjsGW7-8PbU'; 
+        const PUBLIC_VAPID_KEY = 'BNtfmLDVxafsxgDlp8882ZXfuWY7jbgUhtcN69himY5iUkZ2Kw4MmnZlhrHEcFBe3n-tAsGjJtH9Jfrp5VChG1U';
         
         subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
@@ -454,7 +454,7 @@ window.enableNotifications = async function() {
    // if (permission !== 'granted') return console.log("Permission denied");
 
     const registration = await navigator.serviceWorker.ready;
-    const PUBLIC_VAPID_KEY = 'BGeg4CsgjinWsVpRKe3hQKm0DIY2OyjRQ732owFaozFYkY9WuV1lQ3b-J-Z93b7ZbqnS-586JdR9yjsGW7-8PbU'; 
+    const PUBLIC_VAPID_KEY = 'BNtfmLDVxafsxgDlp8882ZXfuWY7jbgUhtcN69himY5iUkZ2Kw4MmnZlhrHEcFBe3n-tAsGjJtH9Jfrp5VChG1U';
     const convertedKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY);
 
     try {
