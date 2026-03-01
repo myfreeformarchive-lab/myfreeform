@@ -1436,6 +1436,10 @@ window.openDirectMessage = function(e, targetUserId) {
     if (chatModal) chatModal.classList.add('hidden');
     if (!dmModal) { console.error("❌ ERROR: Could not find #dmModal in the HTML!"); return; }
     dmModal.classList.remove('hidden');
+	
+	// ✅ Also re-show the overlay
+const dmOverlay = document.getElementById('dmOverlay');
+if (dmOverlay) dmOverlay.classList.remove('hidden');
 
     // ✅ Only push history if coming from ChatModal, and only if not already pushed
     if (comingFromList && dmHistoryPushed === 0) {
