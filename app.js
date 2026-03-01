@@ -79,6 +79,9 @@ let isRefilling = false;
 
 let totalGlobalPosts = 0;
 
+// ✅ Single flag — lives outside all functions
+let dmHistoryPushed = 0;
+
 const supabaseUrl = 'https://ipgtvatyzwhkifnsstux.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwZ3R2YXR5endoa2lmbnNzdHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NDcyMzIsImV4cCI6MjA4NjIyMzIzMn0.OH7Dru0KKKdewj1nsWofvI73cT6tKIZbTVMPJA2oPvI'; 
 // Use _supabase (with an underscore) to avoid clashing with the library name
@@ -1428,16 +1431,18 @@ window.openDirectMessage = function(e, targetUserId) {
 
     const chatModal = document.getElementById('chatModal');
     const dmModal = document.getElementById('dmModal');
-    const comingFromList = chatModal && !chatModal.classList.contains('hidden'); // ✅ before hiding
+    const comingFromList = chatModal && !chatModal.classList.contains('hidden');
 
     if (chatModal) chatModal.classList.add('hidden');
     if (!dmModal) { console.error("❌ ERROR: Could not find #dmModal in the HTML!"); return; }
     dmModal.classList.remove('hidden');
 
-    // ✅ Only push history if entering from ChatModal
-    if (comingFromList) {
+    // ✅ Only push history if coming from ChatModal, and only if not already pushed
+    if (comingFromList && dmHistoryPushed === 0) {
         history.pushState({ modal: 'dm', fromList: true }, "");
+        dmHistoryPushed = 1;
     }
+    // Icon entry: dmHistoryPushed stays 0, nothing pushed
 
     document.body.style.overflow = 'hidden';
 
@@ -1482,13 +1487,12 @@ window.closeDMModal = function(shouldFocus = false) {
         if (overlay) overlay.classList.add('hidden');
         document.body.style.overflow = '';
 
-        // ✅ Only go back if we actually pushed a history entry
-        if (history.state?.modal === 'dm' && history.state?.fromList === true) {
-            history.back(); // returns to ChatModal via popstate
-        } else if (history.state?.modalOpen || history.state?.modal === 'open') {
+        // ✅ Only go back if the flag says we pushed something
+        if (dmHistoryPushed === 1) {
+            dmHistoryPushed = 0; // reset BEFORE back() so popstate sees clean state
             history.back();
         }
-        // Icon-opened DMs: no history.back() — nothing was pushed
+        // If flag is 0 (icon entry) — do nothing with history
 
         if (DOM.input) {
             DOM.input.disabled = false;
@@ -3532,44 +3536,35 @@ document.addEventListener('click', (e) => {
 });
 
 
-    window.addEventListener('popstate', (event) => {
+window.addEventListener('popstate', (event) => {
     const dmModal = document.getElementById('dmModal');
     const chatModal = document.getElementById('chatModal');
     const profileModal = document.getElementById('profileModal');
     const commentModal = document.getElementById('commentModal');
     const allModals = [dmModal, chatModal, profileModal, commentModal];
-
     const state = event.state;
 
-    // 1. First, hide everything to be safe
     allModals.forEach(m => m?.classList.add('hidden'));
     document.body.style.overflow = '';
 
-    // 2. ONLY re-open the Chat if we specifically land back on the 'open' state
     if (state?.modal === 'open') {
         chatModal?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
+    } else if (state?.modal === 'dm' && state?.fromList === true) {
+        // ✅ User hit browser back from a list-opened DM → re-show ChatModal
+        chatModal?.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        dmHistoryPushed = 0; // ✅ sync flag if user used browser back instead of close button
     } else {
-        // --- 🚀 THE FIX STARTS HERE ---
-        
-        // A. Force the browser to release the "active" focus
         document.activeElement?.blur();
-
-        // B. The "Caret Killer": Clear internal text selection memory
-        // This is what removes that black line (oklch caret)
         window.getSelection()?.removeAllRanges();
-
         if (DOM.input) {
-            // C. Visual Flush: Briefly toggle disabled to force a redraw
             DOM.input.disabled = true;
-            
             setTimeout(() => {
                 DOM.input.disabled = false;
                 console.log("UI Sync: Caret cleared, Swipes enabled.");
-            }, 50); 
+            }, 50);
         }
-        
-        // --- THE FIX ENDS HERE ---
     }
 });
 
