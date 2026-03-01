@@ -26,6 +26,12 @@ ghostObserver.observe({ type: 'layout-shift', buffered: true });
 ghostObserver.observe({ type: 'largest-contentful-paint', buffered: true });
 ghostObserver.observe({ type: 'longtask', buffered: true });
 
+const placeholder = document.getElementById('public-placeholder');
+const firstPost = document.querySelector('.feed-item');
+
+console.log('Placeholder height:', placeholder?.offsetHeight);
+console.log('First post height:', firstPost?.offsetHeight);
+
 if (window.chrome && chrome.runtime && chrome.runtime.id) {
   document.body.classList.add('extension-view');
 }
