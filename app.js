@@ -1432,6 +1432,7 @@ window.openDirectMessage = function(e, targetUserId) {
     // 1. DIRECT SWAP (Avoids the history.back conflict)
     const chatModal = document.getElementById('chatModal');
     const dmModal = document.getElementById('dmModal');
+	const comingFromList = chatModal && !chatModal.classList.contains('hidden');
     
     if (chatModal) chatModal.classList.add('hidden'); // Hide Inbox
     if (dmModal) dmModal.classList.remove('hidden'); // Show DM
@@ -1440,8 +1441,6 @@ window.openDirectMessage = function(e, targetUserId) {
         console.error("❌ ERROR: Could not find #dmModal in the HTML!");
         return;
     }
-	
-	const comingFromList = chatModal && !chatModal.classList.contains('hidden');
 	
 	// --- TRACK THE SOURCE ---
     history.pushState({ 
@@ -1489,31 +1488,29 @@ window.openDirectMessage = function(e, targetUserId) {
     }
 };
 
-// 2. THE CLOSE FUNCTION
 window.closeDMModal = function(shouldFocus = false) {
   const modal = document.getElementById('dmModal');
   const overlay = document.getElementById('dmOverlay');
   if (modal && !modal.classList.contains('hidden')) {
     modal.classList.add('hidden');
-	if (overlay) overlay.classList.add('hidden');
+    if (overlay) overlay.classList.add('hidden');
     
-    // Restore scrolling
     document.body.style.overflow = '';
 
-    // Handle History
-    if (history.state && (history.state.modalOpen || history.state.modal === 'open')) {
+    // ✅ Also handle the 'dm' state pushed by icon entry point
+    if (history.state && (
+      history.state.modalOpen || 
+      history.state.modal === 'open' || 
+      history.state.modal === 'dm'         // <-- THIS was missing
+    )) {
       history.back();
     }
 
-    // THE GLOBAL FOCUS FIX
     if (DOM.input) {
       DOM.input.disabled = false;
-      
       if (shouldFocus) {
-        setTimeout(() => {
-          DOM.input.focus();
-        }, 50);
-      } 
+        setTimeout(() => DOM.input.focus(), 50);
+      }
     }
   }
 };
