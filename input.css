@@ -784,39 +784,3 @@ main.max-w-xl.mx-auto {
   display: none !important;
   pointer-events: none;
 }
-
-#notif-prompt {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #1e1e2e;
-    color: white;
-    padding: 16px 20px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 14px;
-    max-width: 320px;
-    width: 90%;
-}
-
-#notif-prompt button {
-    background: #6c63ff;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-#notif-prompt .notif-dismiss {
-    background: transparent;
-    color: #aaa;
-    padding: 4px 8px;
-    font-size: 12px;
-}
