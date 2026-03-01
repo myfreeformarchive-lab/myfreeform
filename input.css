@@ -224,6 +224,7 @@ section.group {
   padding-bottom: 20vh;
   /* FIX: Added scroll snapping to container for better post control */
   scroll-snap-type: y proximity; /* Moved from body for per-element snapping */
+  min-height: 100vh;
 }
 
 /* FeedList Optimizations: Kept for performance */
