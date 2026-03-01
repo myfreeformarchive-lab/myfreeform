@@ -97,6 +97,7 @@ html {
   width: 100%;
   overflow: visible !important; /* Allow content to expand naturally */
   height: auto !important;      /* Dynamic height based on content */
+  scrollbar-gutter: stable;
 }
 
 /* 3. THE MASTER SCROLLER (The Engine): Body styles for smooth scrolling */
