@@ -43,10 +43,19 @@ self.addEventListener('fetch', event => {
 
 // --- PUSH NOTIFICATION HANDLER ---
 self.addEventListener('push', (event) => {
-    let data = { title: 'New Message', body: 'You have a new message.', senderId: 'Someone' };
+    let data = { 
+        title: 'New Message', 
+        body: 'You have a new message.', 
+        senderId: 'Someone',
+        sound: '/sounds/notification.mp3' // Default fallback
+    };
     
     if (event.data) {
-        data = event.data.json();
+        try {
+            data = event.data.json();
+        } catch (e) {
+            console.error("Push event data was not JSON:", e);
+        }
     }
 
     const senderId = data.senderId || 'Someone';
@@ -56,9 +65,13 @@ self.addEventListener('push', (event) => {
         icon: '/logo.png', 
         badge: '/badge.png', 
         vibrate: [100, 50, 100],
+        // 🛑 CRITICAL FIXES START HERE
+        sound: data.sound || '/sounds/notification.mp3', 
+        tag: data.tag || 'new-dm',
+        renotify: data.renotify || true,
+        // 🛑 CRITICAL FIXES END HERE
         actions: data.actions || [{ action: 'open', title: 'Open Message' }],
         data: {
-            // This builds the exact URL your frontend handleAutoOpen looks for
             url: `https://myfreeform.page/?open=chat&user=${senderId}`
         }
     };
