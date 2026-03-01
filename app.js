@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadFeed(); 
   updateMeter();
-  setupInfiniteScroll();
+  if (currentTab === 'public') setupInfiniteScroll();
 
   DOM.btn.addEventListener('click', handlePost);
   
