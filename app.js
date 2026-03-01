@@ -5,17 +5,26 @@ _t('app.js start');
 
 const ghostObserver = new PerformanceObserver((list) => {
     list.getEntries().forEach(entry => {
-        if (entry.value > 0.01) {
+        if (entry.entryType === 'layout-shift' && entry.value > 0.001) { // ✅ much stricter
             console.log(`%c 👻 LAYOUT SHIFT: ${entry.value.toFixed(6)}`, "color: white; background: red; font-size: 12px;");
-            entry.sources.forEach(source => {
+            entry.sources?.forEach(source => {
                 console.log('Element:', source.node);
                 console.log('Before:', source.previousRect);
                 console.log('After:', source.currentRect);
             });
         }
+        if (entry.entryType === 'largest-contentful-paint') {
+            console.log(`%c 🖼️ LCP: ${entry.startTime.toFixed(1)}ms — element:`, "color: white; background: darkblue; font-size: 12px;", entry.element);
+        }
+        if (entry.entryType === 'longtask') {
+            console.log(`%c ⚠️ LONG TASK: ${entry.duration.toFixed(1)}ms`, "color: white; background: darkorange; font-size: 12px;");
+        }
     });
 });
-ghostObserver.observe({ type: 'layout-shift', buffered: false });
+
+ghostObserver.observe({ type: 'layout-shift', buffered: true });
+ghostObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+ghostObserver.observe({ type: 'longtask', buffered: true });
 
 if (window.chrome && chrome.runtime && chrome.runtime.id) {
   document.body.classList.add('extension-view');
