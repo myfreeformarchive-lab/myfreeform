@@ -2025,10 +2025,10 @@ function showPublicPlaceholder(type) {
         <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
       </div>`;
   } else if (type === 'scanning') {
-    html = 
-      <div id="public-placeholder" class="text-center py-20 opacity-50 font-medium italic">
-        Scanning the horizon...
-      </div>;
+    html = `
+      <div id="public-placeholder" class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]" style="min-height: calc(100vh - 418px);">
+        <p class="text-slate-400 opacity-50 font-medium italic">Scanning the horizon...</p>
+      </div>`;
 
     // 🕒 THE 3-SECOND PANIC TIMER
   //  console.log("[UI] Scanning started. 3s timeout armed.");
