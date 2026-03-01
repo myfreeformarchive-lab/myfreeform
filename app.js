@@ -1499,9 +1499,7 @@ window.closeDMModal = function(shouldFocus = false) {
 
     // ✅ Also handle the 'dm' state pushed by icon entry point
     if (history.state && (
-      history.state.modalOpen || 
-      history.state.modal === 'open' || 
-      history.state.modal === 'dm'         // <-- THIS was missing
+      history.state.modalOpen
     )) {
       history.back();
     }
