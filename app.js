@@ -1465,9 +1465,10 @@ window.openDirectMessage = function(e, targetUserId) {
 	
 	// --- TRACK THE SOURCE ---
     history.pushState({ 
-        modal: 'dm', 
-        fromList: comingFromList 
-    }, "");
+    modal: 'dm', 
+    fromList: comingFromList,
+    targetUserId: targetUserId // <--- Crucial for the popstate render!
+}, "");
     
     // Ensure background remains locked
     document.body.style.overflow = 'hidden';
@@ -3573,7 +3574,7 @@ document.addEventListener('click', (e) => {
 });
 
 
-    window.addEventListener('popstate', (event) => {
+window.addEventListener('popstate', (event) => {
     const dmModal = document.getElementById('dmModal');
     const chatModal = document.getElementById('chatModal');
     const profileModal = document.getElementById('profileModal');
@@ -3582,35 +3583,39 @@ document.addEventListener('click', (e) => {
 
     const state = event.state;
 
-    // 1. First, hide everything to be safe
+    // 1. Hide everything first to reset the UI
     allModals.forEach(m => m?.classList.add('hidden'));
     document.body.style.overflow = '';
 
-    // 2. ONLY re-open the Chat if we specifically land back on the 'open' state
+    // 2. Route to the correct modal based on state
     if (state?.modal === 'open') {
+        // This is your Inbox/Chat list
         chatModal?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
-    } else {
-        // --- 🚀 THE FIX STARTS HERE ---
+    } 
+    else if (state?.modal === 'dm') {
+        // 🚀 THIS WAS MISSING: Re-show the DM modal
+        dmModal?.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
         
-        // A. Force the browser to release the "active" focus
+        // Optional: If you stored targetUserId in the state, 
+        // you could re-render the messages here to ensure they are fresh.
+        if (state.targetUserId) {
+            const roomId = [MY_USER_ID, state.targetUserId].sort().join('--chat--');
+            window.renderMessages(roomId);
+        }
+    } 
+    else {
+        // This runs when we are back on the main feed (no modals open)
         document.activeElement?.blur();
-
-        // B. The "Caret Killer": Clear internal text selection memory
-        // This is what removes that black line (oklch caret)
         window.getSelection()?.removeAllRanges();
 
-        if (DOM.input) {
-            // C. Visual Flush: Briefly toggle disabled to force a redraw
-            DOM.input.disabled = true;
-            
+        if (window.DOM?.input) {
+            window.DOM.input.disabled = true;
             setTimeout(() => {
-                DOM.input.disabled = false;
-                console.log("UI Sync: Caret cleared, Swipes enabled.");
+                window.DOM.input.disabled = false;
             }, 50); 
         }
-        
-        // --- THE FIX ENDS HERE ---
     }
 });
 
