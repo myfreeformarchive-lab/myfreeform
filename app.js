@@ -1516,25 +1516,26 @@ window.openDirectMessage = function(e, targetUserId) {
 window.closeDMModal = function(shouldFocus = false) {
   const modal = document.getElementById('dmModal');
   const overlay = document.getElementById('dmOverlay');
+  
   if (modal && !modal.classList.contains('hidden')) {
+    // 1. Force UI Hidden immediately (Fixes the "Choke")
     modal.classList.add('hidden');
-	if (overlay) overlay.classList.add('hidden');
-    
-    // Restore scrolling
+    if (overlay) overlay.classList.add('hidden');
     document.body.style.overflow = '';
 
-    // Handle History
-    if (history.state && (history.state.modalOpen || history.state.modal === 'open')) {
+    // 2. SPECIFIC HISTORY FIX
+    // Only call history.back() if we are actually IN a DM state.
+    // This prevents jumping into other modals' history by mistake.
+    if (history.state?.modal === 'dm') {
       history.back();
     }
 
-    // THE GLOBAL FOCUS FIX
-    if (DOM.input) {
-      DOM.input.disabled = false;
-      
+    // 3. GLOBAL FOCUS FIX
+    if (window.DOM?.input) {
+      window.DOM.input.disabled = false;
       if (shouldFocus) {
         setTimeout(() => {
-          DOM.input.focus();
+          window.DOM.input.focus();
         }, 50);
       } 
     }
@@ -3584,30 +3585,29 @@ window.addEventListener('popstate', (event) => {
     const profileModal = document.getElementById('profileModal');
     const profileOverlay = document.getElementById('profileOverlay');
     const commentModal = document.getElementById('commentModal');
+    const commentOverlay = document.getElementById('commentOverlay'); // 👈 Added
     
     const allModals = [dmModal, chatModal, profileModal, commentModal];
-    const allOverlays = [dmOverlay, chatOverlay, profileOverlay];
+    const allOverlays = [dmOverlay, chatOverlay, profileOverlay, commentOverlay]; // 👈 Added
 
     const state = event.state;
 
     // 1. CLEAR EVERYTHING (Foreground & Background)
+    // This ensures that when you go "Back", any leftover modal from the previous state is nuked.
     allModals.forEach(m => m?.classList.add('hidden'));
     allOverlays.forEach(o => o?.classList.add('hidden'));
     document.body.style.overflow = '';
 
     // 2. ROUTING LOGIC
     if (state?.modal === 'open') {
-        // Landing back on the Inbox/Chat List
         chatModal?.classList.remove('hidden');
-        chatOverlay?.classList.remove('hidden'); // 👈 Match foreground with background
+        chatOverlay?.classList.remove('hidden'); 
         document.body.style.overflow = 'hidden';
-        
         if (typeof window.renderChatList === 'function') window.renderChatList();
     } 
     else if (state?.modal === 'dm') {
-        // Navigating back/forward into a specific DM
         dmModal?.classList.remove('hidden');
-        dmOverlay?.classList.remove('hidden'); // 👈 Ensure backdrop is visible
+        dmOverlay?.classList.remove('hidden'); 
         document.body.style.overflow = 'hidden';
         
         if (state.targetUserId) {
@@ -3616,7 +3616,8 @@ window.addEventListener('popstate', (event) => {
         }
     } 
     else {
-        // Back to the Main Feed (Home)
+        // HOME FEED STATE
+        // This is where you land when you hit "Back" from the last modal.
         document.activeElement?.blur();
         window.getSelection()?.removeAllRanges();
 
@@ -3624,6 +3625,7 @@ window.addEventListener('popstate', (event) => {
             window.DOM.input.disabled = true;
             setTimeout(() => {
                 window.DOM.input.disabled = false;
+                console.log("UI: Feed Resumed, Caret Cleared.");
             }, 50); 
         }
     }
