@@ -291,6 +291,20 @@
     </div>
   </section>
   
+  <!-- ✅ Fix font toolbar flicker: apply correct active button before app.js loads -->
+<script>
+  (function() {
+    const font = localStorage.getItem('freeform_font_pref') || 'font-sans';
+    document.querySelectorAll('.font-btn').forEach(btn => {
+      if (btn.getAttribute('data-font') === font) {
+        btn.classList.add('ring-2', 'ring-brand-500', 'ring-offset-1');
+      } else {
+        btn.classList.remove('ring-2', 'ring-brand-500', 'ring-offset-1');
+      }
+    });
+  })();
+</script>
+  
   <script>
   (function() {
     const isPublic = localStorage.getItem('freeform_toggle_pref') === 'true';
