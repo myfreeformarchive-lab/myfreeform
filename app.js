@@ -317,86 +317,66 @@ if (MY_USER_ID) {
   
 });
 
-
-
-// 1. Add a lock to prevent double-syncing
-let isSyncing = false;
-
 window.syncIncomingMessages = async function() {
-    if (isSyncing) return; // Exit if already running
-    isSyncing = true;
+    console.log("🔍 Sync: Checking 'dm_relay' for messages...");
 
-    console.log("🔍 Sync: Checking 'dm_relay'...");
+    // 1. Fetch messages where I am the receiver
+    const { data, error } = await _supabase
+        .from('dm_relay')
+        .select('*')
+        .eq('receiver_id', MY_USER_ID);
 
-    try {
-        const { data, error } = await _supabase
-            .from('dm_relay')
-            .select('*')
-            .eq('receiver_id', MY_USER_ID);
-
-        if (error) throw error;
-        if (!data || data.length === 0) {
-            isSyncing = false;
-            return;
-        }
-
-        // Process all messages
-        for (const row of data) {
-            const msg = row.payload;
-            const roomId = msg.roomId;
-            
-            window.saveToLocal(roomId, msg);
-
-            // Immediate cleanup
-            await _supabase.from('dm_relay').delete().eq('id', row.id);
-        }
-
-        // 3. UI Auto-Refresh (Optimized)
-        const dmModal = document.getElementById('dmModal');
-        const chatModal = document.getElementById('chatModal');
-
-        if (dmModal && !dmModal.classList.contains('hidden')) {
-            const title = document.getElementById('dmModalTitle');
-            if (title) {
-                const targetUserId = title.innerText.replace('@', '');
-                const currentRoomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
-                window.renderMessages(currentRoomId);
-            }
-        }
-
-        if (chatModal && !chatModal.classList.contains('hidden')) {
-            if (typeof renderChatList === 'function') renderChatList();
-        }
-
-    } catch (err) {
-        console.error("❌ Sync Error:", err.message);
-    } finally {
-        isSyncing = false;
-        console.log("✅ Sync: Finished.");
+    if (error) {
+        console.error("❌ Sync Error:", error.message);
+        return;
     }
+
+    if (!data || data.length === 0) {
+        console.log("📥 Sync: No new messages found.");
+        return;
+    }
+
+    console.log(`📩 Sync: Found ${data.length} messages. Processing...`);
+
+    for (const row of data) {
+        const msg = row.payload;
+        
+        // Use the raw roomId directly from the message payload
+        const roomId = msg.roomId;
+
+        console.log(`💾 Sync: Saving to local storage for room: ${roomId}`);
+        window.saveToLocal(roomId, msg);
+        
+        // 2. Delete from Supabase immediately (Ephemeral)
+        const { error: delError } = await _supabase
+            .from('dm_relay')
+            .delete()
+            .eq('id', row.id);
+        
+        if (delError) console.error("⚠️ Sync: Cleanup failed for ID:", row.id);
+    }
+    
+    // 3. UI Auto-Refresh
+    const dmModal = document.getElementById('dmModal');
+    const chatModal = document.getElementById('chatModal');
+
+    // If the DM window is open, refresh the messages
+    if (dmModal && !dmModal.classList.contains('hidden')) {
+        const title = document.getElementById('dmModalTitle');
+        if (title) {
+            const targetUserId = title.innerText.replace('@', '');
+            const currentRoomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
+            window.renderMessages(currentRoomId);
+        }
+    }
+
+    // If the Inbox list is open, refresh the list
+    if (chatModal && !chatModal.classList.contains('hidden')) {
+        renderChatList();
+    }
+    
+    console.log("✅ Sync: All messages processed and UI updated.");
 };
-
-// --- INITIALIZE REALTIME ---
-// Ensure this runs AFTER MY_USER_ID is defined
-if (MY_USER_ID) {
-    // Initial fetch on load
-    window.syncIncomingMessages();
-
-    const dmSubscription = _supabase
-        .channel('dm-relay-changes')
-        .on('postgres_changes', { 
-            event: 'INSERT', 
-            schema: 'public', 
-            table: 'dm_relay',
-            filter: `receiver_id=eq.${MY_USER_ID}` 
-        }, (payload) => {
-            console.log("%c 🔔 REALTIME: New message!", "background: #22c55e; color: white;");
-            window.syncIncomingMessages();
-        })
-        .subscribe((status) => {
-            console.log("Realtime status:", status); // Debug: Ensure this says "SUBSCRIBED"
-        });
-}
 
 window.subscribeToPush = async function() {
     const registration = await navigator.serviceWorker.ready;
@@ -1442,54 +1422,49 @@ window.viewStorage = function() {
 };
 
 window.openDirectMessage = function(e, targetUserId) {
-    console.log("%c 🚀 STEP 1: openDirectMessage triggered!", "color: white; background: red; font-size: 16px; font-weight: bold;");
-    
+	console.log("%c 🚀 STEP 1: openDirectMessage triggered!", "color: white; background: red; font-size: 16px; font-weight: bold;");
+    console.log("📍 Target User:", targetUserId);
     if (e) {
         e.preventDefault();
         e.stopPropagation();
     }
-
+  
+    // 1. DIRECT SWAP (Avoids the history.back conflict)
     const chatModal = document.getElementById('chatModal');
     const dmModal = document.getElementById('dmModal');
-    const dmOverlay = document.getElementById('dmOverlay'); // Need this reference!
-
-    // 1. Check source BEFORE hiding chatModal
-    const comingFromList = chatModal && !chatModal.classList.contains('hidden');
     
-    // 2. Clear previous UI states
-    if (chatModal) chatModal.classList.add('hidden');
-    // Also hide chatOverlay if it's separate to avoid layering bugs
-    document.getElementById('chatOverlay')?.classList.add('hidden');
-
-    // 3. THE FIX: Force show both Modal and Overlay
-    if (!dmModal) {
+    if (chatModal) chatModal.classList.add('hidden'); // Hide Inbox
+    if (dmModal) dmModal.classList.remove('hidden'); // Show DM
+	
+	if (!dmModal) {
         console.error("❌ ERROR: Could not find #dmModal in the HTML!");
         return;
     }
-
-    dmModal.classList.remove('hidden');
-    if (dmOverlay) dmOverlay.classList.remove('hidden'); // 👈 THIS fixes the "choke"
-    
-    document.body.style.overflow = 'hidden';
-
-    // 4. TRACK THE SOURCE IN HISTORY
-    // Use 'wasInboxOpen' to make it clear for the popstate router
+	
+	const comingFromList = chatModal && !chatModal.classList.contains('hidden');
+	
+	// --- TRACK THE SOURCE ---
     history.pushState({ 
         modal: 'dm', 
-        fromList: comingFromList,
-        targetUserId: targetUserId 
+        fromList: comingFromList 
     }, "");
+    
+    // Ensure background remains locked
+    document.body.style.overflow = 'hidden';
 
-    // 5. Setup IDs and Logic
-    const roomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
+    // 2. Setup IDs and Logic
+    const myId = MY_USER_ID;
+    const roomId = [myId, targetUserId].sort().join('--chat--');
+	console.log(`%c 🆔 STEP 2: Room ID generated: ${roomId}`, "color: yellow; background: black; font-size: 12px;");
     const title = document.getElementById('dmModalTitle');
     const container = document.getElementById('dmMessagesContainer');
-
+  
     if (title) title.innerText = `@${targetUserId}`;
     
-    // 6. Set the Handshake UI
+    // 3. Set the Handshake UI
     if (container) {
-        container.innerHTML = `
+		console.log("%c 🏗️ STEP 3: Setting Handshake UI...", "color: cyan; font-weight: bold;");
+      container.innerHTML = `
         <div class="flex flex-col items-center text-center py-12">
           <div class="w-20 h-20 rounded-3xl bg-brand-50 flex items-center justify-center text-brand-500 mb-6 border border-brand-100 shadow-sm animate-pulse">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1503,12 +1478,14 @@ window.openDirectMessage = function(e, targetUserId) {
           <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">P2P Handshake Verified</p>
         </div>`;
     }
+	
+	// 4. Render real messages if they exist
+    console.log(`%c 🔍 STEP 4: Calling window.renderMessages('${roomId}')...`, "color: white; background: green; font-weight: bold;");
     
-    // 7. Render messages
-    if (typeof window.renderMessages === 'function') {
-        window.renderMessages(roomId);
+    if (typeof window.renderMessages !== 'function') {
+        console.error("%c ❌ ERROR: window.renderMessages is NOT a function!", "color: white; background: red; font-size: 18px;");
     } else {
-        console.error("❌ ERROR: window.renderMessages not found!");
+        window.renderMessages(roomId);
     }
 };
 
@@ -1516,26 +1493,25 @@ window.openDirectMessage = function(e, targetUserId) {
 window.closeDMModal = function(shouldFocus = false) {
   const modal = document.getElementById('dmModal');
   const overlay = document.getElementById('dmOverlay');
-  
   if (modal && !modal.classList.contains('hidden')) {
-    // 1. Force UI Hidden immediately (Fixes the "Choke")
     modal.classList.add('hidden');
-    if (overlay) overlay.classList.add('hidden');
+	if (overlay) overlay.classList.add('hidden');
+    
+    // Restore scrolling
     document.body.style.overflow = '';
 
-    // 2. SPECIFIC HISTORY FIX
-    // Only call history.back() if we are actually IN a DM state.
-    // This prevents jumping into other modals' history by mistake.
-    if (history.state?.modal === 'dm') {
+    // Handle History
+    if (history.state && (history.state.modalOpen || history.state.modal === 'open')) {
       history.back();
     }
 
-    // 3. GLOBAL FOCUS FIX
-    if (window.DOM?.input) {
-      window.DOM.input.disabled = false;
+    // THE GLOBAL FOCUS FIX
+    if (DOM.input) {
+      DOM.input.disabled = false;
+      
       if (shouldFocus) {
         setTimeout(() => {
-          window.DOM.input.focus();
+          DOM.input.focus();
         }, 50);
       } 
     }
@@ -3577,68 +3553,44 @@ document.addEventListener('click', (e) => {
 });
 
 
-window.addEventListener('popstate', (event) => {
+    window.addEventListener('popstate', (event) => {
+    const dmModal = document.getElementById('dmModal');
+    const chatModal = document.getElementById('chatModal');
+    const profileModal = document.getElementById('profileModal');
+    const commentModal = document.getElementById('commentModal');
+    const allModals = [dmModal, chatModal, profileModal, commentModal];
+
     const state = event.state;
 
-    // 1. SELECT EVERYTHING
-    const dmModal = document.getElementById('dmModal');
-    const dmOverlay = document.getElementById('dmOverlay');
-    const chatModal = document.getElementById('chatModal');
-    const chatOverlay = document.getElementById('chatOverlay');
-    const profileModal = document.getElementById('profileModal');
-    const profileOverlay = document.getElementById('profileOverlay');
-    const commentModal = document.getElementById('commentModal');
-    const commentOverlay = document.getElementById('commentOverlay');
-    
-    const allModals = [dmModal, chatModal, profileModal, commentModal];
-    const allOverlays = [dmOverlay, chatOverlay, profileOverlay, commentOverlay];
+    // 1. First, hide everything to be safe
+    allModals.forEach(m => m?.classList.add('hidden'));
+    document.body.style.overflow = '';
 
-    // 2. THE RESET (Only hide if we are going back to the feed)
-    if (!state) {
-        allModals.forEach(m => m?.classList.add('hidden'));
-        allOverlays.forEach(o => o?.classList.add('hidden'));
-        document.body.style.overflow = '';
-        
-        // Feed UI Reset
-        document.activeElement?.blur();
-        window.getSelection()?.removeAllRanges();
-        if (window.DOM?.input) {
-            window.DOM.input.disabled = true;
-            setTimeout(() => { window.DOM.input.disabled = false; }, 50);
-        }
-        return; // Exit early, we are done.
-    }
-
-    // 3. THE ROUTER (Show the right modal based on the state)
-    
-    // Handle DM Modal
-    if (state.modal === 'dm') {
-        allModals.forEach(m => m?.classList.add('hidden')); // Clear others
-        dmModal?.classList.remove('hidden');
-        dmOverlay?.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-        if (state.targetUserId) {
-            const roomId = [MY_USER_ID, state.targetUserId].sort().join('--chat--');
-            window.renderMessages(roomId);
-        }
-    } 
-    // Handle Chat/Inbox Modal
-    else if (state.modal === 'open') {
-        allModals.forEach(m => m?.classList.add('hidden')); // Clear others
+    // 2. ONLY re-open the Chat if we specifically land back on the 'open' state
+    if (state?.modal === 'open') {
         chatModal?.classList.remove('hidden');
-        chatOverlay?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
-        if (typeof window.renderChatList === 'function') window.renderChatList();
-    }
-    // 🚀 THE SAVIOR: Handle Profile & Comment Modals
-    // This part ensures your other modals don't get "fucked"
-    else if (state.modal === 'profile' || state.modal === 'comment') {
-        allModals.forEach(m => m?.classList.add('hidden'));
-        const targetModal = document.getElementById(state.modal + 'Modal');
-        const targetOverlay = document.getElementById(state.modal + 'Overlay');
-        targetModal?.classList.remove('hidden');
-        targetOverlay?.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
+    } else {
+        // --- 🚀 THE FIX STARTS HERE ---
+        
+        // A. Force the browser to release the "active" focus
+        document.activeElement?.blur();
+
+        // B. The "Caret Killer": Clear internal text selection memory
+        // This is what removes that black line (oklch caret)
+        window.getSelection()?.removeAllRanges();
+
+        if (DOM.input) {
+            // C. Visual Flush: Briefly toggle disabled to force a redraw
+            DOM.input.disabled = true;
+            
+            setTimeout(() => {
+                DOM.input.disabled = false;
+                console.log("UI Sync: Caret cleared, Swipes enabled.");
+            }, 50); 
+        }
+        
+        // --- THE FIX ENDS HERE ---
     }
 });
 
