@@ -3651,24 +3651,6 @@ document.addEventListener('click', (e) => {
     }
 });
 
-window.dismissNotifPrompt = function() {
-    document.getElementById('notif-prompt').style.display = 'none';
-}
-
-window.requestNotifPermission = async function() {
-    dismissNotifPrompt();
-    await enableNotifications();
-}
-
-// Show the prompt only if permission hasn't been decided yet
-window.addEventListener('load', () => {
-    if (Notification.permission === 'default') {
-        setTimeout(() => {
-            document.getElementById('notif-prompt').style.display = 'flex';
-        }, 2000); // small delay so it doesn't appear instantly
-    }
-});
-
 
 const Ledger = {
   reads: 0,
