@@ -317,66 +317,86 @@ if (MY_USER_ID) {
   
 });
 
+
+
+// 1. Add a lock to prevent double-syncing
+let isSyncing = false;
+
 window.syncIncomingMessages = async function() {
-    console.log("🔍 Sync: Checking 'dm_relay' for messages...");
+    if (isSyncing) return; // Exit if already running
+    isSyncing = true;
 
-    // 1. Fetch messages where I am the receiver
-    const { data, error } = await _supabase
-        .from('dm_relay')
-        .select('*')
-        .eq('receiver_id', MY_USER_ID);
+    console.log("🔍 Sync: Checking 'dm_relay'...");
 
-    if (error) {
-        console.error("❌ Sync Error:", error.message);
-        return;
-    }
-
-    if (!data || data.length === 0) {
-        console.log("📥 Sync: No new messages found.");
-        return;
-    }
-
-    console.log(`📩 Sync: Found ${data.length} messages. Processing...`);
-
-    for (const row of data) {
-        const msg = row.payload;
-        
-        // Use the raw roomId directly from the message payload
-        const roomId = msg.roomId;
-
-        console.log(`💾 Sync: Saving to local storage for room: ${roomId}`);
-        window.saveToLocal(roomId, msg);
-        
-        // 2. Delete from Supabase immediately (Ephemeral)
-        const { error: delError } = await _supabase
+    try {
+        const { data, error } = await _supabase
             .from('dm_relay')
-            .delete()
-            .eq('id', row.id);
-        
-        if (delError) console.error("⚠️ Sync: Cleanup failed for ID:", row.id);
-    }
-    
-    // 3. UI Auto-Refresh
-    const dmModal = document.getElementById('dmModal');
-    const chatModal = document.getElementById('chatModal');
+            .select('*')
+            .eq('receiver_id', MY_USER_ID);
 
-    // If the DM window is open, refresh the messages
-    if (dmModal && !dmModal.classList.contains('hidden')) {
-        const title = document.getElementById('dmModalTitle');
-        if (title) {
-            const targetUserId = title.innerText.replace('@', '');
-            const currentRoomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
-            window.renderMessages(currentRoomId);
+        if (error) throw error;
+        if (!data || data.length === 0) {
+            isSyncing = false;
+            return;
         }
-    }
 
-    // If the Inbox list is open, refresh the list
-    if (chatModal && !chatModal.classList.contains('hidden')) {
-        renderChatList();
+        // Process all messages
+        for (const row of data) {
+            const msg = row.payload;
+            const roomId = msg.roomId;
+            
+            window.saveToLocal(roomId, msg);
+
+            // Immediate cleanup
+            await _supabase.from('dm_relay').delete().eq('id', row.id);
+        }
+
+        // 3. UI Auto-Refresh (Optimized)
+        const dmModal = document.getElementById('dmModal');
+        const chatModal = document.getElementById('chatModal');
+
+        if (dmModal && !dmModal.classList.contains('hidden')) {
+            const title = document.getElementById('dmModalTitle');
+            if (title) {
+                const targetUserId = title.innerText.replace('@', '');
+                const currentRoomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
+                window.renderMessages(currentRoomId);
+            }
+        }
+
+        if (chatModal && !chatModal.classList.contains('hidden')) {
+            if (typeof renderChatList === 'function') renderChatList();
+        }
+
+    } catch (err) {
+        console.error("❌ Sync Error:", err.message);
+    } finally {
+        isSyncing = false;
+        console.log("✅ Sync: Finished.");
     }
-    
-    console.log("✅ Sync: All messages processed and UI updated.");
 };
+
+// --- INITIALIZE REALTIME ---
+// Ensure this runs AFTER MY_USER_ID is defined
+if (MY_USER_ID) {
+    // Initial fetch on load
+    window.syncIncomingMessages();
+
+    const dmSubscription = _supabase
+        .channel('dm-relay-changes')
+        .on('postgres_changes', { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'dm_relay',
+            filter: `receiver_id=eq.${MY_USER_ID}` 
+        }, (payload) => {
+            console.log("%c 🔔 REALTIME: New message!", "background: #22c55e; color: white;");
+            window.syncIncomingMessages();
+        })
+        .subscribe((status) => {
+            console.log("Realtime status:", status); // Debug: Ensure this says "SUBSCRIBED"
+        });
+}
 
 window.subscribeToPush = async function() {
     const registration = await navigator.serviceWorker.ready;
