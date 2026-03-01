@@ -925,6 +925,7 @@ function updateToggleUI() {
 }
 let feedSafetyTimeout = null;
 function loadFeed() {
+	console.log(`%c 🍔 loadFeed called — currentTab: ${currentTab}`, "color: white; background: darkred; font-size: 14px;");
 	if (feedSafetyTimeout) clearTimeout(feedSafetyTimeout);
   if (dripTimeout) {
     clearTimeout(dripTimeout);
