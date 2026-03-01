@@ -946,7 +946,7 @@ function renderPrivateBatch() {
   const visible = allPrivatePosts.slice(0, currentLimit);
   DOM.list.innerHTML = ''; 
   renderListItems(visible);
-  //DOM.loadTrigger.style.display = (currentLimit >= allPrivatePosts.length) ? 'none' : 'flex';
+  DOM.loadTrigger.style.display = (currentLimit >= allPrivatePosts.length) ? 'none' : 'flex';
 }
 
 async function subscribeArchiveSync() {
