@@ -79,9 +79,6 @@ let isRefilling = false;
 
 let totalGlobalPosts = 0;
 
-// ✅ Single flag — lives outside all functions
-let dmHistoryPushed = 0;
-
 const supabaseUrl = 'https://ipgtvatyzwhkifnsstux.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwZ3R2YXR5endoa2lmbnNzdHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NDcyMzIsImV4cCI6MjA4NjIyMzIzMn0.OH7Dru0KKKdewj1nsWofvI73cT6tKIZbTVMPJA2oPvI'; 
 // Use _supabase (with an underscore) to avoid clashing with the library name
@@ -1425,43 +1422,51 @@ window.viewStorage = function() {
 };
 
 window.openDirectMessage = function(e, targetUserId) {
-    console.log("%c 🚀 STEP 1: openDirectMessage triggered!", "color: white; background: red; font-size: 16px; font-weight: bold;");
+	console.log("%c 🚀 STEP 1: openDirectMessage triggered!", "color: white; background: red; font-size: 16px; font-weight: bold;");
     console.log("📍 Target User:", targetUserId);
-    if (e) { e.preventDefault(); e.stopPropagation(); }
-
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+  
+    // 1. DIRECT SWAP (Avoids the history.back conflict)
     const chatModal = document.getElementById('chatModal');
     const dmModal = document.getElementById('dmModal');
-    const comingFromList = chatModal && !chatModal.classList.contains('hidden');
-
-    if (chatModal) chatModal.classList.add('hidden');
-    if (!dmModal) { console.error("❌ ERROR: Could not find #dmModal in the HTML!"); return; }
-    dmModal.classList.remove('hidden');
+	const dmOverlay = document.getElementById('dmOverlay');
+    
+    if (chatModal) chatModal.classList.add('hidden'); // Hide Inbox
+    if (dmModal) dmModal.classList.remove('hidden'); // Show DM
+	if (dmOverlay) dmOverlay.classList.remove('hidden');
 	
-	// ✅ Also re-show the overlay
-const dmOverlay = document.getElementById('dmOverlay');
-if (dmOverlay) dmOverlay.classList.remove('hidden');
-
-    // ✅ Only push history if coming from ChatModal, and only if not already pushed
-    if (comingFromList && dmHistoryPushed === 0) {
-        history.pushState({ modal: 'dm', fromList: true }, "");
-        dmHistoryPushed = 1;
+	if (!dmModal) {
+        console.error("❌ ERROR: Could not find #dmModal in the HTML!");
+        return;
     }
-	console.log(`%c 🚩 FLAG after open: dmHistoryPushed = ${dmHistoryPushed} (${dmHistoryPushed === 1 ? 'LIST entry — history pushed' : 'ICON entry — no history'})`, "color: white; background: purple; font-size: 14px; font-weight: bold;");
-    // Icon entry: dmHistoryPushed stays 0, nothing pushed
-
+	
+	const comingFromList = chatModal && !chatModal.classList.contains('hidden');
+	
+	// --- TRACK THE SOURCE ---
+    history.pushState({ 
+        modal: 'dm', 
+        fromList: comingFromList 
+    }, "");
+    
+    // Ensure background remains locked
     document.body.style.overflow = 'hidden';
 
+    // 2. Setup IDs and Logic
     const myId = MY_USER_ID;
     const roomId = [myId, targetUserId].sort().join('--chat--');
-    console.log(`%c 🆔 STEP 2: Room ID generated: ${roomId}`, "color: yellow; background: black; font-size: 12px;");
-
+	console.log(`%c 🆔 STEP 2: Room ID generated: ${roomId}`, "color: yellow; background: black; font-size: 12px;");
     const title = document.getElementById('dmModalTitle');
     const container = document.getElementById('dmMessagesContainer');
+  
     if (title) title.innerText = `@${targetUserId}`;
-
+    
+    // 3. Set the Handshake UI
     if (container) {
-        console.log("%c 🏗️ STEP 3: Setting Handshake UI...", "color: cyan; font-weight: bold;");
-        container.innerHTML = `
+		console.log("%c 🏗️ STEP 3: Setting Handshake UI...", "color: cyan; font-weight: bold;");
+      container.innerHTML = `
         <div class="flex flex-col items-center text-center py-12">
           <div class="w-20 h-20 rounded-3xl bg-brand-50 flex items-center justify-center text-brand-500 mb-6 border border-brand-100 shadow-sm animate-pulse">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1475,8 +1480,10 @@ if (dmOverlay) dmOverlay.classList.remove('hidden');
           <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">P2P Handshake Verified</p>
         </div>`;
     }
-
+	
+	// 4. Render real messages if they exist
     console.log(`%c 🔍 STEP 4: Calling window.renderMessages('${roomId}')...`, "color: white; background: green; font-weight: bold;");
+    
     if (typeof window.renderMessages !== 'function') {
         console.error("%c ❌ ERROR: window.renderMessages is NOT a function!", "color: white; background: red; font-size: 18px;");
     } else {
@@ -1484,27 +1491,33 @@ if (dmOverlay) dmOverlay.classList.remove('hidden');
     }
 };
 
+// 2. THE CLOSE FUNCTION
 window.closeDMModal = function(shouldFocus = false) {
-    const modal = document.getElementById('dmModal');
-    const overlay = document.getElementById('dmOverlay');
-    if (modal && !modal.classList.contains('hidden')) {
-        modal.classList.add('hidden');
-        if (overlay) overlay.classList.add('hidden');
-        document.body.style.overflow = '';
+  const modal = document.getElementById('dmModal');
+  const overlay = document.getElementById('dmOverlay');
+  if (modal && !modal.classList.contains('hidden')) {
+    modal.classList.add('hidden');
+	if (overlay) overlay.classList.add('hidden');
+    
+    // Restore scrolling
+    document.body.style.overflow = '';
 
-        // ✅ Only go back if the flag says we pushed something
-        if (dmHistoryPushed === 1) {
-            dmHistoryPushed = 0; // reset BEFORE back() so popstate sees clean state
-            history.back();
-        }
-		console.log(`%c 🚩 FLAG after close: dmHistoryPushed = ${dmHistoryPushed} (${dmHistoryPushed === 0 ? 'reset — clean' : 'NOT reset — check this!'})`, "color: white; background: darkblue; font-size: 14px; font-weight: bold;");
-        // If flag is 0 (icon entry) — do nothing with history
-
-        if (DOM.input) {
-            DOM.input.disabled = false;
-            if (shouldFocus) setTimeout(() => DOM.input.focus(), 50);
-        }
+    // Handle History
+    if (history.state && (history.state.modalOpen || history.state.modal === 'open')) {
+      history.back();
     }
+
+    // THE GLOBAL FOCUS FIX
+    if (DOM.input) {
+      DOM.input.disabled = false;
+      
+      if (shouldFocus) {
+        setTimeout(() => {
+          DOM.input.focus();
+        }, 50);
+      } 
+    }
+  }
 };
 
 // 3. SECURE LISTENERS
@@ -3542,36 +3555,44 @@ document.addEventListener('click', (e) => {
 });
 
 
-window.addEventListener('popstate', (event) => {
+    window.addEventListener('popstate', (event) => {
     const dmModal = document.getElementById('dmModal');
     const chatModal = document.getElementById('chatModal');
     const profileModal = document.getElementById('profileModal');
     const commentModal = document.getElementById('commentModal');
     const allModals = [dmModal, chatModal, profileModal, commentModal];
+
     const state = event.state;
 
+    // 1. First, hide everything to be safe
     allModals.forEach(m => m?.classList.add('hidden'));
     document.body.style.overflow = '';
 
+    // 2. ONLY re-open the Chat if we specifically land back on the 'open' state
     if (state?.modal === 'open') {
         chatModal?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
-    } else if (state?.modal === 'dm' && state?.fromList === true) {
-        // ✅ User hit browser back from a list-opened DM → re-show ChatModal
-        chatModal?.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-        dmHistoryPushed = 0; // ✅ sync flag if user used browser back instead of close button
-		console.log(`%c 🚩 FLAG in popstate: dmHistoryPushed = ${dmHistoryPushed} (reset via browser back)`, "color: white; background: darkgreen; font-size: 14px; font-weight: bold;");
     } else {
+        // --- 🚀 THE FIX STARTS HERE ---
+        
+        // A. Force the browser to release the "active" focus
         document.activeElement?.blur();
+
+        // B. The "Caret Killer": Clear internal text selection memory
+        // This is what removes that black line (oklch caret)
         window.getSelection()?.removeAllRanges();
+
         if (DOM.input) {
+            // C. Visual Flush: Briefly toggle disabled to force a redraw
             DOM.input.disabled = true;
+            
             setTimeout(() => {
                 DOM.input.disabled = false;
                 console.log("UI Sync: Caret cleared, Swipes enabled.");
-            }, 50);
+            }, 50); 
         }
+        
+        // --- THE FIX ENDS HERE ---
     }
 });
 
