@@ -836,7 +836,7 @@ function switchTab(tab) {
 	history.scrollRestoration = 'manual';
   if (currentTab === tab) return;
   
-  // 🕵️‍♂️ MOVE THE LOGS HERE (Before the 300ms wait)
+  // 🕵️‍♂️ MOVE THE LOGS HERE (Before the 300ms waitf)
   console.log(`[DEBUG] switchTab initiated to: ${tab}. Current counter: ${window.pendingPostUpdates}`);
   
   if (activePostListeners && activePostListeners.size > 0) {
