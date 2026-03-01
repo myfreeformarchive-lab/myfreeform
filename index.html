@@ -84,39 +84,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@400;600&family=Playfair+Display:wght@600&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
   </noscript>
   
-    <!-- 
-    Inline script: Loads user preferences from localStorage into a global config object.
-    This config is used throughout the app for font, tab, and visibility settings.
-    Note: Font class is not applied here to prevent leakage to header/buttons/footer.
-  -->
-  <script>
-  (function() {
-    // 🆕 Kill scroll restoration before paint
-    history.scrollRestoration = 'manual';
-
-    // 🆕 Apply theme before paint
-    const _themes = {
-      indigo:  '#3f51b5', rose: '#e11d48', emerald: '#059669',
-      amber:   '#d97706', violet: '#7c3aed', slate: '#475569',
-      sky:     '#0ea5e9', orange: '#ea580c'
-    };
-    const _theme = localStorage.getItem('selected_theme') || 'indigo';
-    document.documentElement.style.setProperty('--brand-primary', _themes[_theme] || _themes.indigo);
-
-    // EXISTING: Untouched
-    const get = (key, fallback) => localStorage.getItem(key) || fallback;
-    const config = {
-      font:     get('freeform_font_pref', 'font-sans'),
-      tab:      get('freeform_tab_pref', 'private'),
-      isPublic: get('freeform_toggle_pref', 'false') === 'true'
-    };
-    window.__FREEFORM_CONFIG__ = config;
-
-    // 🆕 Apply font before paint
-    document.documentElement.classList.add(config.font);
-  })();
-</script>
-  
 <!-- Tailwind config style via tailwindcss-windows-x64.exe -i input.css -o style.css --minify -->
   <style>
   /*! tailwindcss v4.1.18 | MIT License | https://tailwindcss.com */
@@ -150,6 +117,28 @@
     <h2 class="text-xl font-bold text-white">Please Rotate Your Device</h2>
     <p class="text-slate-400 mt-2 text-sm">Engine is optimized for Portrait Mode.</p>
   </div>
+
+  <!-- 
+    Inline script: Loads user preferences from localStorage into a global config object.
+    This config is used throughout the app for font, tab, and visibility settings.
+    Note: Font class is not applied here to prevent leakage to header/buttons/footer.
+  -->
+  <script>
+    (function() {
+      // Helper function to get localStorage value with fallback
+      const get = (key, fallback) => localStorage.getItem(key) || fallback;
+      
+      // Load configuration data instantly
+      const config = {
+        font: get('freeform_font_pref', 'font-sans'),
+        tab: get('freeform_tab_pref', 'private'),
+        isPublic: get('freeform_toggle_pref', 'false') === 'true'
+      };
+      
+      // Make config globally available
+      window.__FREEFORM_CONFIG__ = config;
+    })();
+  </script>
   
   <div id="dmModal" class="fixed inset-0 z-[110] hidden flex items-center justify-center">
   <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" id="dmOverlay"></div>
