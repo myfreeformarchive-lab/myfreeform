@@ -1,3 +1,6 @@
+const _t = (label) => console.log(`%c ⏱️ ${label}`, "color: white; background: #333; font-size: 11px;", `${performance.now().toFixed(1)}ms`);
+_t('app.js start');
+
 history.scrollRestoration = 'manual';
 
 if (window.chrome && chrome.runtime && chrome.runtime.id) {
@@ -55,6 +58,7 @@ const DOM = {
 };
 
 let currentTab = localStorage.getItem('freeform_tab_pref') || 'private';
+_t('currentTab read: ' + currentTab);
 const MY_USER_ID = getOrCreateUserId(); 
 const BATCH_SIZE = 15;
 let currentLimit = BATCH_SIZE;
@@ -111,12 +115,14 @@ window.getThoughtBubbleSVG = getThoughtBubbleSVG;
 // 2. INITIALIZATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+	_t('DOMContentLoaded fired');
   runMigration();
   setRandomPlaceholder();
   
   const savedToggleState = localStorage.getItem('freeform_toggle_pref');
   DOM.toggle.checked = (savedToggleState === 'true');
   updateToggleUI(); 
+  _t('calling updateTabClasses for first time');
   updateTabClasses(); 
   
   applyFontPreference(selectedFont);
@@ -827,6 +833,7 @@ function applyFontPreference(font) {
 }
 
 function switchTab(tab) {
+	history.scrollRestoration = 'manual';
   if (currentTab === tab) return;
   
   // 🕵️‍♂️ MOVE THE LOGS HERE (Before the 300ms wait)
@@ -866,6 +873,7 @@ function switchTab(tab) {
 }
 
 function updateTabClasses() {
+	_t('updateTabClasses running — tab is: ' + currentTab);
   const activeClass = "flex-1 pb-3 text-sm font-bold text-brand-600 border-b-2 border-brand-500 transition-all";
   const inactiveClass = "flex-1 pb-3 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-all";
 
