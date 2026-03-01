@@ -1422,48 +1422,36 @@ window.viewStorage = function() {
 };
 
 window.openDirectMessage = function(e, targetUserId) {
-	console.log("%c 🚀 STEP 1: openDirectMessage triggered!", "color: white; background: red; font-size: 16px; font-weight: bold;");
+    console.log("%c 🚀 STEP 1: openDirectMessage triggered!", "color: white; background: red; font-size: 16px; font-weight: bold;");
     console.log("📍 Target User:", targetUserId);
-    if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-  
-    // 1. DIRECT SWAP (Avoids the history.back conflict)
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+
     const chatModal = document.getElementById('chatModal');
     const dmModal = document.getElementById('dmModal');
-	const comingFromList = chatModal && !chatModal.classList.contains('hidden');
-    
-    if (chatModal) chatModal.classList.add('hidden'); // Hide Inbox
-    if (dmModal) dmModal.classList.remove('hidden'); // Show DM
-	
-	if (!dmModal) {
-        console.error("❌ ERROR: Could not find #dmModal in the HTML!");
-        return;
+    const comingFromList = chatModal && !chatModal.classList.contains('hidden'); // ✅ before hiding
+
+    if (chatModal) chatModal.classList.add('hidden');
+    if (!dmModal) { console.error("❌ ERROR: Could not find #dmModal in the HTML!"); return; }
+    dmModal.classList.remove('hidden');
+
+    // ✅ Only push history if entering from ChatModal
+    if (comingFromList) {
+        history.pushState({ modal: 'dm', fromList: true }, "");
     }
-	
-	// --- TRACK THE SOURCE ---
-    history.pushState({ 
-        modal: 'dm', 
-        fromList: comingFromList 
-    }, "");
-    
-    // Ensure background remains locked
+
     document.body.style.overflow = 'hidden';
 
-    // 2. Setup IDs and Logic
     const myId = MY_USER_ID;
     const roomId = [myId, targetUserId].sort().join('--chat--');
-	console.log(`%c 🆔 STEP 2: Room ID generated: ${roomId}`, "color: yellow; background: black; font-size: 12px;");
+    console.log(`%c 🆔 STEP 2: Room ID generated: ${roomId}`, "color: yellow; background: black; font-size: 12px;");
+
     const title = document.getElementById('dmModalTitle');
     const container = document.getElementById('dmMessagesContainer');
-  
     if (title) title.innerText = `@${targetUserId}`;
-    
-    // 3. Set the Handshake UI
+
     if (container) {
-		console.log("%c 🏗️ STEP 3: Setting Handshake UI...", "color: cyan; font-weight: bold;");
-      container.innerHTML = `
+        console.log("%c 🏗️ STEP 3: Setting Handshake UI...", "color: cyan; font-weight: bold;");
+        container.innerHTML = `
         <div class="flex flex-col items-center text-center py-12">
           <div class="w-20 h-20 rounded-3xl bg-brand-50 flex items-center justify-center text-brand-500 mb-6 border border-brand-100 shadow-sm animate-pulse">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1477,10 +1465,8 @@ window.openDirectMessage = function(e, targetUserId) {
           <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">P2P Handshake Verified</p>
         </div>`;
     }
-	
-	// 4. Render real messages if they exist
+
     console.log(`%c 🔍 STEP 4: Calling window.renderMessages('${roomId}')...`, "color: white; background: green; font-weight: bold;");
-    
     if (typeof window.renderMessages !== 'function') {
         console.error("%c ❌ ERROR: window.renderMessages is NOT a function!", "color: white; background: red; font-size: 18px;");
     } else {
@@ -1489,28 +1475,26 @@ window.openDirectMessage = function(e, targetUserId) {
 };
 
 window.closeDMModal = function(shouldFocus = false) {
-  const modal = document.getElementById('dmModal');
-  const overlay = document.getElementById('dmOverlay');
-  if (modal && !modal.classList.contains('hidden')) {
-    modal.classList.add('hidden');
-    if (overlay) overlay.classList.add('hidden');
-    
-    document.body.style.overflow = '';
+    const modal = document.getElementById('dmModal');
+    const overlay = document.getElementById('dmOverlay');
+    if (modal && !modal.classList.contains('hidden')) {
+        modal.classList.add('hidden');
+        if (overlay) overlay.classList.add('hidden');
+        document.body.style.overflow = '';
 
-    // ✅ Also handle the 'dm' state pushed by icon entry point
-    if (history.state && (
-      history.state.modalOpen
-    )) {
-      history.back();
-    }
+        // ✅ Only go back if we actually pushed a history entry
+        if (history.state?.modal === 'dm' && history.state?.fromList === true) {
+            history.back(); // returns to ChatModal via popstate
+        } else if (history.state?.modalOpen || history.state?.modal === 'open') {
+            history.back();
+        }
+        // Icon-opened DMs: no history.back() — nothing was pushed
 
-    if (DOM.input) {
-      DOM.input.disabled = false;
-      if (shouldFocus) {
-        setTimeout(() => DOM.input.focus(), 50);
-      }
+        if (DOM.input) {
+            DOM.input.disabled = false;
+            if (shouldFocus) setTimeout(() => DOM.input.focus(), 50);
+        }
     }
-  }
 };
 
 // 3. SECURE LISTENERS
