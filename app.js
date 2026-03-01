@@ -860,7 +860,7 @@ function switchTab(tab) {
     currentTab = tab;
     localStorage.setItem('freeform_tab_pref', tab);
     currentLimit = BATCH_SIZE;
-	window.scrollTo({ top: 0, behavior: 'instant' });
+	//window.scrollTo({ top: 0, behavior: 'instant' });
     updateTabClasses();
     loadFeed();
     if (tab === 'public') setupInfiniteScroll();
