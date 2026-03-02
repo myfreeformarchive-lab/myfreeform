@@ -2724,10 +2724,6 @@ function openModal(post) {
   
   DOM.modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
-  
-  // ✅ Re-query modal elements now that they're visible
-DOM.desktopEmojiTrigger = document.getElementById('desktopEmojiTrigger');
-DOM.desktopEmojiPopup = document.getElementById('desktopEmojiPopup'); // re-query this too
 
   if (realFirestoreId) {
     if(DOM.commentInputBar) DOM.commentInputBar.style.display = 'block';
