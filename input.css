@@ -228,7 +228,6 @@ nav {
   header, nav {
     background: white !important; /* Solid color—no transparency */
     backdrop-filter: none !important; /* Remove blur entirely */
-    border: none !important; /* Simplify borders to reduce rendering */
     box-shadow: none !important; /* No shadows for stability */
   }
   
