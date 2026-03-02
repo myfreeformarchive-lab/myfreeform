@@ -220,7 +220,7 @@ nav {
   /* Safe containment (remove if still causing issues) */
   /* contain: layout style paint; */  /* Comment out or test without */
   /* Ensure height is consistent */
-  height: 64px; /* For mobile; Tailwind handles lg:h-full */
+  height: 56px; /* For mobile; Tailwind handles lg:h-full */
 }
 
 @media (max-width: 768px) {
