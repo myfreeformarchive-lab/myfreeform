@@ -2679,7 +2679,7 @@ async function deleteComment(postId, commentId) {
     "Delete",
     async () => {
       try {
-        // Keep Firebase: Delete comment from subcollection
+        // Keep Firebase: Delete comment from subcollectionn
         const commentRef = doc(db, "globalPosts", postId, "comments", commentId);
         await deleteDoc(commentRef);
 
