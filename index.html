@@ -253,9 +253,22 @@
       <!-- App title: Clickable to scroll to top of page -->
       <h1 id="logoHome" class="text-xl font-bold text-brand-500 tracking-tight cursor-pointer">Freeform</h1>
       <!-- Storage info: Displays calculated storage usage (updated dynamically) -->
-      <div class="text-xs text-slate-600 font-mono truncate" id="storageInfo">Calc...</div>
+      <div class="text-xs text-slate-600 font-mono truncate" id="storageInfo">&nbsp;</div>
     </div>
   </header>
+  
+  <script>
+  // Instant calculation to prevent flicker
+  (function() {
+    let total = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      total += (key.length + localStorage.getItem(key).length);
+    }
+    const kb = (total / 1024).toFixed(1);
+    document.getElementById('storageInfo').textContent = kb + " KB used";
+  })();
+</script>
 
 <!-- 
   The main content area includes the input section for creating new posts.
