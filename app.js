@@ -918,11 +918,14 @@ function updateTabClasses() {
 }
 
 function updateToggleUI() {
+  if (window.__toggleUISet) {
+    window.__toggleUISet = false; // 👈 consume the flag, allow future calls normally
+    return;
+  }
+
   const isPublic = DOM.toggle.checked;
   const newText = isPublic ? "Public Mode" : "Private Mode";
   
-  // ONLY update if the text is actually different. 
-  // This prevents the browser from flickering/re-painting.
   if (DOM.label.textContent !== newText) {
     DOM.label.textContent = newText;
     DOM.label.className = isPublic 
@@ -3273,6 +3276,7 @@ function initProfileAndTheme() {
 initProfileAndTheme();
 
 function setRandomPlaceholder() {
+  if (window.__placeholderSet) return; // 👈 skip if already set
   const phrases = [
     "What's on your mind?", "Share your ideas...", "What's the vibe today?",
     "Capture a thought...", "Everything starts with a note...", 
