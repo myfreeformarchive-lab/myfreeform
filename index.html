@@ -357,7 +357,7 @@
     <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:bg-brand-500 transition-all"></div>
     <div class="absolute top-[2px] left-[2px] bg-white shadow-sm rounded-full h-4 w-4 transition-all peer-checked:translate-x-full"></div>
   </div>
-  <span id="publicLabel" class="transition-colors"></span>
+  <span id="publicLabel" style="visibility: hidden;" class="text-xs transition-colors"></span>
 </label>
 
 <script>
@@ -370,10 +370,11 @@
     
     if (label) {
       label.textContent = isPublic ? "Public Mode" : "Private Mode";
-      // Apply the exact classes your app.js uses
       label.className = isPublic 
         ? "text-xs font-bold text-brand-600 transition-colors"
         : "text-xs font-semibold text-slate-500 transition-colors";
+      // Make it visible ONLY after the text and classes are set
+      label.style.visibility = 'visible';
     }
   })();
 </script>
