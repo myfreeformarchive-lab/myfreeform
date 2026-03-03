@@ -81,22 +81,11 @@
   <link rel="preload" href="fonts/inter-v20-latin-regular.woff2" as="font" type="font/woff2" crossorigin>
   
   <!-- Module preload for critical JavaScript files to improve load times -->
-  <script type="text/javascript">
+  <script>
   (function() {
-    const ver = new Date().getFullYear() + "-" + (new Date().getMonth() + 1);
-
-    // 1. Update/Create the Preload Link
-    const preload = document.createElement('link');
-    preload.rel = 'modulepreload';
-    preload.href = 'app.js?v=' + ver;
-    preload.fetchPriority = 'high';
-    document.head.appendChild(preload);
-
-    // 2. Load the actual Script
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.src = 'app.js?v=' + ver;
-    document.head.appendChild(script);
+    const v = new Date().getFullYear() + "-" + (new Date().getMonth() + 1);
+    console.log("📦 Preloading app.js with version: " + v);
+    document.write('<link rel="modulepreload" href="app.js?v=' + v + '" fetchpriority="high">');
   })();
 </script>
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js">
@@ -703,24 +692,11 @@
   <!-- Script to dynamically set the current year in the footer -->
   <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
 
-<script type="text/javascript">
+<script>
   (function() {
-    // 1. Create the year-month string (e.g., "2026-3")
-    const now = new Date();
-    const ver = now.getFullYear() + "-" + (now.getMonth() + 1);
-
-    // 2. Create a new script element
-    const script = document.createElement('script');
-    
-    // 3. Set the attributes to match your original tag
-    script.type = 'module';
-    script.defer = true;
-    script.src = 'app.js?v=' + ver;
-
-    // 4. Inject it into the document head
-    document.head.appendChild(script);
-    
-    console.log("Monthly Cache-Buster Active: v=" + ver);
+    const v = new Date().getFullYear() + "-" + (new Date().getMonth() + 1);
+    console.log("🚀 Executing app.js with version: " + v);
+    document.write('<script type="module" src="app.js?v=' + v + '"><\/script>');
   })();
 </script>
 
