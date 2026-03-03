@@ -80,6 +80,34 @@
   
   <link rel="preload" href="fonts/inter-v20-latin-regular.woff2" as="font" type="font/woff2" crossorigin>
   
+  <script>
+  (function() {
+    const fontPref = localStorage.getItem('freeform_font_pref') || 'font-sans';
+    
+    // Map your class names to the actual file paths
+    const fontFiles = {
+      'font-sans':  ['fonts/inter-v20-latin-regular.woff2', 'fonts/inter-v20-latin-600.woff2'],
+      'font-serif': ['fonts/playfair-display-v40-latin-regular.woff2', 'fonts/playfair-display-v40-latin-600.woff2'],
+      'font-mono':  ['fonts/roboto-mono-v31-latin-regular.woff2', 'fonts/roboto-mono-v31-latin-500.woff2'],
+      'font-hand':  ['fonts/dancing-script-v29-latin-regular.woff2', 'fonts/dancing-script-v29-latin-700.woff2']
+    };
+
+    const filesToPreload = fontFiles[fontPref] || fontFiles['font-sans'];
+
+    filesToPreload.forEach(url => {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'font';
+      link.type = 'font/woff2';
+      link.href = url;
+      link.crossOrigin = 'anonymous';
+      document.head.appendChild(link);
+    });
+    
+    console.log("🎯 Preloading preferred font files for: " + fontPref);
+  })();
+</script>
+  
   <!-- Module preload for critical JavaScript files to improve load times -->
   <script>
   (function() {
@@ -285,7 +313,17 @@
       <!-- Textarea for user input: Auto-resizing, focused on click, with placeholder -->
       <textarea id="postInput" rows="2" 
   class="w-full bg-transparent border-none focus:ring-0 outline-none text-[15px] placeholder-slate-400 text-slate-700 resize-none p-0 leading-relaxed font-sans transition-all duration-200 mt-2" 
-  placeholder="What's on your mind?"></textarea>
+  placeholder=""></textarea> <script>
+  (function() {
+    const phrases = [
+      "What's on your mind?", "Share your ideas...", "What's the vibe today?",
+      "Capture a thought...", "Everything starts with a note...", 
+      "Unfinished thoughts welcome...", "Notes for your future self..."
+    ];
+    // Set it instantly
+    document.getElementById('postInput').placeholder = phrases[Math.floor(Math.random() * phrases.length)];
+  })();
+</script>
       
       <!-- Font Toolbar: Buttons to select font styles for the input text -->
       <div class="flex items-center gap-4 p-2 overflow-x-auto no-scrollbar" id="fontToolbar">
@@ -336,6 +374,16 @@
 <script>
   (function() {
     const font = localStorage.getItem('freeform_font_pref') || 'font-sans';
+    const input = document.getElementById('postInput');
+    
+    // 1. Apply font to the textarea immediately
+    if (input) {
+      // Remove default font-sans and add the saved preference
+      input.classList.remove('font-sans');
+      input.classList.add(font);
+    }
+
+    // 2. Highlight the correct button
     document.querySelectorAll('.font-btn').forEach(btn => {
       if (btn.getAttribute('data-font') === font) {
         btn.classList.add('ring-2', 'ring-brand-500', 'ring-offset-1');
