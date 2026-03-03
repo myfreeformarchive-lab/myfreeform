@@ -919,11 +919,18 @@ function updateTabClasses() {
 
 function updateToggleUI() {
   const isPublic = DOM.toggle.checked;
-  DOM.label.textContent = isPublic ? "Public Mode" : "Private Mode";
-  DOM.label.className = isPublic 
-    ? "text-xs font-bold text-brand-600 transition-colors"
-    : "text-xs font-semibold text-slate-500 transition-colors";
+  const newText = isPublic ? "Public Mode" : "Private Mode";
+  
+  // ONLY update if the text is actually different. 
+  // This prevents the browser from flickering/re-painting.
+  if (DOM.label.textContent !== newText) {
+    DOM.label.textContent = newText;
+    DOM.label.className = isPublic 
+      ? "text-xs font-bold text-brand-600 transition-colors"
+      : "text-xs font-semibold text-slate-500 transition-colors";
+  }
 }
+
 let feedSafetyTimeout = null;
 
 function loadFeed() {
