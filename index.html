@@ -412,16 +412,6 @@
     });
   })();
 </script>
-  
-  <script>
-  (function() {
-    const isPublic = localStorage.getItem('freeform_toggle_pref') === 'true';
-    const toggle = document.getElementById('publicToggle');
-    const label = document.getElementById('publicLabel');
-    if (toggle) toggle.checked = isPublic;
-    if (label) label.textContent = isPublic ? 'Public' : 'Private';
-  })();
-</script>
 
 <!-- 
   The tabs section allows switching between public/global feed and private archive.
@@ -507,6 +497,54 @@
     </div>
     
   </div>
+  
+  <script>
+  
+  // In your feed fetch function, after rendering posts:
+function cacheFeed(posts) {
+  try {
+    localStorage.setItem('freeform_feed_cache', JSON.stringify({
+      posts: posts.slice(0, 10), // only cache first 10, not the whole feed
+      cachedAt: Date.now()
+    }));
+  } catch(e) {} // storage full? fail silently
+}
+
+function initFeed() {
+  const raw = localStorage.getItem('freeform_feed_cache');
+  
+  if (raw) {
+    const { posts, cachedAt } = JSON.parse(raw);
+    const isStale = Date.now() - cachedAt > 60_000; // 1 min
+
+    renderFeed(posts); // instant — no skeletons at all
+    
+    if (isStale) {
+      fetchFeed().then(freshPosts => {
+        cacheFeed(freshPosts);
+        renderFeed(freshPosts); // silent background swap
+      });
+    }
+  } else {
+    // True first visit — skeletons are fine here
+    showSkeletons();
+    fetchFeed().then(posts => {
+      cacheFeed(posts);
+      fadeOutSkeletons(() => renderFeed(posts)); // smooth transition
+    });
+  }
+}
+
+function fadeOutSkeletons(callback) {
+  const feed = document.getElementById('feedList');
+  feed.style.transition = 'opacity 150ms ease';
+  feed.style.opacity = '0';
+  setTimeout(() => {
+    callback();
+    feed.style.opacity = '1';
+  }, 150);
+}
+</script>
 
 <!-- INFINITE SCROLL TRIGGER: Invisible element at bottom to trigger loading more posts -->
 <div id="loadTrigger" class="h-20 flex items-center justify-center text-slate-400 text-sm transition-opacity duration-300" style="visibility: hidden; opacity: 0;">
