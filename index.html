@@ -313,15 +313,16 @@
       <!-- Textarea for user input: Auto-resizing, focused on click, with placeholder -->
       <textarea id="postInput" rows="2" 
   class="w-full bg-transparent border-none focus:ring-0 outline-none text-[15px] placeholder-slate-400 text-slate-700 resize-none p-0 leading-relaxed font-sans transition-all duration-200 mt-2" 
-  placeholder=""></textarea> <script>
+  placeholder=""></textarea> 
+  <script>
   (function() {
     const phrases = [
       "What's on your mind?", "Share your ideas...", "What's the vibe today?",
       "Capture a thought...", "Everything starts with a note...", 
       "Unfinished thoughts welcome...", "Notes for your future self..."
     ];
-    // Set it instantly
     document.getElementById('postInput').placeholder = phrases[Math.floor(Math.random() * phrases.length)];
+    window.__placeholderSet = true; // 👈 flag it
   })();
 </script>
       
@@ -373,8 +374,8 @@
       label.className = isPublic 
         ? "text-xs font-bold text-brand-600 transition-colors"
         : "text-xs font-semibold text-slate-500 transition-colors";
-      // Make it visible ONLY after the text and classes are set
       label.style.visibility = 'visible';
+      window.__toggleUISet = true; // 👈
     }
   })();
 </script>
