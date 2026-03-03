@@ -924,7 +924,7 @@ function updateToggleUI() {
   }
 
   const isPublic = DOM.toggle.checked;
-  const newText = isPublic ? "Public Mode" : "Private Mode";
+  const newText = isPublic ? "Public" : "Private";
   
   if (DOM.label.textContent !== newText) {
     DOM.label.textContent = newText;
