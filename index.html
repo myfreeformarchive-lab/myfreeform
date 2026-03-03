@@ -686,8 +686,26 @@
   <!-- Script to dynamically set the current year in the footer -->
   <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
 
-  <!-- Load the main application JavaScript module -->
-  <script type="module" defer src="app.js?v=3"></script>
+<script type="text/javascript">
+  (function() {
+    // 1. Create the year-month string (e.g., "2026-3")
+    const now = new Date();
+    const ver = now.getFullYear() + "-" + (now.getMonth() + 1);
+
+    // 2. Create a new script element
+    const script = document.createElement('script');
+    
+    // 3. Set the attributes to match your original tag
+    script.type = 'module';
+    script.defer = true;
+    script.src = 'app.js?v=' + ver;
+
+    // 4. Inject it into the document head
+    document.head.appendChild(script);
+    
+    console.log("Monthly Cache-Buster Active: v=" + ver);
+  })();
+</script>
 
 </body>
 </html>  
