@@ -308,6 +308,7 @@ section.group {
   transition: transform 0.3s ease, opacity 0.3s ease;
   backface-visibility: hidden;
   transform-style: preserve-3d;
+  overflow-anchor: none;
 }
 
 /* Feed Item: Snapping for dynamic post sizes */
