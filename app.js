@@ -2268,6 +2268,7 @@ function showPublicPlaceholder(type) {
         <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
       </div>`;
   } else if (type === 'scanning') {
+	  if (document.querySelectorAll('#feedList .feed-item').length > 0) return;
     html = `
       <div id="public-placeholder" style="min-height: calc(100vh - 418px);">
         <div class="text-center py-4 mb-2">
