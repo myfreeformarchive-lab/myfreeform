@@ -110,24 +110,9 @@ const WATCH_SELECTORS = {
   '#tabs':              document.getElementById('tabs'),
   '#feedList':          document.getElementById('feedList'),
   '#loadTrigger':       document.getElementById('loadTrigger'),
+  
+  // Section
   'section.group':      document.querySelector('section.group'),
-
-  // New elements from HTML
-  '#inputSection':      document.getElementById('inputSection'),
-  '#postInput':         document.getElementById('postInput'),
-  '#fontToolbar':       document.getElementById('fontToolbar'),
-  '#postBtn':           document.getElementById('postBtn'),
-  '#publicToggle':      document.getElementById('publicToggle'),
-  '#publicLabel':       document.getElementById('publicLabel'),
-  '#storageInfo':       document.getElementById('storageInfo'),
-  '#logoHome':          document.getElementById('logoHome'),
-  '#tabPublic':         document.getElementById('tabPublic'),
-  '#tabPrivate':        document.getElementById('tabPrivate'),
-  '#navProfile':        document.getElementById('navProfile'),
-  '#navMessages':       document.getElementById('navMessages'),
-  '#dmModal':           document.getElementById('dmModal'),
-  'h-14 spacer':        document.querySelector('.h-14'),
-  '#orientation-shield':document.getElementById('orientation-shield'),
 };
 
 // Snapshot helper — captures position + size of an element
@@ -202,8 +187,7 @@ const shiftMutationObserver = new MutationObserver((mutations) => {
           console.log(
             `%c ➕ DOM INJECT into ${mutation.target.id || mutation.target.className}:`,
             'color: white; background: darkorchid; font-size: 11px;',
-            node,
-			`id="${node.id}" class="${node.className}"` // ← add this
+            node
           );
           // Check all positions immediately after injection
           checkAllPositions('post-inject');
@@ -368,7 +352,6 @@ window.getThoughtBubbleSVG = getThoughtBubbleSVG;
 // 2. INITIALIZATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-	requestAnimationFrame(killSubpixels);
 	_t('DOMContentLoaded fired');
   runMigration();
   setRandomPlaceholder();
@@ -1010,7 +993,11 @@ async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed =
 					processedIds.add(post.id);
               //      console.log(`  ✅ Added Post ${post.serialId}. Buffer: ${postBuffer.length}/${count}`);
                     
-                     
+                    if (placeholder) {
+                        placeholder.remove();   
+                        const extraPlaceholder = document.getElementById('public-placeholder');
+                        if (extraPlaceholder) extraPlaceholder.outerHTML = ''; 
+                    }      
                 } else {
                     const reason = (!ignoreProcessed && processedIds.has(post.id)) ? "Already Processed" : "In Buffer";
             //        console.log(`  ❌ Skip: Post ${post.serialId} (${reason})`);
@@ -1046,16 +1033,16 @@ function injectSinglePost(item, position = 'top') {
   const postNode = createPostNode(item); 
   postNode.classList.add('animate-in');
   if (position === 'top') {
-    const randomDelay = Math.floor(Math.random() * (4500 - 1500 + 1) + 1500);  
+	const randomDelay = Math.floor(Math.random() * (4500 - 1500 + 1) + 1500);  
     setTimeout(() => {
-      if (currentTab !== 'public' || document.getElementById(`post-${item.id}`)) return; 
-      
-      const currentScrollTop = window.scrollY;
-      
-      // Remove ghost only right before prepend — no empty frame
-      const ghost = document.getElementById('public-placeholder');
+      if (currentTab !== 'public' || document.getElementById(`post-${item.id}`)) {
+        return; 
+      }
+	  
+	  const ghost = document.getElementById('public-placeholder');
       if (ghost) ghost.remove();
-      
+	  
+      const currentScrollTop = window.scrollY;
       DOM.list.prepend(postNode);
       watchPostCounts(item.id);
       requestAnimationFrame(() => {
@@ -2173,85 +2160,91 @@ function showHeartAnimation(container) {
 }
 
 function renderListItems(items) {
-  if (feedSafetyTimeout) {
+	
+	if (feedSafetyTimeout) {
     clearTimeout(feedSafetyTimeout);
     feedSafetyTimeout = null;
   }
-  if (window.pendingPostUpdates > 0) return;
+	
+	if (window.pendingPostUpdates > 0) {
+    //  console.log(`[renderListItems] 🚦 RED LIGHT. Waiting for ${window.pendingPostUpdates} updates to finish.`);
+      return; 
+  }
 
-  const placeholder = document.getElementById('public-placeholder');
-
+	const placeholder = document.getElementById('public-placeholder');
+	
   if (items.length === 0) {
-    DOM.list.innerHTML = ''; 
-    if (currentTab === 'private') {
-      DOM.list.innerHTML = `
-        <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
-             style="scroll-snap-align: start; scroll-margin-top: calc(112px + 24px); min-height: calc(100vh - 418px);">
-          <div class="mb-4 text-slate-300">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9"/>
-              <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-              <line x1="9" y1="9" x2="9.01" y2="9"/>
-              <line x1="15" y1="9" x2="15.01" y2="9"/>
-            </svg>
-          </div>
-          <p class="text-slate-700 font-medium tracking-tight">Awaiting inspiration.</p>
-          <p class="text-slate-600 text-xs mt-2">
-            The best ideas are the ones you 
-            <span onclick="document.getElementById('postInput').scrollIntoView({ behavior: 'smooth', block: 'center' })" 
-                class="underline cursor-pointer text-slate-600 hover:text-slate-800 transition-colors">
-              write down
-            </span>
-          </p>
-        </div>`;
-    } else { 
-      if (totalGlobalPosts === 0) {
-        showPublicPlaceholder('empty');
-      } else {
-        if (!window.isBruteFetching) {
-          showPublicPlaceholder('scanning');
+	  DOM.list.innerHTML = ''; 
+	  
+	  if (currentTab === 'private') {
+    DOM.list.innerHTML = `
+      <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
+           style="scroll-snap-align: start; scroll-margin-top: calc(112px + 24px); min-height: calc(100vh - 418px);">
+        <div class="mb-4 text-slate-300">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9"/>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+            <line x1="9" y1="9" x2="9.01" y2="9"/>
+            <line x1="15" y1="9" x2="15.01" y2="9"/>
+          </svg>
+        </div>
+        <p class="text-slate-700 font-medium tracking-tight">Awaiting inspiration.</p>
+        <p class="text-slate-600 text-xs mt-2">
+  The best ideas are the ones you 
+  <span onclick="document.getElementById('postInput').scrollIntoView({ behavior: 'smooth', block: 'center' })" 
+      class="underline cursor-pointer text-slate-600 hover:text-slate-800 transition-colors">
+    write down
+</span>
+</p>
+      </div>`;
+	  }
+	  else { 
+	  if (totalGlobalPosts === 0) {
+      showPublicPlaceholder('empty');
+    } else {
+        
+          if (!window.isBruteFetching) {
+          showPublicPlaceholder('scanning'); // Only show scanning if we are actually starting a fetch
           window.isBruteFetching = true;
           handleBruteForce();
         } else {
+          // 🚀 THE FIX: If we are already brute fetching and still have 0 items, 
+          // stop showing "Scanning" and show "Empty" so the user isn't stuck.
           showPublicPlaceholder('empty');
         }
       }
     }
+		
     return; 
   }
-
-  // ── Build all nodes first, then swap atomically ──
-  const fragment = document.createDocumentFragment();
+  
   items.forEach(item => {
+    // If we have a placeholder, kill it
+    if (placeholder) {
+      placeholder.remove();
+      // Double check for any lingering ghost by ID
+      const ghost = document.getElementById('public-placeholder');
+      if (ghost) ghost.remove();
+    }
     const postNode = createPostNode(item);
-    fragment.appendChild(postNode);
-    window.pendingPostUpdates++;
+    DOM.list.appendChild(postNode);
+	window.pendingPostUpdates++;
     watchPostCounts(item.id);
   });
-
-  // Remove placeholder only right before insert — no empty frame
-   const frozenScroll = window.scrollY;
-DOM.list.replaceChildren(fragment);
-console.log(`%c 📌 scrollY after replaceChildren: ${window.scrollY} (was ${frozenScroll})`,
-    'background: navy; color: white');
-
-  // ── DIAGNOSTIC ──
+  
+  // ── DIAGNOSTIC: measure real post section heights ──
   requestAnimationFrame(() => {
-	  if (window.scrollY !== frozenScroll) {
-      window.scrollTo(0, frozenScroll);
-      console.log(`%c 🔒 Scroll corrected: ${window.scrollY} → ${frozenScroll}`, 
-        'background: darkgreen; color: white');
-    }
     document.querySelectorAll('.feed-item').forEach((el, i) => {
       const header = el.querySelector('.flex.justify-between');
       const body   = el.querySelector('.post-body');
       const footer = el.querySelector('.mt-6.pt-5');
       console.log(`Post ${i+1}: header=${header?.offsetHeight} body=${body?.offsetHeight} footer=${footer?.offsetHeight} total=${el.offsetHeight}`);
     });
-    const realFooter = document.querySelector('.feed-item .mt-6.pt-5');
-    console.log('Real footer height:', realFooter?.offsetHeight);
-  });
-
+	// ← ADD THIS RIGHT HERE
+  const realFooter = document.querySelector('.feed-item .mt-6.pt-5');
+  console.log('Real footer height:', realFooter?.offsetHeight);
+});
+  
   refreshSnap();
 }
 
