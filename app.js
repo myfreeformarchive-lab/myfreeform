@@ -244,11 +244,12 @@ if (window.chrome && chrome.runtime && chrome.runtime.id) {
   document.body.classList.add('extension-view');
 }
 
+import { readCache, writeCache } from './feedCache.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
 import { 
   getFirestore, collection, addDoc, deleteDoc, doc, updateDoc,
   query, orderBy, limit, serverTimestamp, onSnapshot,
-  writeBatch, getDocs, increment, setDoc, getDoc, runTransaction, where
+  writeBatch, getDocs, increment, setDoc, getDoc, runTransaction, where, Timestamp
 } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
 
 import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.2.4/+esm';
@@ -1027,6 +1028,67 @@ async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed =
     }
 }
 
+// 4 parallel bucketed queries → 15 random-ish, time-proportional posts
+// Uses a random createdAt cursor inside each time window (same idea as serialId trick)
+async function fetchProportionalFeed() {
+  const now   = Date.now();
+  const H24   = 24 * 60 * 60 * 1000;
+
+  const buckets = [
+    { start: now - H24,      end: now,          count: 5 },  // 0–24h
+    { start: now - 2 * H24,  end: now - H24,    count: 5 },  // 24–48h
+    { start: now - 3 * H24,  end: now - 2*H24,  count: 3 },  // 48–72h
+    { start: now - 7 * H24,  end: now - 3*H24,  count: 2 },  // 72h–7d
+  ];
+
+  const fetchBucket = async ({ start, end, count }) => {
+    // Pick a random entry point inside the window
+    const randomMs = start + Math.random() * (end - start);
+
+    const q = query(
+      collection(db, "globalPosts"),
+      where("createdAt", ">=", Timestamp.fromMillis(randomMs)),
+      where("createdAt", "<=", Timestamp.fromMillis(end)),
+      orderBy("createdAt", "asc"),
+      limit(count)
+    );
+
+    let snap = await getDocs(q);
+
+    // Fallback: random cursor landed too close to end, not enough posts — restart from bucket open
+    if (snap.docs.length < count) {
+      const fallback = query(
+        collection(db, "globalPosts"),
+        where("createdAt", ">=", Timestamp.fromMillis(start)),
+        where("createdAt", "<=", Timestamp.fromMillis(end)),
+        orderBy("createdAt", "desc"),
+        limit(count)
+      );
+      snap = await getDocs(fallback);
+    }
+
+    Ledger.log("fetchProportionalFeed_bucket", snap.docs.length, 0, 0);
+    return snap.docs.map(d => ({ id: d.id, ...d.data(), isFirebase: true }));
+  };
+
+  // All 4 buckets fire simultaneously
+  const bucketResults = await Promise.all(buckets.map(fetchBucket));
+
+  // Flatten + deduplicate across buckets
+  const seen  = new Set();
+  const posts = [];
+  for (const bucket of bucketResults) {
+    for (const post of bucket) {
+      if (!seen.has(post.id)) {
+        seen.add(post.id);
+        posts.push(post);
+      }
+    }
+  }
+
+  return posts; // up to 15 unique posts
+}
+
 function injectSinglePost(item, position = 'top') {
   if (document.getElementById(`post-${item.id}`)) return;
   if (currentTab === 'private' && item.isFirebase) return;
@@ -1148,48 +1210,49 @@ function updateToggleUI() {
 
 let feedSafetyTimeout = null;
 
-function loadFeed() {
-	console.log(`%c 🍔 loadFeed called — currentTab: ${currentTab}`, "color: white; background: darkred; font-size: 14px;");
-	if (feedSafetyTimeout) clearTimeout(feedSafetyTimeout);
-  if (dripTimeout) {
-    clearTimeout(dripTimeout);
-    dripTimeout = null;
-  }
-
-  if (publicUnsubscribe) { 
-    publicUnsubscribe(); 
-    publicUnsubscribe = null; 
-  }
-
-  if (activePostListeners && activePostListeners.size > 0) {
-	  console.log(`[loadFeed] 🧨 STARTING CLEANUP: Killing ${activePostListeners.size} listeners...`);
-    activePostListeners.forEach((unsubscribe) => unsubscribe());
+async function loadFeed() {
+  console.log(`%c 🍔 loadFeed called — currentTab: ${currentTab}`, "color: white; background: darkred; font-size: 14px;");
+  if (feedSafetyTimeout) clearTimeout(feedSafetyTimeout);
+  if (dripTimeout) { clearTimeout(dripTimeout); dripTimeout = null; }
+  if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
+  if (activePostListeners?.size > 0) {
+    activePostListeners.forEach(u => u());
     activePostListeners.clear();
-	console.log(`[loadFeed] 🧹 activePostListeners Map cleared.`);
   }
-  
-  visiblePosts = [];
-  postBuffer = [];
+  visiblePosts  = [];
+  postBuffer    = [];
   processedIds.clear();
 
   if (currentTab === 'private') {
     allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
     renderPrivateBatch();
     subscribeArchiveSync();
+    return;
+  }
+
+  // ── PUBLIC ──────────────────────────────────────────────────────────
+  DOM.loadTrigger.style.visibility = 'visible';
+
+  const cached = await readCache();
+
+  if (cached?.posts?.length > 0) {
+    // ✅ Cache HIT — HTML already injected by inline script, but set JS state
+    visiblePosts = cached.posts;
+    cached.posts.forEach(p => processedIds.add(p.id));
+    // If inline script didn't run (e.g. very fast JS load), inject HTML here as fallback
+    if (cached.html && DOM.list.querySelector('.animate-pulse')) {
+      DOM.list.innerHTML = cached.html;
+    }
+    startDripFeed();
+    subscribePublicFeed({ silent: true });
   } else {
-	DOM.loadTrigger.style.visibility = 'visible';
-	
-	// 🟢 NEW: Start the 5-second timer
+    // ❌ Cache MISS — cold start
+    showPublicPlaceholder('scanning');
     feedSafetyTimeout = setTimeout(() => {
       const placeholder = document.getElementById('public-placeholder');
-      // If we are still 'scanning', give up and show 'empty'
-      if (placeholder && placeholder.innerText.includes('Scanning')) {
-        console.warn("[UI Guard] Network is too slow. Showing empty state.");
-        showPublicPlaceholder('empty');
-      }
+      if (placeholder?.innerText.includes('Scanning')) showPublicPlaceholder('empty');
     }, 5000);
-	
-    subscribePublicFeed();
+    subscribePublicFeed({ silent: false });
   }
 }
 
@@ -1276,83 +1339,73 @@ async function subscribeArchiveSync() {
 // ==========================================
 // 3. THE SUBSCRIBER (Fixed Syntax)
 // ==========================================
-async function subscribePublicFeed() {
-  if (publicUnsubscribe) {
-    publicUnsubscribe();
-    publicUnsubscribe = null;
-  }
-  if (!isAppending) {
-    visiblePosts = [];
-    postBuffer = []; 
-    processedIds.clear();
-    if (dripTimeout) clearTimeout(dripTimeout);
-    showPublicPlaceholder('scanning');
-  }
+async function subscribePublicFeed({ silent = false } = {}) {
+  if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
+
   try {
-    const qInitial = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(15));
-    const initialSnap = await getDocs(qInitial);   
-    const newItems = [];
-    initialSnap.forEach(doc => {
-      const post = { id: doc.id, ...doc.data(), isFirebase: true };
-      if (!processedIds.has(post.id)) {
-        newItems.push(post);
-        processedIds.add(doc.id);
-      }
+    const newItems = await fetchProportionalFeed();
+
+    // Register all fetched posts as seen
+    newItems.forEach(p => {
+      if (!processedIds.has(p.id)) processedIds.add(p.id);
     });
-	Ledger.log("subscribePublicFeed", initialSnap.docs.length, 0, 0);
+
+    Ledger.log("subscribePublicFeed", newItems.length, 0, 0);
+
     if (isAppending) {
-        newItems.forEach(p => {
-            visiblePosts.push(p);
-            injectSinglePost(p, 'bottom');
-        });
-    } else {
-        visiblePosts = newItems;
-        renderListItems(visiblePosts);
-        startDripFeed(); // Only start the loop on first load
+      // Infinite scroll path — unchanged behaviour
+      newItems.forEach(p => {
+        visiblePosts.push(p);
+        injectSinglePost(p, 'bottom');
+      });
+    } else if (!silent) {
+      // Cold start — render fresh and start drip
+      visiblePosts = newItems;
+      renderListItems(visiblePosts);
+      startDripFeed();
     }
+
+    // Always write to cache (silent or not) — this is the relay for next visit
+    if (!isAppending) {
+  writeCache({
+    posts: newItems,
+    html:  DOM.list.innerHTML   // 👈 snapshot of real rendered HTML
+  });
+}
 
     DOM.loadTrigger.style.visibility = 'hidden';
 
-    // ============================================================
-    // 3. Ego-Listener (Tweaked: The "Instant Feedback" Loop)
-    // ============================================================
-    
-    const listenStartTime = Date.now(); 
-    const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID)); 
+    // ── Ego-listener — completely unchanged ─────────────────────────
+    const listenStartTime = Date.now();
+    const myPostsQuery    = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
+
     publicUnsubscribe = onSnapshot(myPostsQuery, (snapshot) => {
-		
-		// --- LOG 2: CORRECTED (Only log real changes/billed reads) ---
       const billedChanges = snapshot.docChanges().length;
-      if (billedChanges > 0) {
-        Ledger.log("subscribePublicFeed_Live", billedChanges, 0, 0);
-      }
-		
+      if (billedChanges > 0) Ledger.log("subscribePublicFeed_Live", billedChanges, 0, 0);
+
       snapshot.docChanges().forEach((change) => {
-        const docId = change.doc.id;
-        const data = change.doc.data();
-        const isNewPost = !data.createdAt || (data.createdAt.toMillis ? data.createdAt.toMillis() : Date.now()) > listenStartTime;
+        const docId     = change.doc.id;
+        const data      = change.doc.data();
+        const isNewPost = !data.createdAt || 
+                          (data.createdAt.toMillis?.() ?? Date.now()) > listenStartTime;
 
         if (change.type === "added" && !processedIds.has(docId)) {
-          if (!isNewPost) {
-             processedIds.add(docId);
-             return; 
-          }
+          if (!isNewPost) { processedIds.add(docId); return; }
           const postObj = { id: docId, ...data, isFirebase: true };
           processedIds.add(docId);
-          visiblePosts.unshift(postObj);      
+          visiblePosts.unshift(postObj);
           injectSinglePost(postObj, 'top');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-        if (change.type === "modified") {
-          updateUISurgically(docId, data);
-        }
+        if (change.type === "modified") updateUISurgically(docId, data);
       });
-	   
     });
 
   } catch (err) {
-	  console.error("Error in subscribePublicFeed:", err);
-    if(!isAppending) DOM.list.innerHTML = `<div class="text-center py-12">Feed offline.</div>`;
+    console.error("Error in subscribePublicFeed:", err);
+    if (!isAppending && !silent) {
+      DOM.list.innerHTML = `<div class="text-center py-12">Feed offline.</div>`;
+    }
   }
 }
 
