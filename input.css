@@ -139,6 +139,7 @@ textarea, input {
 /* Box-sizing reset: Ensures padding/borders are included in width calculations */
 * {
   box-sizing: border-box;
+  overflow-anchor: none;
 }
 
 /* Hide scrollbars globally on all elements for a sleek look */
@@ -308,7 +309,6 @@ section.group {
   transition: transform 0.3s ease, opacity 0.3s ease;
   backface-visibility: hidden;
   transform-style: preserve-3d;
-  overflow-anchor: none !important;
 }
 
 /* Feed Item: Snapping for dynamic post sizes */
