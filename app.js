@@ -2229,7 +2229,11 @@ function renderListItems(items) {
   });
 
   // Remove placeholder only right before insert — no empty frame
-   DOM.list.replaceChildren(fragment);
+   const frozenScroll = window.scrollY;
+DOM.list.replaceChildren(fragment);
+if (window.scrollY !== frozenScroll) {
+  window.scrollTo(0, frozenScroll);
+}
 
   // ── DIAGNOSTIC ──
   requestAnimationFrame(() => {
