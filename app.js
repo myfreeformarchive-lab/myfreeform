@@ -1117,10 +1117,9 @@ function switchTab(tab) {
 }
 
 function updateTabClasses() {
-	_t('updateTabClasses running — tab is: ' + currentTab);
+  _t('updateTabClasses running — tab is: ' + currentTab);
   const activeClass = "flex-1 pb-3 text-sm font-bold text-brand-600 border-b-2 border-brand-500 transition-all";
-  const inactiveClass = "flex-1 pb-3 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-all";
-
+  const inactiveClass = "flex-1 pb-3 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-all border-b-2 border-transparent";
   if (currentTab === 'private') {
     DOM.tabPrivate.className = activeClass;
     DOM.tabPublic.className = inactiveClass;
