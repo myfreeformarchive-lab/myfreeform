@@ -110,9 +110,24 @@ const WATCH_SELECTORS = {
   '#tabs':              document.getElementById('tabs'),
   '#feedList':          document.getElementById('feedList'),
   '#loadTrigger':       document.getElementById('loadTrigger'),
-  
-  // Section
   'section.group':      document.querySelector('section.group'),
+
+  // New elements from HTML
+  '#inputSection':      document.getElementById('inputSection'),
+  '#postInput':         document.getElementById('postInput'),
+  '#fontToolbar':       document.getElementById('fontToolbar'),
+  '#postBtn':           document.getElementById('postBtn'),
+  '#publicToggle':      document.getElementById('publicToggle'),
+  '#publicLabel':       document.getElementById('publicLabel'),
+  '#storageInfo':       document.getElementById('storageInfo'),
+  '#logoHome':          document.getElementById('logoHome'),
+  '#tabPublic':         document.getElementById('tabPublic'),
+  '#tabPrivate':        document.getElementById('tabPrivate'),
+  '#navProfile':        document.getElementById('navProfile'),
+  '#navMessages':       document.getElementById('navMessages'),
+  '#dmModal':           document.getElementById('dmModal'),
+  'h-14 spacer':        document.querySelector('.h-14'),
+  '#orientation-shield':document.getElementById('orientation-shield'),
 };
 
 // Snapshot helper — captures position + size of an element
