@@ -254,6 +254,25 @@ window.stopShiftObservers = () => {
 
 console.log('%c 🔬 Shift observers active — call stopShiftObservers() to stop', 
   'background: black; color: lime; font-size: 12px');
+  
+shiftMutationObserver = new MutationObserver((mutations) => {
+  mutations.forEach(mutation => {
+    if (mutation.addedNodes.length > 0) {
+      mutation.addedNodes.forEach(node => {
+        if (node.nodeType === 1) {
+          console.log(
+            `%c ➕ DOM INJECT into ${mutation.target.id || mutation.target.className}:`,
+            'color: white; background: darkorchid; font-size: 11px;',
+            node,
+            `id="${node.id}" class="${node.className}"` // ← ADD THIS
+          );
+          checkAllPositions('post-inject');
+          if (node.classList?.contains('feed-item')) {
+            shiftResizeObserver.observe(node);
+          }
+        }
+      });
+    }  
 
 if (window.chrome && chrome.runtime && chrome.runtime.id) {
   document.body.classList.add('extension-view');
