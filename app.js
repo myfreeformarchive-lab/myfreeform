@@ -2267,12 +2267,16 @@ function renderListItems(items) {
   // Remove placeholder only right before insert — no empty frame
    const frozenScroll = window.scrollY;
 DOM.list.replaceChildren(fragment);
-if (window.scrollY !== frozenScroll) {
-  window.scrollTo(0, frozenScroll);
-}
+console.log(`%c 📌 scrollY after replaceChildren: ${window.scrollY} (was ${frozenScroll})`,
+    'background: navy; color: white');
 
   // ── DIAGNOSTIC ──
   requestAnimationFrame(() => {
+	  if (window.scrollY !== frozenScroll) {
+      window.scrollTo(0, frozenScroll);
+      console.log(`%c 🔒 Scroll corrected: ${window.scrollY} → ${frozenScroll}`, 
+        'background: darkgreen; color: white');
+    }
     document.querySelectorAll('.feed-item').forEach((el, i) => {
       const header = el.querySelector('.flex.justify-between');
       const body   = el.querySelector('.post-body');
