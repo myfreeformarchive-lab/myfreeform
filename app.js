@@ -255,6 +255,41 @@ window.stopShiftObservers = () => {
 
 console.log('%c 🔬 Shift observers active — call stopShiftObservers() to stop', 
   'background: black; color: lime; font-size: 12px');
+  
+// ── SUBPIXEL KILLER: round all fixed/sticky elements to integer pixels ──
+function killSubpixels() {
+  const elements = [
+    document.getElementById('tabs'),
+    document.getElementById('inputSection'),
+    document.querySelector('header'),
+    document.querySelector('section.group'),
+    document.getElementById('feedList'),
+  ];
+
+  elements.forEach(el => {
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    
+    // If height has a fractional part, force it to the nearest integer
+    if (rect.height % 1 !== 0) {
+      el.style.height = Math.round(rect.height) + 'px';
+      console.log(`%c 🔧 Rounded ${el.id || el.tagName}: ${rect.height} → ${Math.round(rect.height)}px`, 
+        'background: darkgreen; color: white');
+    }
+    
+    // If top position has a fractional part, fix it too
+    if (rect.top % 1 !== 0) {
+      el.style.top = Math.round(rect.top) + 'px';
+      console.log(`%c 🔧 Rounded top ${el.id || el.tagName}: ${rect.top} → ${Math.round(rect.top)}px`,
+        'background: darkgreen; color: white');
+    }
+  });
+}
+
+// Run on load and after any DOM change
+document.addEventListener('DOMContentLoaded', () => {
+  requestAnimationFrame(killSubpixels);
+});
 
 if (window.chrome && chrome.runtime && chrome.runtime.id) {
   document.body.classList.add('extension-view');
@@ -368,6 +403,7 @@ window.getThoughtBubbleSVG = getThoughtBubbleSVG;
 // 2. INITIALIZATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+	requestAnimationFrame(killSubpixels);
 	_t('DOMContentLoaded fired');
   runMigration();
   setRandomPlaceholder();
@@ -2268,7 +2304,6 @@ function showPublicPlaceholder(type) {
         <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
       </div>`;
   } else if (type === 'scanning') {
-	  if (document.querySelectorAll('#feedList .feed-item').length > 0) return;
     html = `
       <div id="public-placeholder" style="min-height: calc(100vh - 418px);">
         <div class="text-center py-4 mb-2">
