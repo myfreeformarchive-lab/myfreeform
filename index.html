@@ -285,17 +285,17 @@
     </div>
   </header>
   
-  <script>
-  // Instant calculation to prevent flicker
-  (function() {
-    let total = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      total += (key.length + localStorage.getItem(key).length);
-    }
-    const kb = (total / 1024).toFixed(1);
-    document.getElementById('storageInfo').textContent = kb + " KB used";
-  })();
+<script>
+(function() {
+  let totalBytes = 0;
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    const value = localStorage.getItem(key);
+    totalBytes += new Blob([key + value]).size;
+  }
+  const kb = (totalBytes / 1024).toFixed(1);
+  document.getElementById('storageInfo').textContent = kb + " KB used";
+})();
 </script>
 
 <!-- 
