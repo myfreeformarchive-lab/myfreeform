@@ -356,6 +356,11 @@ document.addEventListener('DOMContentLoaded', () => {
   runMigration();
   setRandomPlaceholder();
   
+  requestAnimationFrame(() => {
+    const skelFooter = document.querySelector('.animate-pulse .mt-6.pt-5');
+    console.log('Skeleton footer height:', skelFooter?.offsetHeight);
+  });
+  
   const savedToggleState = localStorage.getItem('freeform_toggle_pref');
   DOM.toggle.checked = (savedToggleState === 'true');
   updateToggleUI(); 
@@ -2235,6 +2240,10 @@ function renderListItems(items) {
       const footer = el.querySelector('.mt-6.pt-5');
       console.log(`Post ${i+1}: header=${header?.offsetHeight} body=${body?.offsetHeight} footer=${footer?.offsetHeight} total=${el.offsetHeight}`);
     });
+	// ← ADD THIS RIGHT HERE
+  const realFooter = document.querySelector('.feed-item .mt-6.pt-5');
+  console.log('Real footer height:', realFooter?.offsetHeight);
+});
   });
   
   refreshSnap();
