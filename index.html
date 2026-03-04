@@ -520,53 +520,29 @@
   </div>
 
 </div>
-  
-  <script>
-  
-  // In your feed fetch function, after rendering posts:
-function cacheFeed(posts) {
-  try {
-    localStorage.setItem('freeform_feed_cache', JSON.stringify({
-      posts: posts.slice(0, 10), // only cache first 10, not the whole feed
-      cachedAt: Date.now()
-    }));
-  } catch(e) {} // storage full? fail silently
-}
 
-function initFeed() {
-  const raw = localStorage.getItem('freeform_feed_cache');
-  
-  if (raw) {
-    const { posts, cachedAt } = JSON.parse(raw);
-    const isStale = Date.now() - cachedAt > 60_000; // 1 min
-
-    renderFeed(posts); // instant — no skeletons at all
-    
-    if (isStale) {
-      fetchFeed().then(freshPosts => {
-        cacheFeed(freshPosts);
-        renderFeed(freshPosts); // silent background swap
-      });
+<script>
+  // Runs immediately — before any JS bundle loads
+  // If cache exists, swap skeletons for real posts instantly
+  (function() {
+    try {
+      const req = indexedDB.open('feedCache', 1);
+      req.onsuccess = function(e) {
+        const db  = e.target.result;
+        if (!db.objectStoreNames.contains('posts')) return;
+        const tx  = db.transaction('posts', 'readonly');
+        const get = tx.objectStore('posts').get('initialFeed');
+        get.onsuccess = function() {
+          const cached = get.result;
+          if (!cached?.html) return;  // no cache, skeletons stay
+          const feedList = document.getElementById('feedList');
+          if (feedList) feedList.innerHTML = cached.html;
+        };
+      };
+    } catch(e) {
+      // silently fail — skeletons stay as fallback
     }
-  } else {
-    // True first visit — skeletons are fine here
-    showSkeletons();
-    fetchFeed().then(posts => {
-      cacheFeed(posts);
-      fadeOutSkeletons(() => renderFeed(posts)); // smooth transition
-    });
-  }
-}
-
-function fadeOutSkeletons(callback) {
-  const feed = document.getElementById('feedList');
-  feed.style.transition = 'opacity 150ms ease';
-  feed.style.opacity = '0';
-  setTimeout(() => {
-    callback();
-    feed.style.opacity = '1';
-  }, 150);
-}
+  })();
 </script>
 
 <!-- INFINITE SCROLL TRIGGER: Invisible element at bottom to trigger loading more posts -->
