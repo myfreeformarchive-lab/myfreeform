@@ -2285,10 +2285,10 @@ function showPublicPlaceholder(type) {
           </div>
           <div class="mt-6 pt-5 flex items-center justify-between">
             <div class="flex items-center gap-5">
-              <div class="h-[22px] bg-slate-100 rounded w-10"></div>
-              <div class="h-[22px] bg-slate-100 rounded w-10"></div>
+              <div class="h-8 bg-slate-100 rounded w-10"></div>
+              <div class="h-8 bg-slate-100 rounded w-10"></div>
             </div>
-            <div class="h-[22px] bg-slate-100 rounded w-6"></div>
+            <div class="h-8 bg-slate-100 rounded w-6"></div>
           </div>
         </div>
 
@@ -2305,10 +2305,10 @@ function showPublicPlaceholder(type) {
           </div>
           <div class="mt-6 pt-5 flex items-center justify-between">
             <div class="flex items-center gap-5">
-              <div class="h-[22px] bg-slate-100 rounded w-10"></div>
-              <div class="h-[22px] bg-slate-100 rounded w-10"></div>
+              <div class="h-8 bg-slate-100 rounded w-10"></div>
+              <div class="h-8 bg-slate-100 rounded w-10"></div>
             </div>
-            <div class="h-[22px] bg-slate-100 rounded w-6"></div>
+            <div class="h-8 bg-slate-100 rounded w-6"></div>
           </div>
         </div>
 
