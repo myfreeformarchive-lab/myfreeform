@@ -2244,7 +2244,6 @@ function renderListItems(items) {
   const realFooter = document.querySelector('.feed-item .mt-6.pt-5');
   console.log('Real footer height:', realFooter?.offsetHeight);
 });
-  });
   
   refreshSnap();
 }
