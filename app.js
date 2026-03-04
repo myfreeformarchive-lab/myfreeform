@@ -1235,14 +1235,14 @@ async function loadFeed() {
 
   const cached = await readCache();
 
+  // 🛡️ Guard: tab may have changed while awaiting cache read
+  if (currentTab !== 'public') return;
+
   if (cached?.posts?.length > 0) {
-    // ✅ Cache HIT — HTML already injected by inline script, but set JS state
+    // ✅ Cache HIT — always inject HTML, don't check for skeletons
+    DOM.list.innerHTML = cached.html;  // 👈 always replace, covers tab-switch case
     visiblePosts = cached.posts;
     cached.posts.forEach(p => processedIds.add(p.id));
-    // If inline script didn't run (e.g. very fast JS load), inject HTML here as fallback
-    if (cached.html && DOM.list.querySelector('.animate-pulse')) {
-      DOM.list.innerHTML = cached.html;
-    }
     startDripFeed();
     subscribePublicFeed({ silent: true });
   } else {
