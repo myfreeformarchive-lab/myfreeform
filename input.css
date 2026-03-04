@@ -139,7 +139,6 @@ textarea, input {
 /* Box-sizing reset: Ensures padding/borders are included in width calculations */
 * {
   box-sizing: border-box;
-  overflow-anchor: none;
 }
 
 /* Hide scrollbars globally on all elements for a sleek look */
