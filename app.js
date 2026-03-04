@@ -2022,6 +2022,7 @@ function renderListItems(items) {
 }
 
 function showPublicPlaceholder(type) {
+  if (type === 'scanning' && localStorage.getItem('freeform_feed_cache')) return;
   let html = '';
   if (type === 'empty') {
     html = `
