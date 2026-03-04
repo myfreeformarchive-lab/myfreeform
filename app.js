@@ -993,11 +993,7 @@ async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed =
 					processedIds.add(post.id);
               //      console.log(`  ✅ Added Post ${post.serialId}. Buffer: ${postBuffer.length}/${count}`);
                     
-                    if (placeholder) {
-                        placeholder.remove();   
-                        const extraPlaceholder = document.getElementById('public-placeholder');
-                        if (extraPlaceholder) extraPlaceholder.outerHTML = ''; 
-                    }      
+                     
                 } else {
                     const reason = (!ignoreProcessed && processedIds.has(post.id)) ? "Already Processed" : "In Buffer";
             //        console.log(`  ❌ Skip: Post ${post.serialId} (${reason})`);
@@ -2217,10 +2213,7 @@ function renderListItems(items) {
   });
 
   // Remove placeholder only right before insert — no empty frame
-  if (placeholder) placeholder.remove();
-  const ghost = document.getElementById('public-placeholder');
-  if (ghost) ghost.remove();
-  DOM.list.appendChild(fragment);
+   DOM.list.replaceChildren(fragment);
 
   // ── DIAGNOSTIC ──
   requestAnimationFrame(() => {
