@@ -1049,7 +1049,7 @@ async function fetchProportionalFeed() {
       collection(db, "globalPosts"),
       where("createdAt", ">=", Timestamp.fromMillis(randomMs)),
       where("createdAt", "<=", Timestamp.fromMillis(end)),
-      orderBy("createdAt", "asc"),
+      orderBy("createdAt", "desc"),
       limit(count)
     );
 
