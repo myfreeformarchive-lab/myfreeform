@@ -23,22 +23,38 @@ export async function readCache() {
       const req = idb.transaction(CACHE_STORE, 'readonly')
                      .objectStore(CACHE_STORE)
                      .get(CACHE_KEY);
-      req.onsuccess = () => resolve(req.result ?? null);
-      req.onerror   = () => resolve(null);
+      req.onsuccess = () => {
+        console.log('📦 readCache result:', req.result);  // 👈
+        resolve(req.result ?? null);
+      };
+      req.onerror = () => resolve(null);
     });
-  } catch { return null; }
+  } catch(e) { 
+    console.error('📦 readCache error:', e);  // 👈
+    return null; 
+  }
 }
 
-export async function writeCache(posts) {
+export async function writeCache(data) {
+  console.log('💾 writeCache called with:', data);  // 👈
   try {
     const idb = await _openCacheDB();
     return new Promise((resolve) => {
       const tx = idb.transaction(CACHE_STORE, 'readwrite');
-      tx.objectStore(CACHE_STORE).put(posts, CACHE_KEY);
-      tx.oncomplete = () => resolve(true);
-      tx.onerror    = () => resolve(false);
+      tx.objectStore(CACHE_STORE).put(data, CACHE_KEY);
+      tx.oncomplete = () => {
+        console.log('💾 writeCache success');  // 👈
+        resolve(true);
+      };
+      tx.onerror = (e) => {
+        console.error('💾 writeCache error:', e);  // 👈
+        resolve(false);
+      };
     });
-  } catch { return false; }
+  } catch(e) { 
+    console.error('💾 writeCache catch:', e);  // 👈
+    return false; 
+  }
 }
 
 export async function clearCache() {
