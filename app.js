@@ -3,23 +3,92 @@ history.scrollRestoration = 'manual';
 const _t = (label) => console.log(`%c ⏱️ ${label}`, "color: white; background: #333; font-size: 11px;", `${performance.now().toFixed(1)}ms`);
 _t('app.js start');
 
+// ============================================================
+// 👻 GHOST OBSERVER: Layout shifts, LCP, long tasks + jitter
+// ============================================================
+
+// Jitter tracker: watches elements that shift repeatedly in quick succession
+const jitterMap = new Map(); // element → { count, lastTime, positions[] }
+const JITTER_WINDOW_MS = 500;  // shifts within this window = jitter
+const JITTER_THRESHOLD = 2;    // how many shifts before we flag it
+
+function trackJitter(node, rect) {
+  if (!node) return;
+  const now = performance.now();
+  const key = node;
+
+  if (!jitterMap.has(key)) {
+    jitterMap.set(key, { count: 0, lastTime: now, positions: [] });
+  }
+
+  const entry = jitterMap.get(key);
+  const timeSinceLast = now - entry.lastTime;
+
+  if (timeSinceLast < JITTER_WINDOW_MS) {
+    entry.count++;
+    entry.positions.push({ top: rect.top, left: rect.left, time: now });
+
+    if (entry.count >= JITTER_THRESHOLD) {
+      console.log(
+        `%c 🫨 JITTER DETECTED on element (${entry.count} shifts in ${timeSinceLast.toFixed(0)}ms):`,
+        "color: white; background: purple; font-size: 12px;",
+        node
+      );
+      console.table(entry.positions.map(p => ({
+        top: p.top.toFixed(2),
+        left: p.left.toFixed(2),
+        ms: p.time.toFixed(1)
+      })));
+      // Reset after reporting so we don't spam
+      entry.count = 0;
+      entry.positions = [];
+    }
+  } else {
+    // Too long ago — reset the window
+    entry.count = 1;
+    entry.positions = [{ top: rect.top, left: rect.left, time: now }];
+  }
+
+  entry.lastTime = now;
+}
+
 const ghostObserver = new PerformanceObserver((list) => {
-    list.getEntries().forEach(entry => {
-        if (entry.entryType === 'layout-shift' && entry.value > 0.001) { // ✅ much stricter
-            console.log(`%c 👻 LAYOUT SHIFT: ${entry.value.toFixed(6)}`, "color: white; background: red; font-size: 12px;");
-            entry.sources?.forEach(source => {
-                console.log('Element:', source.node);
-                console.log('Before:', source.previousRect);
-                console.log('After:', source.currentRect);
-            });
-        }
-        if (entry.entryType === 'largest-contentful-paint') {
-            console.log(`%c 🖼️ LCP: ${entry.startTime.toFixed(1)}ms — element:`, "color: white; background: darkblue; font-size: 12px;", entry.element);
-        }
-        if (entry.entryType === 'longtask') {
-            console.log(`%c ⚠️ LONG TASK: ${entry.duration.toFixed(1)}ms`, "color: white; background: darkorange; font-size: 12px;");
-        }
-    });
+  list.getEntries().forEach(entry => {
+
+    // ── LAYOUT SHIFT ──────────────────────────────────────────
+    if (entry.entryType === 'layout-shift' && entry.value > 0.001) {
+      console.log(
+        `%c 👻 LAYOUT SHIFT: ${entry.value.toFixed(6)}`,
+        "color: white; background: red; font-size: 12px;"
+      );
+      entry.sources?.forEach(source => {
+        console.log('  Element:', source.node);
+        console.log('  Before: ', source.previousRect);
+        console.log('  After:  ', source.currentRect);
+
+        // Feed each shifted element into jitter tracker
+        trackJitter(source.node, source.currentRect);
+      });
+    }
+
+    // ── LCP ───────────────────────────────────────────────────
+    if (entry.entryType === 'largest-contentful-paint') {
+      console.log(
+        `%c 🖼️ LCP: ${entry.startTime.toFixed(1)}ms — element:`,
+        "color: white; background: darkblue; font-size: 12px;",
+        entry.element
+      );
+    }
+
+    // ── LONG TASK ─────────────────────────────────────────────
+    if (entry.entryType === 'longtask') {
+      console.log(
+        `%c ⚠️ LONG TASK: ${entry.duration.toFixed(1)}ms`,
+        "color: white; background: darkorange; font-size: 12px;"
+      );
+    }
+
+  });
 });
 
 ghostObserver.observe({ type: 'layout-shift', buffered: true });
