@@ -2226,6 +2226,17 @@ function renderListItems(items) {
 	window.pendingPostUpdates++;
     watchPostCounts(item.id);
   });
+  
+  // ── DIAGNOSTIC: measure real post section heights ──
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.feed-item').forEach((el, i) => {
+      const header = el.querySelector('.flex.justify-between');
+      const body   = el.querySelector('.post-body');
+      const footer = el.querySelector('.mt-6.pt-5');
+      console.log(`Post ${i+1}: header=${header?.offsetHeight} body=${body?.offsetHeight} footer=${footer?.offsetHeight} total=${el.offsetHeight}`);
+    });
+  });
+  
   refreshSnap();
 }
 
