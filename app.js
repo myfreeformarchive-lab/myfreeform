@@ -95,12 +95,150 @@ ghostObserver.observe({ type: 'layout-shift', buffered: true });
 ghostObserver.observe({ type: 'largest-contentful-paint', buffered: true });
 ghostObserver.observe({ type: 'longtask', buffered: true });
 
-// After (correct — measures the actual static skeletons):
-const skeletons = document.querySelectorAll('#feedList .feed-item');
-console.log('Skeleton count:', skeletons.length);
-skeletons.forEach((el, i) => {
-  console.log(`Skeleton ${i + 1} height:`, el.offsetHeight);
+// ============================================================
+// 🔬 COMPREHENSIVE SHIFT OBSERVER
+// Watches every known element for position/size changes
+// ============================================================
+
+const WATCH_SELECTORS = {
+  // Layout containers
+  'body':               document.body,
+  'html':               document.documentElement,
+  'header':             document.querySelector('header'),
+  'nav':                document.querySelector('nav'),
+  'main':               document.querySelector('main'),
+  '#tabs':              document.getElementById('tabs'),
+  '#feedList':          document.getElementById('feedList'),
+  '#loadTrigger':       document.getElementById('loadTrigger'),
+  
+  // Section
+  'section.group':      document.querySelector('section.group'),
+};
+
+// Snapshot helper — captures position + size of an element
+function snapRect(el) {
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return { top: r.top, left: r.left, width: r.width, height: r.height };
+}
+
+// Store last known positions
+const lastKnown = new Map();
+Object.entries(WATCH_SELECTORS).forEach(([name, el]) => {
+  if (el) lastKnown.set(name, snapRect(el));
 });
+
+// ── 1. POSITION POLL: checks every 100ms for any element that moved ──
+function checkAllPositions(label = 'poll') {
+  Object.entries(WATCH_SELECTORS).forEach(([name, el]) => {
+    if (!el) return;
+    const current = snapRect(el);
+    const last = lastKnown.get(name);
+    if (!last) { lastKnown.set(name, current); return; }
+
+    const dTop    = Math.abs(current.top    - last.top);
+    const dLeft   = Math.abs(current.left   - last.left);
+    const dWidth  = Math.abs(current.width  - last.width);
+    const dHeight = Math.abs(current.height - last.height);
+
+    if (dTop > 0.5 || dLeft > 0.5 || dWidth > 0.5 || dHeight > 0.5) {
+      console.log(
+        `%c 📍 [${label}] MOVED: ${name}`,
+        'color: white; background: crimson; font-size: 11px;'
+      );
+      console.table({
+        top:    { before: last.top.toFixed(2),    after: current.top.toFixed(2),    delta: dTop.toFixed(2) },
+        left:   { before: last.left.toFixed(2),   after: current.left.toFixed(2),   delta: dLeft.toFixed(2) },
+        width:  { before: last.width.toFixed(2),  after: current.width.toFixed(2),  delta: dWidth.toFixed(2) },
+        height: { before: last.height.toFixed(2), after: current.height.toFixed(2), delta: dHeight.toFixed(2) },
+      });
+    }
+    lastKnown.set(name, current);
+  });
+}
+
+const positionPollInterval = setInterval(() => checkAllPositions('poll'), 100);
+
+// ── 2. RESIZE OBSERVER: fires instantly when any element changes size ──
+const shiftResizeObserver = new ResizeObserver((entries) => {
+  entries.forEach(entry => {
+    const el = entry.target;
+    const name = Object.entries(WATCH_SELECTORS).find(([, v]) => v === el)?.[0] || el.id || el.className;
+    const r = entry.contentRect;
+    console.log(
+      `%c 📐 RESIZE: ${name} → ${r.width.toFixed(1)} x ${r.height.toFixed(1)}`,
+      'color: white; background: darkgreen; font-size: 11px;'
+    );
+    // Also do a full position check immediately when resize fires
+    checkAllPositions(`resize:${name}`);
+  });
+});
+
+Object.entries(WATCH_SELECTORS).forEach(([, el]) => {
+  if (el) shiftResizeObserver.observe(el);
+});
+
+// ── 3. MUTATION OBSERVER: catches DOM injections into feedList ──
+const shiftMutationObserver = new MutationObserver((mutations) => {
+  mutations.forEach(mutation => {
+    if (mutation.addedNodes.length > 0) {
+      mutation.addedNodes.forEach(node => {
+        if (node.nodeType === 1) { // element nodes only
+          console.log(
+            `%c ➕ DOM INJECT into ${mutation.target.id || mutation.target.className}:`,
+            'color: white; background: darkorchid; font-size: 11px;',
+            node
+          );
+          // Check all positions immediately after injection
+          checkAllPositions('post-inject');
+          
+          // Also start watching injected feed items
+          if (node.classList?.contains('feed-item')) {
+            shiftResizeObserver.observe(node);
+          }
+        }
+      });
+    }
+    if (mutation.removedNodes.length > 0) {
+      console.log(
+        `%c ➖ DOM REMOVED from ${mutation.target.id || mutation.target.className}: ${mutation.removedNodes.length} node(s)`,
+        'color: white; background: saddlebrown; font-size: 11px;'
+      );
+      checkAllPositions('post-remove');
+    }
+  });
+});
+
+// Watch feedList and section for any child changes
+[document.getElementById('feedList'), document.querySelector('section.group'), document.body]
+  .filter(Boolean)
+  .forEach(el => {
+    shiftMutationObserver.observe(el, { childList: true, subtree: false });
+  });
+
+// ── 4. SCROLL OBSERVER: log any programmatic scroll jumps ──
+let lastScrollY = window.scrollY;
+window.addEventListener('scroll', () => {
+  const delta = window.scrollY - lastScrollY;
+  if (Math.abs(delta) > 2) {
+    console.log(
+      `%c 📜 SCROLL JUMP: ${delta > 0 ? '▼' : '▲'} ${Math.abs(delta).toFixed(1)}px (y=${window.scrollY.toFixed(1)})`,
+      'color: white; background: teal; font-size: 11px;'
+    );
+  }
+  lastScrollY = window.scrollY;
+}, { passive: true });
+
+// ── CLEANUP: call window.stopShiftObservers() in console to stop ──
+window.stopShiftObservers = () => {
+  clearInterval(positionPollInterval);
+  shiftResizeObserver.disconnect();
+  shiftMutationObserver.disconnect();
+  console.log('%c 🛑 All shift observers stopped', 'background: black; color: white');
+};
+
+console.log('%c 🔬 Shift observers active — call stopShiftObservers() to stop', 
+  'background: black; color: lime; font-size: 12px');
 
 if (window.chrome && chrome.runtime && chrome.runtime.id) {
   document.body.classList.add('extension-view');
