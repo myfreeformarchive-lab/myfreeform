@@ -34,13 +34,22 @@ export async function readCache() {
 }
 
 export async function writeCache(data) {
-  console.log('💾 writeCache called with:', data);
+  const serialized = {
+    ...data,
+    posts: data.posts.map(post => ({
+      ...post,
+      createdAt: post.createdAt?.toMillis
+        ? post.createdAt.toMillis()
+        : post.createdAt
+    }))
+  };
+  console.log('💾 writeCache called with:', serialized);
   try {
     const idb = await _openCacheDB();
-    if (!idb.objectStoreNames.contains(CACHE_STORE)) return false; // ← guard
+    if (!idb.objectStoreNames.contains(CACHE_STORE)) return false;
     return new Promise((resolve) => {
       const tx = idb.transaction(CACHE_STORE, 'readwrite');
-      tx.objectStore(CACHE_STORE).put(data, CACHE_KEY);
+      tx.objectStore(CACHE_STORE).put(serialized, CACHE_KEY);
       tx.oncomplete = () => { console.log('💾 writeCache success'); resolve(true); };
       tx.onerror    = (e) => { console.error('💾 writeCache error:', e); resolve(false); };
     });
