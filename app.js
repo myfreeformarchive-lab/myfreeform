@@ -1150,6 +1150,10 @@ function switchTab(tab) {
 	history.scrollRestoration = 'manual';
   if (currentTab === tab) return;
   
+  currentTab = tab;  // ← lock immediately, prevents double fire
+  
+  console.log(`[DEBUG] switchTab initiated to: ${tab}. Current counter: ${window.pendingPostUpdates}`);
+  
   // 🕵️‍♂️ MOVE THE LOGS HERE (Before the 300ms waitf)
   console.log(`[DEBUG] switchTab initiated to: ${tab}. Current counter: ${window.pendingPostUpdates}`);
   
@@ -1172,7 +1176,6 @@ function switchTab(tab) {
   DOM.list.style.transform = tab === 'public' ? 'translateX(0px)' : 'translateX(0px)';
 
   setTimeout(() => {
-    currentTab = tab;
     localStorage.setItem('freeform_tab_pref', tab);
     currentLimit = BATCH_SIZE;
     updateTabClasses();
