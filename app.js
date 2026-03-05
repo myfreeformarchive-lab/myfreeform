@@ -1157,7 +1157,7 @@ function switchTab(tab) {
   DOM.list.style.opacity = '';
   const _ = DOM.list.offsetHeight; 
 
-  DOM.list.style.transition = 'transform 0.3s ease, opacity 0.3s ease'; // Restore transitions
+ // DOM.list.style.transition = 'transform 0.3s ease, opacity 0.3s ease'; // Restore transitions
   DOM.list.style.opacity = '0';
   DOM.list.style.transform = tab === 'public' ? 'translateX(0px)' : 'translateX(0px)';
 
