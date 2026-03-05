@@ -1240,9 +1240,9 @@ async function loadFeed() {
 
   if (cached?.posts?.length > 0) {
     // ✅ Cache HIT — always inject HTML, don't check for skeletons
-    DOM.list.innerHTML = cached.html;  // 👈 always replace, covers tab-switch case
     visiblePosts = cached.posts;
     cached.posts.forEach(p => processedIds.add(p.id));
+	renderListItems(visiblePosts);
     startDripFeed();
     subscribePublicFeed({ silent: true });
   } else {
@@ -1384,10 +1384,7 @@ async function subscribePublicFeed({ silent = false } = {}) {
 
     // ── Cache (new) ──────────────────────────────────────────────
     if (!isAppending) {
-      writeCache({
-        posts: newItems,
-        html:  DOM.list.innerHTML
-      });
+      writeCache({ posts: newItems, html: DOM.list.innerHTML });
     }
 
     DOM.loadTrigger.style.visibility = 'hidden';
