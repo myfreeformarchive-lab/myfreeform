@@ -2,7 +2,7 @@
 
 const CACHE_DB_NAME  = 'feedCache';
 const CACHE_STORE    = 'posts';
-const CACHE_VERSION  = 2;
+const CACHE_VERSION  = 3;
 const CACHE_KEY      = 'initialFeed';
 
 function _openCacheDB() {
