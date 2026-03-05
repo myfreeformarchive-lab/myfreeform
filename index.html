@@ -522,26 +522,23 @@
 </div>
 
 <script>
-  // Runs immediately — before any JS bundle loads
-  // If cache exists, swap skeletons for real posts instantly
   (function() {
     try {
-      const req = indexedDB.open('feedCache', 1);
+      const req = indexedDB.open('feedCache', 3); // ← was 1, must match CACHE_VERSION
       req.onsuccess = function(e) {
-        const db  = e.target.result;
+        const db = e.target.result;
         if (!db.objectStoreNames.contains('posts')) return;
-        const tx  = db.transaction('posts', 'readonly');
-        const get = tx.objectStore('posts').get('initialFeed');
+        const get = db.transaction('posts', 'readonly')
+                      .objectStore('posts')
+                      .get('initialFeed');
         get.onsuccess = function() {
           const cached = get.result;
-          if (!cached?.html) return;  // no cache, skeletons stay
+          if (!cached?.html) return;
           const feedList = document.getElementById('feedList');
           if (feedList) feedList.innerHTML = cached.html;
         };
       };
-    } catch(e) {
-      // silently fail — skeletons stay as fallback
-    }
+    } catch(e) {}
   })();
 </script>
 
