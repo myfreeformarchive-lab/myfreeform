@@ -1031,20 +1031,17 @@ async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed =
 // 4 parallel bucketed queries → 15 random-ish, time-proportional posts
 // Uses a random createdAt cursor inside each time window (same idea as serialId trick)
 async function fetchProportionalFeed() {
-  const now   = Date.now();
-  const H24   = 24 * 60 * 60 * 1000;
-
+  console.log(`[fetchProportionalFeed] 🪣 firing 4 bucket queries in parallel`);
+  const now = Date.now();
+  const H24 = 24 * 60 * 60 * 1000;
   const buckets = [
-    { start: now - H24,      end: now,          count: 5 },  // 0–24h
-    { start: now - 2 * H24,  end: now - H24,    count: 5 },  // 24–48h
-    { start: now - 3 * H24,  end: now - 2*H24,  count: 3 },  // 48–72h
-    { start: now - 7 * H24,  end: now - 3*H24,  count: 2 },  // 72h–7d
+    { start: now - H24,      end: now,           count: 5 },
+    { start: now - 2 * H24,  end: now - H24,     count: 5 },
+    { start: now - 3 * H24,  end: now - 2 * H24, count: 3 },
+    { start: now - 7 * H24,  end: now - 3 * H24, count: 2 },
   ];
-
   const fetchBucket = async ({ start, end, count }) => {
-    // Pick a random entry point inside the window
     const randomMs = start + Math.random() * (end - start);
-
     const q = query(
       collection(db, "globalPosts"),
       where("createdAt", ">=", Timestamp.fromMillis(randomMs)),
@@ -1052,11 +1049,9 @@ async function fetchProportionalFeed() {
       orderBy("createdAt", "desc"),
       limit(count)
     );
-
     let snap = await getDocs(q);
-
-    // Fallback: random cursor landed too close to end, not enough posts — restart from bucket open
     if (snap.docs.length < count) {
+      console.log(`[fetchProportionalFeed] ⚠️ bucket fallback triggered (got ${snap.docs.length}/${count})`);
       const fallback = query(
         collection(db, "globalPosts"),
         where("createdAt", ">=", Timestamp.fromMillis(start)),
@@ -1066,15 +1061,11 @@ async function fetchProportionalFeed() {
       );
       snap = await getDocs(fallback);
     }
-
     Ledger.log("fetchProportionalFeed_bucket", snap.docs.length, 0, 0);
+    console.log(`[fetchProportionalFeed] 🪣 bucket returned ${snap.docs.length} posts`);
     return snap.docs.map(d => ({ id: d.id, ...d.data(), isFirebase: true }));
   };
-
-  // All 4 buckets fire simultaneously
   const bucketResults = await Promise.all(buckets.map(fetchBucket));
-
-  // Flatten + deduplicate across buckets
   const seen  = new Set();
   const posts = [];
   for (const bucket of bucketResults) {
@@ -1085,20 +1076,26 @@ async function fetchProportionalFeed() {
       }
     }
   }
-
-  return posts; // up to 30 unique posts
+  console.log(`[fetchProportionalFeed] ✅ total unique posts returned: ${posts.length}`);
+  return posts;
 }
 
 async function rotateAndRefillCache(existingPosts) {
-  const needed = 45 - existingPosts.length;  // ← was 30
-  if (needed <= 0) return;
+  console.log(`[rotateAndRefillCache] 🔄 called — existingPosts: ${existingPosts.length}`);
+  const needed = 45 - existingPosts.length;
+  if (needed <= 0) {
+    console.log(`[rotateAndRefillCache] ✋ cache already full (${existingPosts.length}/45) — skipping`);
+    return;
+  }
+  console.log(`[rotateAndRefillCache] 📥 fetching ${needed} fresh posts via fetchProportionalFeed`);
   const fresh = await fetchProportionalFeed();
+  console.log(`[rotateAndRefillCache] 📦 fetchProportionalFeed returned ${fresh.length} posts`);
   const existingIds = new Set(existingPosts.map(p => p.id));
-  const deduped = fresh.filter(p => 
-    !existingIds.has(p.id) && !processedIds.has(p.id)
-  );
-  const refilled = [...existingPosts, ...deduped].slice(0, 45);  // ← was 30
+  const deduped = fresh.filter(p => !existingIds.has(p.id) && !processedIds.has(p.id));
+  console.log(`[rotateAndRefillCache] 🧹 after dedup — ${deduped.length} usable new posts`);
+  const refilled = [...existingPosts, ...deduped].slice(0, 45);
   writeCache({ posts: refilled, html: DOM.list.innerHTML });
+  console.log(`[rotateAndRefillCache] 💾 cache written — total: ${refilled.length}/45`);
 }
 
 function injectSinglePost(item, position = 'top') {
@@ -1233,22 +1230,17 @@ async function loadFeed() {
     activePostListeners.clear();
     console.log(`[loadFeed] 🧹 activePostListeners Map cleared.`);
   }
-
   visiblePosts  = [];
   postBuffer    = [];
   processedIds.clear();
-
   if (currentTab === 'private') {
     allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
     renderPrivateBatch();
     subscribeArchiveSync();
     return;
   }
-
   // ── PUBLIC ──────────────────────────────────────────────────────────
   DOM.loadTrigger.style.visibility = 'visible';
-
-  // ── Exact old safety timer — always runs for public tab ─────────────
   feedSafetyTimeout = setTimeout(() => {
     const placeholder = document.getElementById('public-placeholder');
     if (placeholder && placeholder.innerText.includes('Scanning')) {
@@ -1258,29 +1250,42 @@ async function loadFeed() {
   }, 5000);
 
   const cached = await readCache();
+  console.log(`[loadFeed] 📦 cache read — posts: ${cached?.posts?.length ?? 0}, v: ${cached?.v ?? 'none'}`);
 
-  // 🛡️ Guard: tab may have changed while awaiting cache read
-  if (currentTab !== 'public') return;
+  if (currentTab !== 'public') {
+    console.log('[loadFeed] 🛡️ tab switched during cache read — bailing');
+    return;
+  }
 
   if (cached?.posts?.length > 0) {
-  const toShow     = cached.posts.slice(0, 15);   // display these
-  const remainder  = cached.posts.slice(15);       // keep these for next time
-  visiblePosts = toShow;
-  toShow.forEach(p => processedIds.add(p.id));
-  DOM.list.innerHTML = '';
-  renderListItems(visiblePosts);
-  startDripFeed();
-  
-  // Rotate immediately — before network even responds
-  writeCache({ posts: remainder, html: DOM.list.innerHTML });
-  
-  // Refill in background
-  rotateAndRefillCache(remainder);
-  
-  subscribePublicFeed({ silent: true });
-} else {
-  subscribePublicFeed({ silent: false });
-}
+    const toShow    = cached.posts.slice(0, 15);
+    const remainder = cached.posts.slice(15);
+    console.log(`[loadFeed] ✅ WARM CACHE — showing: ${toShow.length}, remainder: ${remainder.length}`);
+
+    visiblePosts = toShow;
+    toShow.forEach(p => processedIds.add(p.id));
+    DOM.list.innerHTML = '';
+    console.log("Calling renderListItems...");
+    renderListItems(visiblePosts);
+    console.log("renderListItems executed.");
+
+    console.log("Starting drip feed...");
+    startDripFeed();
+    console.log("Drip feed initiated.");
+
+    writeCache({ posts: remainder, html: DOM.list.innerHTML });
+    console.log(`[loadFeed] 💾 cache rotated — wrote ${remainder.length} posts`);
+
+    rotateAndRefillCache(remainder);
+    console.log(`[loadFeed] 🔄 rotateAndRefillCache triggered in background`);
+
+    subscribePublicFeed({ silent: true });
+    console.log(`[loadFeed] 🔇 subscribePublicFeed → silent: true`);
+  } else {
+    console.log('[loadFeed] ❄️ COLD START — no cache, going to Firebase');
+    subscribePublicFeed({ silent: false });
+    console.log(`[loadFeed] 📡 subscribePublicFeed → silent: false`);
+  }
 }
 
 function renderPrivateBatch() {
@@ -1367,25 +1372,22 @@ async function subscribeArchiveSync() {
 // 3. THE SUBSCRIBER (Fixed Syntax)
 // ==========================================
 async function subscribePublicFeed({ silent = false } = {}) {
+  console.log(`[subscribePublicFeed] 🚀 called — silent: ${silent}, isAppending: ${isAppending}`);
   if (publicUnsubscribe) {
     publicUnsubscribe();
     publicUnsubscribe = null;
   }
-
-  // ── State reset (cold start only) ───────────────────────────────
   if (!isAppending && !silent) {
-  visiblePosts = [];
-  postBuffer = [];
-  processedIds.clear();
-  if (dripTimeout) clearTimeout(dripTimeout);
-  showPublicPlaceholder('scanning');  // ← `!silent` check inside can also be removed now, it's implied
-}
-
+    visiblePosts = [];
+    postBuffer = [];
+    processedIds.clear();
+    if (dripTimeout) clearTimeout(dripTimeout);
+    showPublicPlaceholder('scanning');
+  }
   try {
-    // ── Fetch ────────────────────────────────────────────────────
-    const qInitial    = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(30));
+    const qInitial = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(30));
     const initialSnap = await getDocs(qInitial);
-
+    console.log(`[subscribePublicFeed] 📥 Firebase returned ${initialSnap.docs.length} posts`);
     const newItems = [];
     initialSnap.forEach(doc => {
       const post = { id: doc.id, ...doc.data(), isFirebase: true };
@@ -1394,57 +1396,58 @@ async function subscribePublicFeed({ silent = false } = {}) {
         processedIds.add(post.id);
       }
     });
-
+    console.log(`[subscribePublicFeed] ✅ ${newItems.length} new posts after dedup`);
     Ledger.log("subscribePublicFeed", initialSnap.docs.length, 0, 0);
-
-    // ── Render ───────────────────────────────────────────────────
     if (isAppending) {
+      console.log(`[subscribePublicFeed] ➕ appending ${newItems.length} posts to bottom`);
       newItems.forEach(p => {
         visiblePosts.push(p);
         injectSinglePost(p, 'bottom');
       });
     } else if (!silent) {
+      console.log(`[subscribePublicFeed] 🎨 cold render — renderListItems + startDripFeed`);
       visiblePosts = newItems;
       renderListItems(visiblePosts);
       startDripFeed();
+    } else {
+      console.log(`[subscribePublicFeed] 🔇 silent — skipping render, cache already displayed`);
     }
-
-    // ── Cache (new) ──────────────────────────────────────────────
     if (!isAppending) {
       writeCache({ posts: newItems, html: DOM.list.innerHTML });
+      console.log(`[subscribePublicFeed] 💾 cache written with ${newItems.length} posts`);
     }
-
     DOM.loadTrigger.style.visibility = 'hidden';
-
-    // ── Ego-listener ─────────────────────────────────────────────
     const listenStartTime = Date.now();
-    const myPostsQuery    = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
-
+    const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
     publicUnsubscribe = onSnapshot(myPostsQuery, (snapshot) => {
       const billedChanges = snapshot.docChanges().length;
-      if (billedChanges > 0) Ledger.log("subscribePublicFeed_Live", billedChanges, 0, 0);
-
+      if (billedChanges > 0) {
+        console.log(`[subscribePublicFeed] 👂 ego-listener fired — ${billedChanges} changes`);
+        Ledger.log("subscribePublicFeed_Live", billedChanges, 0, 0);
+      }
       snapshot.docChanges().forEach((change) => {
-        const docId     = change.doc.id;
-        const data      = change.doc.data();
+        const docId  = change.doc.id;
+        const data   = change.doc.data();
         const isNewPost = !data.createdAt ||
                           (data.createdAt.toMillis ? data.createdAt.toMillis() : Date.now()) > listenStartTime;
-
         if (change.type === "added" && !processedIds.has(docId)) {
           if (!isNewPost) { processedIds.add(docId); return; }
+          console.log(`[subscribePublicFeed] ⬆️ new own post detected — injecting at top`);
           const postObj = { id: docId, ...data, isFirebase: true };
           processedIds.add(docId);
           visiblePosts.unshift(postObj);
           injectSinglePost(postObj, 'top');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-
-        if (change.type === "modified") updateUISurgically(docId, data);
+        if (change.type === "modified") {
+          console.log(`[subscribePublicFeed] ✏️ post modified — updateUISurgically: ${docId}`);
+          updateUISurgically(docId, data);
+        }
       });
     });
-
+    console.log(`[subscribePublicFeed] 👂 ego-listener opened`);
   } catch (err) {
-    console.error("Error in subscribePublicFeed:", err);
+    console.error("[subscribePublicFeed] 🔥 error:", err);
     if (!isAppending && !silent) {
       DOM.list.innerHTML = `<div class="text-center py-12">Feed offline.</div>`;
     }
