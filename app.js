@@ -665,24 +665,6 @@ function urlBase64ToUint8Array(base64String) {
     return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 }
 
-async function autoResubscribeIfNeeded() {
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    const existing = await registration.pushManager.getSubscription();
-    
-    if (existing) return; // still valid, nothing to doooo
-    
-    // subscription is gone — was user previously opted in?
-    const wasSubscribed = localStorage.getItem('notifications_enabled');
-    if (!wasSubscribed) return; // user never opted in, don't bug them
-    
-    console.log('[Push] 🔄 SW updated, re-subscribing silently...');
-    await window.enableNotifications(); // reuse your existing function
-  } catch (err) {
-    console.error('[Push] resubscribe failed:', err);
-  }
-}
-
 async function subscribeAndSave() {
   const registration = await navigator.serviceWorker.ready;
   const PUBLIC_VAPID_KEY = 'BNtfmLDVxafsxgDlp8882ZXfuWY7jbgUhtcN69himY5iUkZ2Kw4MmnZlhrHEcFBe3n-tAsGjJtH9Jfrp5VChG1U';
