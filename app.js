@@ -1086,7 +1086,19 @@ async function fetchProportionalFeed() {
     }
   }
 
-  return posts; // up to 15 unique posts
+  return posts; // up to 30 unique posts
+}
+
+async function rotateAndRefillCache(existingPosts) {
+  const needed = 45 - existingPosts.length;  // ← was 30
+  if (needed <= 0) return;
+  const fresh = await fetchProportionalFeed();
+  const existingIds = new Set(existingPosts.map(p => p.id));
+  const deduped = fresh.filter(p => 
+    !existingIds.has(p.id) && !processedIds.has(p.id)
+  );
+  const refilled = [...existingPosts, ...deduped].slice(0, 45);  // ← was 30
+  writeCache({ posts: refilled, html: DOM.list.innerHTML });
 }
 
 function injectSinglePost(item, position = 'top') {
@@ -1251,11 +1263,20 @@ async function loadFeed() {
   if (currentTab !== 'public') return;
 
   if (cached?.posts?.length > 0) {
-  visiblePosts = cached.posts;
-  cached.posts.forEach(p => processedIds.add(p.id));
-  DOM.list.innerHTML = '';           // ← nuke skeletons / dead inline HTML first
+  const toShow     = cached.posts.slice(0, 15);   // display these
+  const remainder  = cached.posts.slice(15);       // keep these for next time
+  visiblePosts = toShow;
+  toShow.forEach(p => processedIds.add(p.id));
+  DOM.list.innerHTML = '';
   renderListItems(visiblePosts);
   startDripFeed();
+  
+  // Rotate immediately — before network even responds
+  writeCache({ posts: remainder, html: DOM.list.innerHTML });
+  
+  // Refill in background
+  rotateAndRefillCache(remainder);
+  
   subscribePublicFeed({ silent: true });
 } else {
   subscribePublicFeed({ silent: false });
@@ -1362,7 +1383,7 @@ async function subscribePublicFeed({ silent = false } = {}) {
 
   try {
     // ── Fetch ────────────────────────────────────────────────────
-    const qInitial    = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(15));
+    const qInitial    = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(30));
     const initialSnap = await getDocs(qInitial);
 
     const newItems = [];
