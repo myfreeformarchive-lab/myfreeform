@@ -1215,10 +1215,13 @@ async function loadFeed() {
   if (feedSafetyTimeout) clearTimeout(feedSafetyTimeout);
   if (dripTimeout) { clearTimeout(dripTimeout); dripTimeout = null; }
   if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
-  if (activePostListeners?.size > 0) {
-    activePostListeners.forEach(u => u());
+  if (activePostListeners && activePostListeners.size > 0) {
+    console.log(`[loadFeed] 🧨 STARTING CLEANUP: Killing ${activePostListeners.size} listeners...`);
+    activePostListeners.forEach((unsubscribe) => unsubscribe());
     activePostListeners.clear();
+    console.log(`[loadFeed] 🧹 activePostListeners Map cleared.`);
   }
+
   visiblePosts  = [];
   postBuffer    = [];
   processedIds.clear();
@@ -1233,25 +1236,29 @@ async function loadFeed() {
   // ── PUBLIC ──────────────────────────────────────────────────────────
   DOM.loadTrigger.style.visibility = 'visible';
 
+  // ── Exact old safety timer — always runs for public tab ─────────────
+  feedSafetyTimeout = setTimeout(() => {
+    const placeholder = document.getElementById('public-placeholder');
+    if (placeholder && placeholder.innerText.includes('Scanning')) {
+      console.warn("[UI Guard] Network is too slow. Showing empty state.");
+      showPublicPlaceholder('empty');
+    }
+  }, 5000);
+
   const cached = await readCache();
 
   // 🛡️ Guard: tab may have changed while awaiting cache read
   if (currentTab !== 'public') return;
 
   if (cached?.posts?.length > 0) {
-    // ✅ Cache HIT — always inject HTML, don't check for skeletons
+    // ✅ Cache HIT — render interactive posts, refresh silently
     visiblePosts = cached.posts;
     cached.posts.forEach(p => processedIds.add(p.id));
-	renderListItems(visiblePosts);
+    renderListItems(visiblePosts);
     startDripFeed();
     subscribePublicFeed({ silent: true });
   } else {
-    // ❌ Cache MISS — cold start
-    showPublicPlaceholder('scanning');
-    feedSafetyTimeout = setTimeout(() => {
-      const placeholder = document.getElementById('public-placeholder');
-      if (placeholder?.innerText.includes('Scanning')) showPublicPlaceholder('empty');
-    }, 5000);
+    // ❌ Cache MISS — cold start, scanning placeholder shown inside subscribePublicFeed
     subscribePublicFeed({ silent: false });
   }
 }
