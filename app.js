@@ -1251,16 +1251,15 @@ async function loadFeed() {
   if (currentTab !== 'public') return;
 
   if (cached?.posts?.length > 0) {
-    // ✅ Cache HIT — render interactive posts, refresh silently
-    visiblePosts = cached.posts;
-    cached.posts.forEach(p => processedIds.add(p.id));
-    renderListItems(visiblePosts);
-    startDripFeed();
-    subscribePublicFeed({ silent: true });
-  } else {
-    // ❌ Cache MISS — cold start, scanning placeholder shown inside subscribePublicFeed
-    subscribePublicFeed({ silent: false });
-  }
+  visiblePosts = cached.posts;
+  cached.posts.forEach(p => processedIds.add(p.id));
+  DOM.list.innerHTML = '';           // ← nuke skeletons / dead inline HTML first
+  renderListItems(visiblePosts);
+  startDripFeed();
+  subscribePublicFeed({ silent: true });
+} else {
+  subscribePublicFeed({ silent: false });
+}
 }
 
 function renderPrivateBatch() {
