@@ -1417,10 +1417,10 @@ async function subscribePublicFeed({ silent = false } = {}) {
     } else {
       console.log(`[subscribePublicFeed] 🔇 silent — skipping render, cache already displayed`);
     }
-    if (!isAppending) {
-      writeCache({ posts: newItems, html: DOM.list.innerHTML });
-      console.log(`[subscribePublicFeed] 💾 cache written with ${newItems.length} posts`);
-    }
+    if (!isAppending && !silent) {
+  writeCache({ posts: newItems, html: DOM.list.innerHTML });
+  console.log(`[subscribePublicFeed] 💾 cache written with ${newItems.length} posts`);
+}
     DOM.loadTrigger.style.visibility = 'hidden';
     const listenStartTime = Date.now();
     const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
