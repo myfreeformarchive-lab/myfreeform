@@ -532,11 +532,11 @@
                       .objectStore('posts')
                       .get('initialFeed');
         get.onsuccess = function() {
-          const cached = get.result;
-          if (!cached?.html) return;
-          const feedList = document.getElementById('feedList');
-          if (feedList) feedList.innerHTML = cached.html;
-        };
+  const cached = get.result;
+  if (!cached?.html || cached.v !== 5) return;  // ← bump this when you bump CACHE_V
+  const feedList = document.getElementById('feedList');
+  if (feedList) feedList.innerHTML = cached.html;
+};
       };
     } catch(e) {}
   })();
