@@ -4,6 +4,7 @@ const CACHE_DB_NAME  = 'feedCache';
 const CACHE_STORE    = 'posts';
 const CACHE_VERSION  = 4;
 const CACHE_KEY      = 'initialFeed';
+const CACHE_V        = 5;  // ← bump this to wipe all user caches
 
 function _openCacheDB() {
   return new Promise((resolve, reject) => {
@@ -22,13 +23,18 @@ function _openCacheDB() {
 export async function readCache() {
   try {
     const idb = await _openCacheDB();
-    if (!idb.objectStoreNames.contains(CACHE_STORE)) return null; // ← guard
+    if (!idb.objectStoreNames.contains(CACHE_STORE)) return null;
     return new Promise((resolve) => {
       const req = idb.transaction(CACHE_STORE, 'readonly')
                      .objectStore(CACHE_STORE)
                      .get(CACHE_KEY);
-      req.onsuccess = () => { console.log('📦 readCache result:', req.result); resolve(req.result ?? null); };
-      req.onerror   = () => resolve(null);
+      req.onsuccess = () => {
+        const result = req.result;
+        if (!result || result.v !== CACHE_V) { resolve(null); return; }  // ← stale, treat as empty
+        console.log('📦 readCache result:', result);
+        resolve(result);
+      };
+      req.onerror = () => resolve(null);
     });
   } catch(e) { console.error('📦 readCache error:', e); return null; }
 }
@@ -36,6 +42,7 @@ export async function readCache() {
 export async function writeCache(data) {
   const serialized = {
     ...data,
+    v: CACHE_V,  // ← stamp the version
     posts: data.posts.map(post => ({
       ...post,
       createdAt: post.createdAt?.toMillis
@@ -43,6 +50,7 @@ export async function writeCache(data) {
         : post.createdAt
     }))
   };
+  
   console.log('💾 writeCache called with:', serialized);
   try {
     const idb = await _openCacheDB();
