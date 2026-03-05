@@ -31,7 +31,8 @@ export async function readCache() {
       req.onsuccess = () => {
         const result = req.result;
         if (!result || result.v !== CACHE_V) { resolve(null); return; }  // ← stale, treat as empty
-        console.log('📦 readCache result:', result);
+        console.log(`📦 readCache — ${result.posts.length} posts in cache:`);
+        console.table(result.posts.map((p, i) => ({ position: i + 1, id: p.id, createdAt: p.createdAt })));
         resolve(result);
       };
       req.onerror = () => resolve(null);
@@ -51,7 +52,8 @@ export async function writeCache(data) {
     }))
   };
   
-  console.log('💾 writeCache called with:', serialized);
+  console.log(`💾 writeCache — saving ${serialized.posts.length} posts:`);
+  console.table(serialized.posts.map((p, i) => ({ position: i + 1, id: p.id, createdAt: p.createdAt })));
   try {
     const idb = await _openCacheDB();
     if (!idb.objectStoreNames.contains(CACHE_STORE)) return false;
