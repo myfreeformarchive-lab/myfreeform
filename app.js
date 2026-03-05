@@ -356,6 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	_t('DOMContentLoaded fired');
   runMigration();
   setRandomPlaceholder();
+  autoResubscribeIfNeeded();
   
   requestAnimationFrame(() => {
     const skelFooter = document.querySelector('.animate-pulse .mt-6.pt-5');
@@ -664,6 +665,24 @@ function urlBase64ToUint8Array(base64String) {
     return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 }
 
+async function autoResubscribeIfNeeded() {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const existing = await registration.pushManager.getSubscription();
+    
+    if (existing) return; // still valid, nothing to do
+    
+    // subscription is gone — was user previously opted in?
+    const wasSubscribed = localStorage.getItem('notifications_enabled');
+    if (!wasSubscribed) return; // user never opted in, don't bug them
+    
+    console.log('[Push] 🔄 SW updated, re-subscribing silently...');
+    await window.enableNotifications(); // reuse your existing function
+  } catch (err) {
+    console.error('[Push] resubscribe failed:', err);
+  }
+}
+
 window.enableNotifications = async function() {
     const permission = await Notification.requestPermission();
    // if (permission !== 'granted') return console.log("Permission denied");
@@ -687,6 +706,7 @@ window.enableNotifications = async function() {
             });
 
         if (error) throw error;
+		localStorage.setItem('notifications_enabled', '1');
     //    console.log("🔔 Notifications Linked for user:", MY_USER_ID);
     } catch (err) {
         console.error("Subscription failed:", err);
