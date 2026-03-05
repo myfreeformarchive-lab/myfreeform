@@ -1265,13 +1265,13 @@ async function loadFeed() {
     visiblePosts = toShow;
     toShow.forEach(p => processedIds.add(p.id));
     DOM.list.innerHTML = '';
-    console.log("Calling renderListItems...");
+    console.log("Calling renderListItems...from loadfeed");
     renderListItems(visiblePosts);
-    console.log("renderListItems executed.");
+    console.log("renderListItems executed.from loadfeed");
 
-    console.log("Starting drip feed...");
+    console.log("Starting drip feed...from loadfeed");
     startDripFeed();
-    console.log("Drip feed initiated.");
+    console.log("Drip feed initiated.from loadfeed");
 
     writeCache({ posts: remainder, html: DOM.list.innerHTML });
     console.log(`[loadFeed] 💾 cache rotated — wrote ${remainder.length} posts`);
@@ -1407,8 +1407,13 @@ async function subscribePublicFeed({ silent = false } = {}) {
     } else if (!silent) {
       console.log(`[subscribePublicFeed] 🎨 cold render — renderListItems + startDripFeed`);
       visiblePosts = newItems;
+      console.log("Calling renderListItems...from subscribePublicFeed");
       renderListItems(visiblePosts);
+      console.log("renderListItems executed. from subscribePublicFeed");
+
+      console.log("Starting drip feed...from subscribePublicFeed");
       startDripFeed();
+      console.log("Drip feed initiated. from subscribePublicFeed");
     } else {
       console.log(`[subscribePublicFeed] 🔇 silent — skipping render, cache already displayed`);
     }
