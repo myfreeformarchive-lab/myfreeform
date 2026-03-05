@@ -4,7 +4,7 @@ const _t = (label) => console.log(`%c ⏱️ ${label}`, "color: white; backgroun
 _t('app.js start');
 /*
 // ============================================================
-// 👻 GHOST OBSERVER: Layout shifts, LCP, long tasks + jitterrr
+// 👻 GHOST OBSERVER: Layout shifts, LCP, long taskss + jitterrr
 // ============================================================
 
 // Jitter tracker: watches elements that shift repeatedly in quick succession
