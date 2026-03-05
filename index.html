@@ -110,8 +110,12 @@
   
   <!-- Module preload for critical JavaScript files to improve load times -->
   <script>
+  const EMERGENCY = 1; // ← only bump this for mandatory updates
+</script>
+  
+  <script>
   (function() {
-    const v = new Date().getFullYear() + "-" + (new Date().getMonth() + 1);
+    const v = new Date().getFullYear() + "-" + (new Date().getMonth() + 1) + "-" + EMERGENCY;
     console.log("📦 Preloading app.js with version: " + v);
     document.write('<link rel="modulepreload" href="app.js?v=' + v + '" fetchpriority="high">');
   })();
@@ -808,7 +812,7 @@
 
 <script>
   (function() {
-    const v = new Date().getFullYear() + "-" + (new Date().getMonth() + 1);
+    const v = new Date().getFullYear() + "-" + (new Date().getMonth() + 1) + "-" + EMERGENCY;
     console.log("🚀 Executing app.js with version: " + v);
     document.write('<script type="module" src="app.js?v=' + v + '"><\/script>');
   })();
