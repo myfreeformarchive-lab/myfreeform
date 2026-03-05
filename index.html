@@ -110,7 +110,7 @@
   
   <!-- Module preload for critical JavaScript files to improve load times -->
   <script>
-  const EMERGENCY = 1; // ← only bump this for mandatory updates
+  const EMERGENCY = 2; // ← only bump this for mandatory updates
 </script>
   
   <script>
@@ -528,7 +528,7 @@
 <script>
   (function() {
     try {
-      const req = indexedDB.open('feedCache', 6); // ← was 1, must match CACHE_VERSION
+      const req = indexedDB.open('feedCache', 7); // ← was 1, must match CACHE_VERSION
       req.onsuccess = function(e) {
         const db = e.target.result;
         if (!db.objectStoreNames.contains('posts')) return;
@@ -537,7 +537,7 @@
                       .get('initialFeed');
         get.onsuccess = function() {
   const cached = get.result;
-  if (!cached?.html || cached.v !== 6) return;  // ← bump this when you bump CACHE_V
+  if (!cached?.html || cached.v !== 7) return;  // ← bump this when you bump CACHE_V
   const feedList = document.getElementById('feedList');
   if (feedList) feedList.innerHTML = cached.html;
 };
