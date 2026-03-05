@@ -1035,11 +1035,11 @@ async function fetchProportionalFeed() {
   const now = Date.now();
   const H24 = 24 * 60 * 60 * 1000;
   const buckets = [
-    { start: now - H24,      end: now,           count: 5 },
-    { start: now - 2 * H24,  end: now - H24,     count: 5 },
-    { start: now - 3 * H24,  end: now - 2 * H24, count: 3 },
-    { start: now - 7 * H24,  end: now - 3 * H24, count: 2 },
-  ];
+  { start: now - H24,      end: now,           count: 10 },
+  { start: now - 2 * H24,  end: now - H24,     count: 10 },
+  { start: now - 3 * H24,  end: now - 2 * H24, count: 6  },
+  { start: now - 7 * H24,  end: now - 3 * H24, count: 4  },
+];
   const fetchBucket = async ({ start, end, count }) => {
     const randomMs = start + Math.random() * (end - start);
     const q = query(
@@ -1082,16 +1082,15 @@ async function fetchProportionalFeed() {
 
 async function rotateAndRefillCache(existingPosts) {
   console.log(`[rotateAndRefillCache] 🔄 called — existingPosts: ${existingPosts.length}`);
-  const needed = 45 - existingPosts.length;
-  if (needed <= 0) {
-    console.log(`[rotateAndRefillCache] ✋ cache already full (${existingPosts.length}/45) — skipping`);
+  if (existingPosts.length >= 30) {
+    console.log(`[rotateAndRefillCache] ✋ cache sufficient (${existingPosts.length}/30) — skipping`);
     return;
   }
-  console.log(`[rotateAndRefillCache] 📥 fetching ${needed} fresh posts via fetchProportionalFeed`);
+  console.log(`[rotateAndRefillCache] 📥 fetching fresh posts via fetchProportionalFeed`);
   const fresh = await fetchProportionalFeed();
   console.log(`[rotateAndRefillCache] 📦 fetchProportionalFeed returned ${fresh.length} posts`);
   const existingIds = new Set(existingPosts.map(p => p.id));
-  const deduped = fresh.filter(p => !existingIds.has(p.id) && !processedIds.has(p.id));
+  const deduped = fresh.filter(p => !existingIds.has(p.id));
   console.log(`[rotateAndRefillCache] 🧹 after dedup — ${deduped.length} usable new posts`);
   const refilled = [...existingPosts, ...deduped].slice(0, 45);
   writeCache({ posts: refilled, html: DOM.list.innerHTML });
@@ -1278,6 +1277,7 @@ async function loadFeed() {
     startDripFeed();
     console.log("Drip feed initiated.from loadfeed");
 
+    console.log(`[loadFeed] 🗑️ deleting positions 1–${toShow.length} from cache (${toShow.map(p => p.id).join(', ')})`);
     writeCache({ posts: remainder, html: DOM.list.innerHTML });
     console.log(`[loadFeed] 💾 cache rotated — wrote ${remainder.length} posts`);
 
