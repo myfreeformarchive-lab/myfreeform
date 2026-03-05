@@ -2,9 +2,9 @@
 
 const CACHE_DB_NAME  = 'feedCache';
 const CACHE_STORE    = 'posts';
-const CACHE_VERSION  = 6;
+const CACHE_VERSION  = 7;
 const CACHE_KEY      = 'initialFeed';
-const CACHE_V        = 6;  // ← bump this to wipe all user caches
+const CACHE_V        = 7;  // ← bump this to wipe all user caches
 
 function _openCacheDB() {
   return new Promise((resolve, reject) => {
