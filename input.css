@@ -305,7 +305,7 @@ section.group {
 /* FeedList Optimizations: Kept for performance */
 #feedList {
   will-change: transform, opacity;
- /* transition: transform 0.3s ease, opacity 0.3s ease; */
+  transition: transform 0.3s ease, opacity 0.3s ease;
   backface-visibility: hidden;
   transform-style: preserve-3d;
 }
