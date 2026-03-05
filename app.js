@@ -670,7 +670,7 @@ async function autoResubscribeIfNeeded() {
     const registration = await navigator.serviceWorker.ready;
     const existing = await registration.pushManager.getSubscription();
     
-    if (existing) return; // still valid, nothing to do
+    if (existing) return; // still valid, nothing to doooo
     
     // subscription is gone — was user previously opted in?
     const wasSubscribed = localStorage.getItem('notifications_enabled');
