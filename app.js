@@ -1340,42 +1340,59 @@ async function subscribeArchiveSync() {
 // 3. THE SUBSCRIBER (Fixed Syntax)
 // ==========================================
 async function subscribePublicFeed({ silent = false } = {}) {
-  if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
+  if (publicUnsubscribe) {
+    publicUnsubscribe();
+    publicUnsubscribe = null;
+  }
+
+  // ── State reset (cold start only) ───────────────────────────────
+  if (!isAppending && !silent) {
+  visiblePosts = [];
+  postBuffer = [];
+  processedIds.clear();
+  if (dripTimeout) clearTimeout(dripTimeout);
+  showPublicPlaceholder('scanning');  // ← `!silent` check inside can also be removed now, it's implied
+}
 
   try {
-    const newItems = await fetchProportionalFeed();
+    // ── Fetch ────────────────────────────────────────────────────
+    const qInitial    = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(15));
+    const initialSnap = await getDocs(qInitial);
 
-    // Register all fetched posts as seen
-    newItems.forEach(p => {
-      if (!processedIds.has(p.id)) processedIds.add(p.id);
+    const newItems = [];
+    initialSnap.forEach(doc => {
+      const post = { id: doc.id, ...doc.data(), isFirebase: true };
+      if (!processedIds.has(post.id)) {
+        newItems.push(post);
+        processedIds.add(post.id);
+      }
     });
 
-    Ledger.log("subscribePublicFeed", newItems.length, 0, 0);
+    Ledger.log("subscribePublicFeed", initialSnap.docs.length, 0, 0);
 
+    // ── Render ───────────────────────────────────────────────────
     if (isAppending) {
-      // Infinite scroll path — unchanged behaviour
       newItems.forEach(p => {
         visiblePosts.push(p);
         injectSinglePost(p, 'bottom');
       });
     } else if (!silent) {
-      // Cold start — render fresh and start drip
       visiblePosts = newItems;
       renderListItems(visiblePosts);
       startDripFeed();
     }
 
-    // Always write to cache (silent or not) — this is the relay for next visit
+    // ── Cache (new) ──────────────────────────────────────────────
     if (!isAppending) {
-  writeCache({
-    posts: newItems,
-    html:  DOM.list.innerHTML   // 👈 snapshot of real rendered HTML
-  });
-}
+      writeCache({
+        posts: newItems,
+        html:  DOM.list.innerHTML
+      });
+    }
 
     DOM.loadTrigger.style.visibility = 'hidden';
 
-    // ── Ego-listener — completely unchanged ─────────────────────────
+    // ── Ego-listener ─────────────────────────────────────────────
     const listenStartTime = Date.now();
     const myPostsQuery    = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
 
@@ -1386,8 +1403,8 @@ async function subscribePublicFeed({ silent = false } = {}) {
       snapshot.docChanges().forEach((change) => {
         const docId     = change.doc.id;
         const data      = change.doc.data();
-        const isNewPost = !data.createdAt || 
-                          (data.createdAt.toMillis?.() ?? Date.now()) > listenStartTime;
+        const isNewPost = !data.createdAt ||
+                          (data.createdAt.toMillis ? data.createdAt.toMillis() : Date.now()) > listenStartTime;
 
         if (change.type === "added" && !processedIds.has(docId)) {
           if (!isNewPost) { processedIds.add(docId); return; }
@@ -1397,6 +1414,7 @@ async function subscribePublicFeed({ silent = false } = {}) {
           injectSinglePost(postObj, 'top');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+
         if (change.type === "modified") updateUISurgically(docId, data);
       });
     });
