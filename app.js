@@ -1159,6 +1159,7 @@ function switchTab(tab) {
           unsubscribe(); // This should now trigger your "State was: ......" logs immediately
       });
       activePostListeners.clear();
+	  window.pendingPostUpdates = 0;
   }
   
   DOM.list.style.transition = 'none';
@@ -1228,6 +1229,7 @@ async function loadFeed() {
     console.log(`[loadFeed] 🧨 STARTING CLEANUP: Killing ${activePostListeners.size} listeners...`);
     activePostListeners.forEach((unsubscribe) => unsubscribe());
     activePostListeners.clear();
+	window.pendingPostUpdates = 0;
     console.log(`[loadFeed] 🧹 activePostListeners Map cleared.`);
   }
   visiblePosts  = [];
