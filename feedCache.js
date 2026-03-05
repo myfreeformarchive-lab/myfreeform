@@ -1,4 +1,4 @@
-// feedCache.js — IndexedDB relay cache for initial feed
+// feedCache.js — IndexedDB relay cache for initial feedd
 
 const CACHE_DB_NAME  = 'feedCache';
 const CACHE_STORE    = 'posts';
