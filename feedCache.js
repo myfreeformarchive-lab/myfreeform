@@ -2,9 +2,9 @@
 
 const CACHE_DB_NAME  = 'feedCache';
 const CACHE_STORE    = 'posts';
-const CACHE_VERSION  = 4;
+const CACHE_VERSION  = 6;
 const CACHE_KEY      = 'initialFeed';
-const CACHE_V        = 5;  // ← bump this to wipe all user caches
+const CACHE_V        = 6;  // ← bump this to wipe all user caches
 
 function _openCacheDB() {
   return new Promise((resolve, reject) => {
@@ -20,6 +20,15 @@ function _openCacheDB() {
   });
 }
 
+function shufflePosts(posts) {
+  const arr = [...posts];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 export async function readCache() {
   try {
     const idb = await _openCacheDB();
@@ -29,12 +38,13 @@ export async function readCache() {
                      .objectStore(CACHE_STORE)
                      .get(CACHE_KEY);
       req.onsuccess = () => {
-        const result = req.result;
-        if (!result || result.v !== CACHE_V) { resolve(null); return; }  // ← stale, treat as empty
-        console.log(`📦 readCache — ${result.posts.length} posts in cache:`);
-        console.table(result.posts.map((p, i) => ({ position: i + 1, id: p.id, createdAt: p.createdAt })));
-        resolve(result);
-      };
+  const result = req.result;
+  if (!result || result.v !== CACHE_V) { resolve(null); return; }
+  const shuffled = { ...result, posts: shufflePosts(result.posts) };
+  console.log(`📦 readCache — ${shuffled.posts.length} posts in cache:`);
+  console.table(shuffled.posts.map((p, i) => ({ position: i + 1, id: p.id, createdAt: p.createdAt })));
+  resolve(shuffled);
+};
       req.onerror = () => resolve(null);
     });
   } catch(e) { console.error('📦 readCache error:', e); return null; }
@@ -43,8 +53,8 @@ export async function readCache() {
 export async function writeCache(data) {
   const serialized = {
     ...data,
-    v: CACHE_V,  // ← stamp the version
-    posts: data.posts.map(post => ({
+    v: CACHE_V,
+    posts: shufflePosts(data.posts).map(post => ({  // ← shuffle here
       ...post,
       createdAt: post.createdAt?.toMillis
         ? post.createdAt.toMillis()
