@@ -355,6 +355,7 @@ main.max-w-xl.mx-auto {
   /* Stability fixes */
   will-change: transform;
   backface-visibility: hidden;
+  overflow-anchor: none;
 }
 
 /* 3. Modal Animations: Keyframes and triggers for modal appearance */
