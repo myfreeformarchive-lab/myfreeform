@@ -794,7 +794,7 @@ function startDripFeed() {
   return Math.floor(Math.random() * (maxSecs - minSecs + 1) + minSecs) * 1000;
 };
 const Variable = getRandomDelay(20, 40);
-//console.log(`Next drip in: ${Variable / 1000} seconds`);
+console.log(`Next drip in: ${Variable / 1000} seconds`);
 dripTimeout = setTimeout(drip, Variable);
   }
   drip();
