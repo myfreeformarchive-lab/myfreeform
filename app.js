@@ -2,7 +2,7 @@ history.scrollRestoration = 'manual';
 
 const _t = (label) => console.log(`%c ⏱️ ${label}`, "color: white; background: #333; font-size: 11px;", `${performance.now().toFixed(1)}ms`);
 _t('app.js start');
-
+/*
 // ============================================================
 // 👻 GHOST OBSERVER: Layout shifts, LCP, long tasks + jitter
 // ============================================================
@@ -239,7 +239,7 @@ window.stopShiftObservers = () => {
 
 console.log('%c 🔬 Shift observers active — call stopShiftObservers() to stop', 
   'background: black; color: lime; font-size: 12px');
-
+*/
 if (window.chrome && chrome.runtime && chrome.runtime.id) {
   document.body.classList.add('extension-view');
 }
