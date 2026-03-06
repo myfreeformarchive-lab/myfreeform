@@ -1228,16 +1228,16 @@ function updateToggleUI() {
 let feedSafetyTimeout = null;
 
 async function loadFeed() {
-  console.log(`%c 🍔 loadFeed called — currentTab: ${currentTab}`, "color: white; background: darkred; font-size: 14px;");
+  console.log(%c 🍔 loadFeed called — currentTab: ${currentTab}, "color: white; background: darkred; font-size: 14px;");
   if (feedSafetyTimeout) clearTimeout(feedSafetyTimeout);
   if (dripTimeout) { clearTimeout(dripTimeout); dripTimeout = null; }
   if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
   if (activePostListeners && activePostListeners.size > 0) {
-    console.log(`[loadFeed] 🧨 STARTING CLEANUP: Killing ${activePostListeners.size} listeners...`);
+    console.log([loadFeed] 🧨 STARTING CLEANUP: Killing ${activePostListeners.size} listeners...);
     activePostListeners.forEach((unsubscribe) => unsubscribe());
     activePostListeners.clear();
-	window.pendingPostUpdates = 0;
-    console.log(`[loadFeed] 🧹 activePostListeners Map cleared.`);
+    window.pendingPostUpdates = 0;
+    console.log([loadFeed] 🧹 activePostListeners Map cleared.);
   }
   visiblePosts  = [];
   postBuffer    = [];
@@ -1249,60 +1249,44 @@ async function loadFeed() {
     return;
   }
   // ── PUBLIC ──────────────────────────────────────────────────────────
-
+  DOM.loadTrigger.style.visibility = 'visible';
+  feedSafetyTimeout = setTimeout(() => {
+    const placeholder = document.getElementById('public-placeholder');
+    if (placeholder && placeholder.innerText.includes('Scanning')) {
+      console.warn("[UI Guard] Network is too slow. Showing empty state.");
+      showPublicPlaceholder('empty');
+    }
+  }, 5000);
   const cached = await readCache();
-  console.log(`[loadFeed] 📦 cache read — posts: ${cached?.posts?.length ?? 0}, v: ${cached?.v ?? 'none'}`);
-
+  console.log([loadFeed] 📦 cache read — posts: ${cached?.posts?.length ?? 0}, v: ${cached?.v ?? 'none'});
   if (currentTab !== 'public') {
     console.log('[loadFeed] 🛡️ tab switched during cache read — bailing');
     return;
   }
-
   if (cached?.posts?.length > 0) {
-	  showPublicPlaceholder('hidden');
-    DOM.loadTrigger.style.visibility = 'hidden';
-	  
     const toShow    = cached.posts.slice(0, 15);
     const remainder = cached.posts.slice(15);
-    console.log(`[loadFeed] ✅ WARM CACHE — showing: ${toShow.length}, remainder: ${remainder.length}`);
-
+    console.log([loadFeed] ✅ WARM CACHE — showing: ${toShow.length}, remainder: ${remainder.length});
     visiblePosts = toShow;
     toShow.forEach(p => processedIds.add(p.id));
     DOM.list.innerHTML = '';
     console.log("Calling renderListItems...from loadfeed");
     renderListItems(visiblePosts);
     console.log("renderListItems executed.from loadfeed");
-
-    const dripDelay = Math.random() * (4500 - 1800) + 1800;
-console.log(`[subscribePublicFeed] ⏳ drip feed starts in ${(dripDelay/1000).toFixed(1)}s`);
-setTimeout(() => {
-    console.log("Starting drip feed...from subscribePublicFeed");
+    console.log("Starting drip feed...from loadfeed");
     startDripFeed();
-    console.log("Drip feed initiated. from subscribePublicFeed");
-}, dripDelay);
-
-    console.log(`[loadFeed] 🗑️ deleting positions 1–${toShow.length} from cache (${toShow.map(p => p.id).join(', ')})`);
+    console.log("Drip feed initiated.from loadfeed");
+    console.log([loadFeed] 🗑️ deleting positions 1–${toShow.length} from cache (${toShow.map(p => p.id).join(', ')}));
     writeCache({ posts: remainder, html: DOM.list.innerHTML });
-    console.log(`[loadFeed] 💾 cache rotated — wrote ${remainder.length} posts`);
-
+    console.log([loadFeed] 💾 cache rotated — wrote ${remainder.length} posts);
     rotateAndRefillCache(remainder);
-    console.log(`[loadFeed] 🔄 rotateAndRefillCache triggered in background`);
-
+    console.log([loadFeed] 🔄 rotateAndRefillCache triggered in background);
     subscribePublicFeed({ silent: true });
-    console.log(`[loadFeed] 🔇 subscribePublicFeed → silent: true`);
+    console.log([loadFeed] 🔇 subscribePublicFeed → silent: true);
   } else {
-	  // Only show placeholder if cache is empty
-    DOM.loadTrigger.style.visibility = 'visible';
-    feedSafetyTimeout = setTimeout(() => {
-      const placeholder = document.getElementById('public-placeholder');
-      if (placeholder && placeholder.innerText.includes('Scanning')) {
-        console.warn("[UI Guard] Network is too slow. Showing empty state.");
-        showPublicPlaceholder('empty');
-      }
-    }, 5000);
     console.log('[loadFeed] ❄️ COLD START — no cache, going to Firebase');
     subscribePublicFeed({ silent: false });
-    console.log(`[loadFeed] 📡 subscribePublicFeed → silent: false`);
+    console.log([loadFeed] 📡 subscribePublicFeed → silent: false);
   }
 }
 
