@@ -1228,41 +1228,29 @@ function updateToggleUI() {
 let feedSafetyTimeout = null;
 
 async function loadFeed() {
-    // --- 1. THE RIGID CLEANUP (Exactly as you had it) ---
-    if (feedSafetyTimeout) clearTimeout(feedSafetyTimeout);
-    if (dripTimeout) { 
-        clearTimeout(dripTimeout); 
-        dripTimeout = null; 
-    }
-
-    if (publicUnsubscribe) { 
-        publicUnsubscribe(); 
-        publicUnsubscribe = null; 
-    }
-
-    if (activePostListeners && activePostListeners.size > 0) {
-        console.log(`[loadFeed] 🧨 STARTING CLEANUP: Killing ${activePostListeners.size} listeners...`);
-        activePostListeners.forEach((unsubscribe) => unsubscribe());
-        activePostListeners.clear();
-        console.log(`[loadFeed] 🧹 activePostListeners Map cleared.`);
-    }
-  
-    visiblePosts = [];
-    postBuffer = [];
-    processedIds.clear();
-
-    // --- 2. PRIVATE TAB (Identical to your working version) ---
-    if (currentTab === 'private') {
-        allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
-        renderPrivateBatch();
-        subscribeArchiveSync();
-        return; // Hard exit so public logic NEVER runs
-    } 
-
-    // --- 3. PUBLIC TAB (The "Upgraded" Sectionn) ---
-    DOM.loadTrigger.style.display = 'visible';
-	
-	feedSafetyTimeout = setTimeout(() => {
+  console.log(`%c 🍔 loadFeed called — currentTab: ${currentTab}`, "color: white; background: darkred; font-size: 14px;");
+  if (feedSafetyTimeout) clearTimeout(feedSafetyTimeout);
+  if (dripTimeout) { clearTimeout(dripTimeout); dripTimeout = null; }
+  if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
+  if (activePostListeners && activePostListeners.size > 0) {
+    console.log(`[loadFeed] 🧨 STARTING CLEANUP: Killing ${activePostListeners.size} listeners...`);
+    activePostListeners.forEach((unsubscribe) => unsubscribe());
+    activePostListeners.clear();
+	window.pendingPostUpdates = 0;
+    console.log(`[loadFeed] 🧹 activePostListeners Map cleared.`);
+  }
+  visiblePosts  = [];
+  postBuffer    = [];
+  processedIds.clear();
+  if (currentTab === 'private') {
+    allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
+    renderPrivateBatch();
+    subscribeArchiveSync();
+    return;
+  }
+  // ── PUBLIC ──────────────────────────────────────────────────────────
+  DOM.loadTrigger.style.visibility = 'visible';
+  feedSafetyTimeout = setTimeout(() => {
     const placeholder = document.getElementById('public-placeholder');
     if (placeholder && placeholder.innerText.includes('Scanning')) {
       console.warn("[UI Guard] Network is too slow. Showing empty state.");
@@ -1270,59 +1258,44 @@ async function loadFeed() {
     }
   }, 5000);
 
-    // A. Read the Cache
-    const cached = await readCache();
+  const cached = await readCache();
+  console.log(`[loadFeed] 📦 cache read — posts: ${cached?.posts?.length ?? 0}, v: ${cached?.v ?? 'none'}`);
 
-    // B. Critical Safety Check: Did the user switch to Private while we waited for the disk?
-    if (currentTab !== 'public') {
-        console.log('[loadFeed] 🛡️ Tab switched during cache read — bailing');
-        return;
-    }
+  if (currentTab !== 'public') {
+    console.log('[loadFeed] 🛡️ tab switched during cache read — bailing');
+    return;
+  }
 
-    if (cached?.posts?.length > 0) {
-        // --- WARM START ---
-        console.log(`[loadFeed] ✅ WARM CACHE — posts: ${cached.posts.length}`);
-        
-        const toShow = cached.posts.slice(0, 15);
-        const remainder = cached.posts.slice(15);
-        
-        visiblePosts = toShow;
-        toShow.forEach(p => processedIds.add(p.id));
-        
-        DOM.list.innerHTML = ''; 
-        renderListItems(visiblePosts);
+  if (cached?.posts?.length > 0) {
+    const toShow    = cached.posts.slice(0, 15);
+    const remainder = cached.posts.slice(15);
+    console.log(`[loadFeed] ✅ WARM CACHE — showing: ${toShow.length}, remainder: ${remainder.length}`);
 
-        // Feature: Drip Delay (Assigned to dripTimeout so it's killable)
-        const dripDelay = Math.random() * (4500 - 1800) + 1800;
-        console.log(`[loadFeed] ⏳ Drip starts in ${(dripDelay/1000).toFixed(1)}s`);
-        
-        dripTimeout = setTimeout(() => {
-            if (currentTab === 'public') { // Final guard
-                startDripFeed();
-            }
-        }, dripDelay);
+    visiblePosts = toShow;
+    toShow.forEach(p => processedIds.add(p.id));
+    DOM.list.innerHTML = '';
+    console.log("Calling renderListItems...from loadfeed");
+    renderListItems(visiblePosts);
+    console.log("renderListItems executed.from loadfeed");
 
-        // Feature: Cache Rotation & Background Refill
-        writeCache({ posts: remainder, html: DOM.list.innerHTML });
-        rotateAndRefillCache(remainder);
+    console.log("Starting drip feed...from loadfeed");
+    startDripFeed();
+    console.log("Drip feed initiated.from loadfeed");
 
-        // Background sync
-        subscribePublicFeed({ silent: true });
+    console.log(`[loadFeed] 🗑️ deleting positions 1–${toShow.length} from cache (${toShow.map(p => p.id).join(', ')})`);
+    writeCache({ posts: remainder, html: DOM.list.innerHTML });
+    console.log(`[loadFeed] 💾 cache rotated — wrote ${remainder.length} posts`);
 
-    } else {
-        // --- COLD START ---
-        console.log('[loadFeed] ❄️ COLD START — going to Firebase');
+    rotateAndRefillCache(remainder);
+    console.log(`[loadFeed] 🔄 rotateAndRefillCache triggered in background`);
 
-        feedSafetyTimeout = setTimeout(() => {
-            const placeholder = document.getElementById('public-placeholder');
-            if (placeholder && placeholder.innerText.includes('Scanning')) {
-                console.warn("[UI Guard] Network is too slow. Showing empty state.");
-                showPublicPlaceholder('empty');
-            }
-        }, 5000);
-
-        subscribePublicFeed({ silent: false });
-    }
+    subscribePublicFeed({ silent: true });
+    console.log(`[loadFeed] 🔇 subscribePublicFeed → silent: true`);
+  } else {
+    console.log('[loadFeed] ❄️ COLD START — no cache, going to Firebase');
+    subscribePublicFeed({ silent: false });
+    console.log(`[loadFeed] 📡 subscribePublicFeed → silent: false`);
+  }
 }
 
 function renderPrivateBatch() {
