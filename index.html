@@ -528,12 +528,11 @@
 <script>
   (function() {
     try {
-      const lastTab = localStorage.getItem('freeform_tab_pref') || 'private';
-      if (lastTab !== 'public') return;
-
-      // Hide skeletons immediately — before IDB even opens
       const skeletons = document.getElementById('feedSkeletons');
       if (skeletons) skeletons.style.display = 'none';
+
+      const lastTab = localStorage.getItem('freeform_tab_pref') || 'private';
+      if (lastTab !== 'public') return;
 
       const req = indexedDB.open('feedCache', 11);
       req.onupgradeneeded = function(e) {
@@ -543,7 +542,6 @@
       req.onsuccess = function(e) {
         const db = e.target.result;
         if (!db.objectStoreNames.contains('posts')) {
-          // No cache possible — show skeletons again
           if (skeletons) skeletons.style.display = '';
           return;
         }
@@ -551,7 +549,6 @@
         get.onsuccess = function() {
           const cached = get.result;
           if (!cached?.html || cached.v !== 7) {
-            // Cache miss — show skeletons
             if (skeletons) skeletons.style.display = '';
             return;
           }
