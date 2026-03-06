@@ -1226,6 +1226,7 @@ function updateToggleUI() {
 }
 
 let feedSafetyTimeout = null;
+let warmCacheHit = false;
 
 async function loadFeed() {
   console.log(`%c 🍔 loadFeed called — currentTab: ${currentTab}`, "color: white; background: darkred; font-size: 14px;");
