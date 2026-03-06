@@ -1031,11 +1031,11 @@ async function fetchProportionalFeed() {
   const now = Date.now();
   const H24 = 24 * 60 * 60 * 1000;
   const buckets = [
-  { start: now - H24,      end: now,           count: 10 },
-  { start: now - 2 * H24,  end: now - H24,     count: 10 },
-  { start: now - 3 * H24,  end: now - 2 * H24, count: 6  },
-  { start: now - 7 * H24,  end: now - 3 * H24, count: 4  },
-];
+    { start: now - H24,      end: now,           count: 10 },
+    { start: now - 2 * H24,  end: now - H24,     count: 10 },
+    { start: now - 3 * H24,  end: now - 2 * H24, count: 6  },
+    { start: now - 7 * H24,  end: now - 3 * H24, count: 4  },
+  ];
   const fetchBucket = async ({ start, end, count }) => {
     const randomMs = start + Math.random() * (end - start);
     const q = query(
@@ -1072,7 +1072,26 @@ async function fetchProportionalFeed() {
       }
     }
   }
-  console.log(`[fetchProportionalFeed] ✅ total unique posts returned: ${posts.length}`);
+  console.log(`[fetchProportionalFeed] ✅ bucket posts: ${posts.length}`);
+
+  // ── Backup pool ──────────────────────────────────────────────
+  const TARGET = 30;
+  if (posts.length < TARGET) {
+    const shortage = TARGET - posts.length;
+    console.log(`[fetchProportionalFeed] 🪣 only got ${posts.length}/${TARGET} — borrowing ${shortage} from random pool`);
+
+    const savedBuffer = [...postBuffer];
+    postBuffer = [];
+    await refillBufferRandomly(shortage, false, true);  // ignoreProcessed = true
+    const borrowed = [...postBuffer];
+    postBuffer = savedBuffer;
+
+    const bucketIds = new Set(posts.map(p => p.id));
+    const extra = borrowed.filter(p => !bucketIds.has(p.id));
+    posts.push(...extra);
+    console.log(`[fetchProportionalFeed] ✅ after backup pool: ${posts.length} total posts`);
+  }
+
   return posts;
 }
 
