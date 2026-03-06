@@ -2391,7 +2391,10 @@ function renderListItems(items) {
 }
 
 function showPublicPlaceholder(type) {
-  if (type === 'scanning' && localStorage.getItem('freeform_feed_cache')) return;
+	if (type === 'scanning' && DOM.list.querySelector('.feed-item')) {
+    console.log('[placeholder] 🛡️ real content exists — skipping scanning placeholder');
+    return;
+  }
   let html = '';
   if (type === 'empty') {
     html = `
