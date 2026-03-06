@@ -2322,7 +2322,6 @@ function renderListItems(items) {
   }
 
 	const placeholder = document.getElementById('public-placeholder');
-	if (placeholder) placeholder.remove();
 	
   if (items.length === 0) {
 	  DOM.list.innerHTML = ''; 
@@ -2370,6 +2369,13 @@ function renderListItems(items) {
   }
   
   items.forEach(item => {
+    // If we have a placeholder, kill it
+    if (placeholder) {
+      placeholder.remove();
+      // Double check for any lingering ghost by ID
+      const ghost = document.getElementById('public-placeholder');
+      if (ghost) ghost.remove();
+    }
     const postNode = createPostNode(item);
     DOM.list.appendChild(postNode);
 	window.pendingPostUpdates++;
