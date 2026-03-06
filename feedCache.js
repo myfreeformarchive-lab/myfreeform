@@ -1,59 +1,73 @@
-// feedCache.js — Instrumented for deep debugging
-const CACHE_DB_NAME = 'feedCache';
-const CACHE_STORE = 'posts';
-const CACHE_VERSION = 10; // 💡 BUMPED TO 10 to force onupgradeneeded to fire
-const CACHE_KEY = 'initialFeed';
-const CACHE_V = 7; 
+// feedCache.js — IndexedDB relay cache for initial feedd
 
-console.log(`🚀 [INIT] feedCache.js loaded. Target DB Version: ${CACHE_VERSION}, Data Schema: ${CACHE_V}`);
+const CACHE_DB_NAME  = 'feedCache';
+const CACHE_STORE    = 'posts';
+const CACHE_VERSION  = 9;
+const CACHE_KEY      = 'initialFeed';
+const CACHE_V        = 7;  // ← bump this to wipe all user caches
+
+console.log('📦 feedCache.js loaded — CACHE_V:', CACHE_V, '| CACHE_VERSION:', CACHE_VERSION, '| CACHE_DB_NAME:', CACHE_DB_NAME, '| CACHE_STORE:', CACHE_STORE);
 
 function _openCacheDB() {
-  console.log('🔍 [1] _openCacheDB: Attempting to open IndexedDB...');
   return new Promise((resolve, reject) => {
+    console.log('📦 _openCacheDB: opening DB...', { CACHE_DB_NAME, CACHE_VERSION });
+
     const req = indexedDB.open(CACHE_DB_NAME, CACHE_VERSION);
 
-    req.onblocked = () => {
-      console.warn('⚠️ [!] DB Open Blocked: Please close other tabs of this app!');
+    req.onblocked = (e) => {
+      console.warn('📦 _openCacheDB: BLOCKED — another tab has the DB open with an older version. Close other tabs!', e);
     };
 
     req.onupgradeneeded = (e) => {
-      console.log('🛠️ [2] onupgradeneeded: Schema update triggered.');
       const db = e.target.result;
-      console.log('🛠️ [2a] Current stores before upgrade:', Array.from(db.objectStoreNames));
-      
+      console.log('📦 onupgradeneeded fired!', {
+        oldVersion: e.oldVersion,
+        newVersion: e.newVersion,
+        storesBefore: Array.from(db.objectStoreNames),
+      });
+
       if (db.objectStoreNames.contains(CACHE_STORE)) {
-        console.log(`🛠️ [2b] Deleting old store: ${CACHE_STORE}`);
+        console.log('📦 onupgradeneeded: deleting existing store:', CACHE_STORE);
         db.deleteObjectStore(CACHE_STORE);
+      } else {
+        console.log('📦 onupgradeneeded: store did not exist yet, nothing to delete');
       }
-      
-      console.log(`🛠️ [2c] Creating fresh store: ${CACHE_STORE}`);
+
       db.createObjectStore(CACHE_STORE);
-      console.log('🛠️ [2d] Store creation complete.');
+      console.log('📦 onupgradeneeded: store created. storesAfter:', Array.from(db.objectStoreNames));
     };
 
     req.onsuccess = (e) => {
       const db = e.target.result;
-      console.log('✅ [3] onsuccess: Database connection established.');
-      console.log('✅ [3a] Final stores available:', Array.from(db.objectStoreNames));
-      
+      const stores = Array.from(db.objectStoreNames);
+      console.log('📦 onsuccess fired!', {
+        name: db.name,
+        version: db.version,
+        objectStoreNames: stores,
+      });
+
+      if (!stores.includes(CACHE_STORE)) {
+        console.error('📦 CRITICAL: onsuccess fired but store is MISSING. This usually means onupgradeneeded never ran (DB version already matched) but the store was somehow never created. Try deleting the DB in DevTools > Application > IndexedDB.');
+      } else {
+        console.log('📦 onsuccess: store found ✅:', CACHE_STORE);
+      }
+
       db.onversionchange = () => {
-        console.warn('⚠️ [!] DB Version changed elsewhere. Closing connection...');
+        console.warn('📦 DB versionchange event — another tab is trying to upgrade. Closing this connection.');
         db.close();
       };
-      
+
       resolve(db);
     };
 
     req.onerror = (e) => {
-      console.error('❌ [!] DB Open Error:', e.target.error);
+      console.error('📦 _openCacheDB: onerror fired', e.target.error);
       reject(e.target.error);
     };
   });
 }
 
 function shufflePosts(posts) {
-  if (!posts) return [];
-  console.log(`🔀 Shuffling ${posts.length} posts...`);
   const arr = [...posts];
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -63,109 +77,119 @@ function shufflePosts(posts) {
 }
 
 export async function readCache() {
-  console.log('📖 [readCache] Starting...');
+  console.log('📦 readCache: called');
   try {
     const idb = await _openCacheDB();
-    if (!idb.objectStoreNames.contains(CACHE_STORE)) {
-      console.error(`📖 [readCache] Store "${CACHE_STORE}" NOT FOUND in db stores!`);
+    const stores = Array.from(idb.objectStoreNames);
+    console.log('📦 readCache: DB opened. objectStoreNames:', stores, '| looking for:', CACHE_STORE);
+
+    if (!stores.includes(CACHE_STORE)) {
+      console.warn('📦 readCache: store missing — returning null');
       return null;
     }
 
     return new Promise((resolve) => {
-      console.log('📖 [readCache] Opening readonly transaction...');
       const tx = idb.transaction(CACHE_STORE, 'readonly');
-      const store = tx.objectStore(CACHE_STORE);
-      const req = store.get(CACHE_KEY);
+      tx.onerror = (e) => console.error('📦 readCache tx error:', e.target.error);
+      tx.onabort = (e) => console.error('📦 readCache tx aborted:', e.target.error);
 
+      const req = tx.objectStore(CACHE_STORE).get(CACHE_KEY);
       req.onsuccess = () => {
         const result = req.result;
-        console.log('📖 [readCache] Raw result from IDB:', result);
-        
+        console.log('📦 readCache raw result:', result);
+        console.log('📦 readCache result.v:', result?.v, '| expected CACHE_V:', CACHE_V, '| match:', result?.v === CACHE_V);
+
         if (!result) {
-          console.log('📖 [readCache] Cache empty (no record found).');
-          return resolve(null);
+          console.warn('📦 readCache: nothing stored under key:', CACHE_KEY);
+          resolve(null);
+          return;
         }
         if (result.v !== CACHE_V) {
-          console.log(`📖 [readCache] Schema mismatch! App: ${CACHE_V}, Cache: ${result.v}`);
-          return resolve(null);
+          console.warn(`📦 readCache: version mismatch — stored: ${result.v}, expected: ${CACHE_V}. Returning null (stale cache).`);
+          resolve(null);
+          return;
         }
 
         const shuffled = { ...result, posts: shufflePosts(result.posts) };
-        console.log(`📖 [readCache] Success. Returning ${shuffled.posts.length} posts.`);
+        console.log(`📦 readCache: HIT ✅ — ${shuffled.posts.length} posts`);
+        console.table(shuffled.posts.map((p, i) => ({ position: i + 1, id: p.id, createdAt: p.createdAt })));
         resolve(shuffled);
       };
-
       req.onerror = (e) => {
-        console.error('📖 [readCache] Transaction error:', e.target.error);
+        console.error('📦 readCache get error:', e.target.error);
         resolve(null);
       };
     });
-  } catch(e) { 
-    console.error('📖 [readCache] Critical catch:', e); 
-    return null; 
+  } catch(e) {
+    console.error('📦 readCache catch:', e);
+    return null;
   }
 }
 
 export async function writeCache(data) {
-  console.log('💾 [writeCache] Starting write...');
-  if (!data || !data.posts) {
-    console.error('💾 [writeCache] Aborting: No data/posts provided.');
-    return false;
-  }
-
+  console.log('💾 writeCache: called with', data?.posts?.length, 'posts');
   const serialized = {
     ...data,
     v: CACHE_V,
     posts: shufflePosts(data.posts).map(post => ({
       ...post,
-      createdAt: post.createdAt?.toMillis ? post.createdAt.toMillis() : post.createdAt
+      createdAt: post.createdAt?.toMillis
+        ? post.createdAt.toMillis()
+        : post.createdAt
     }))
   };
 
+  console.log(`💾 writeCache: serialized ${serialized.posts.length} posts (v=${serialized.v}):`);
+  console.table(serialized.posts.map((p, i) => ({ position: i + 1, id: p.id, createdAt: p.createdAt })));
+
   try {
     const idb = await _openCacheDB();
-    if (!idb.objectStoreNames.contains(CACHE_STORE)) {
-      console.error('💾 [writeCache] Store missing! Cannot write.');
+    const stores = Array.from(idb.objectStoreNames);
+    console.log('💾 writeCache: DB opened. objectStoreNames:', stores);
+
+    if (!stores.includes(CACHE_STORE)) {
+      console.error('💾 writeCache: store missing — aborting write');
       return false;
     }
 
     return new Promise((resolve) => {
-      console.log('💾 [writeCache] Opening readwrite transaction...');
       const tx = idb.transaction(CACHE_STORE, 'readwrite');
-      const store = tx.objectStore(CACHE_STORE);
-      
-      store.put(serialized, CACHE_KEY);
+      tx.onerror = (e) => console.error('💾 writeCache tx error:', e.target.error);
+      tx.onabort = (e) => console.error('💾 writeCache tx aborted:', e.target.error);
 
-      tx.oncomplete = () => {
-        console.log('💾 [writeCache] Transaction complete. Saved successfully.');
-        resolve(true);
-      };
+      const putReq = tx.objectStore(CACHE_STORE).put(serialized, CACHE_KEY);
+      putReq.onsuccess = () => console.log('💾 writeCache: put() succeeded');
+      putReq.onerror   = (e) => console.error('💾 writeCache: put() error:', e.target.error);
 
-      tx.onerror = (e) => {
-        console.error('💾 [writeCache] Transaction failed:', e.target.error);
-        resolve(false);
-      };
+      tx.oncomplete = () => { console.log('💾 writeCache: tx complete ✅'); resolve(true); };
+      tx.onerror    = (e) => { console.error('💾 writeCache: tx error:', e); resolve(false); };
     });
-  } catch(e) { 
-    console.error('💾 [writeCache] Critical catch:', e); 
-    return false; 
+  } catch(e) {
+    console.error('💾 writeCache catch:', e);
+    return false;
   }
 }
 
 export async function clearCache() {
-  console.log('🧹 [clearCache] Starting wipe...');
+  console.log('🗑️ clearCache: called');
   try {
     const idb = await _openCacheDB();
+    const stores = Array.from(idb.objectStoreNames);
+    console.log('🗑️ clearCache: objectStoreNames:', stores);
+
+    if (!stores.includes(CACHE_STORE)) {
+      console.warn('🗑️ clearCache: store missing — nothing to clear');
+      return false;
+    }
+
     return new Promise((resolve) => {
       const tx = idb.transaction(CACHE_STORE, 'readwrite');
       tx.objectStore(CACHE_STORE).clear();
-      tx.oncomplete = () => {
-        console.log('🧹 [clearCache] Done.');
-        resolve(true);
-      };
+      tx.oncomplete = () => { console.log('🗑️ clearCache: done ✅'); resolve(true); };
+      tx.onerror    = (e) => { console.error('🗑️ clearCache: error', e.target.error); resolve(false); };
     });
-  } catch(e) { 
-    console.error('🧹 [clearCache] Error:', e);
-    return false; 
+  } catch(e) {
+    console.error('🗑️ clearCache catch:', e);
+    return false;
   }
 }
