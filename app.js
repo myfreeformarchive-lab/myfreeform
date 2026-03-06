@@ -1249,14 +1249,6 @@ async function loadFeed() {
     return;
   }
   // ── PUBLIC ──────────────────────────────────────────────────────────
-  DOM.loadTrigger.style.visibility = 'visible';
-  feedSafetyTimeout = setTimeout(() => {
-    const placeholder = document.getElementById('public-placeholder');
-    if (placeholder && placeholder.innerText.includes('Scanning')) {
-      console.warn("[UI Guard] Network is too slow. Showing empty state.");
-      showPublicPlaceholder('empty');
-    }
-  }, 5000);
 
   const cached = await readCache();
   console.log(`[loadFeed] 📦 cache read — posts: ${cached?.posts?.length ?? 0}, v: ${cached?.v ?? 'none'}`);
@@ -1292,6 +1284,15 @@ async function loadFeed() {
     subscribePublicFeed({ silent: true });
     console.log(`[loadFeed] 🔇 subscribePublicFeed → silent: true`);
   } else {
+	  // Only show placeholder if cache is empty
+    DOM.loadTrigger.style.visibility = 'visible';
+    feedSafetyTimeout = setTimeout(() => {
+      const placeholder = document.getElementById('public-placeholder');
+      if (placeholder && placeholder.innerText.includes('Scanning')) {
+        console.warn("[UI Guard] Network is too slow. Showing empty state.");
+        showPublicPlaceholder('empty');
+      }
+    }, 5000);
     console.log('[loadFeed] ❄️ COLD START — no cache, going to Firebase');
     subscribePublicFeed({ silent: false });
     console.log(`[loadFeed] 📡 subscribePublicFeed → silent: false`);
