@@ -1031,11 +1031,11 @@ async function fetchProportionalFeed() {
   const now = Date.now();
   const H24 = 24 * 60 * 60 * 1000;
   const buckets = [
-    { start: now - H24,      end: now,           count: 10 },
-    { start: now - 2 * H24,  end: now - H24,     count: 10 },
-    { start: now - 3 * H24,  end: now - 2 * H24, count: 6  },
-    { start: now - 7 * H24,  end: now - 3 * H24, count: 4  },
-  ];
+  { start: now - H24,      end: now,           count: 10 },
+  { start: now - 2 * H24,  end: now - H24,     count: 10 },
+  { start: now - 3 * H24,  end: now - 2 * H24, count: 6  },
+  { start: now - 7 * H24,  end: now - 3 * H24, count: 4  },
+];
   const fetchBucket = async ({ start, end, count }) => {
     const randomMs = start + Math.random() * (end - start);
     const q = query(
@@ -1072,44 +1072,34 @@ async function fetchProportionalFeed() {
       }
     }
   }
-  console.log(`[fetchProportionalFeed] ✅ bucket posts: ${posts.length}`);
-
-  // ── Backup pool ──────────────────────────────────────────────
-  const TARGET = 30;
-  if (posts.length < TARGET) {
-    const shortage = TARGET - posts.length;
-    console.log(`[fetchProportionalFeed] 🪣 only got ${posts.length}/${TARGET} — borrowing ${shortage} from random pool`);
-
-    const savedBuffer = [...postBuffer];
-    postBuffer = [];
-    await refillBufferRandomly(shortage, false, true);  // ignoreProcessed = true
-    const borrowed = [...postBuffer];
-    postBuffer = savedBuffer;
-
-    const bucketIds = new Set(posts.map(p => p.id));
-    const extra = borrowed.filter(p => !bucketIds.has(p.id));
-    posts.push(...extra);
-    console.log(`[fetchProportionalFeed] ✅ after backup pool: ${posts.length} total posts`);
-  }
-
+  console.log(`[fetchProportionalFeed] ✅ total unique posts returned: ${posts.length}`);
   return posts;
 }
 
 async function rotateAndRefillCache(existingPosts) {
   console.log(`[rotateAndRefillCache] 🔄 called — existingPosts: ${existingPosts.length}`);
+  if (isCacheRefilling) {
+    console.log(`[rotateAndRefillCache] 🛑 cache refill already in progress — skipping`);
+    return;
+  }
   if (existingPosts.length >= 30) {
     console.log(`[rotateAndRefillCache] ✋ cache sufficient (${existingPosts.length}/30) — skipping`);
     return;
   }
-  console.log(`[rotateAndRefillCache] 📥 fetching fresh posts via fetchProportionalFeed`);
-  const fresh = await fetchProportionalFeed();
-  console.log(`[rotateAndRefillCache] 📦 fetchProportionalFeed returned ${fresh.length} posts`);
-  const existingIds = new Set(existingPosts.map(p => p.id));
-  const deduped = fresh.filter(p => !existingIds.has(p.id));
-  console.log(`[rotateAndRefillCache] 🧹 after dedup — ${deduped.length} usable new posts`);
-  const refilled = [...existingPosts, ...deduped].slice(0, 45);
-  writeCache({ posts: refilled, html: DOM.list.innerHTML });
-  console.log(`[rotateAndRefillCache] 💾 cache written — total: ${refilled.length}/45`);
+  isCacheRefilling = true;
+  try {
+    console.log(`[rotateAndRefillCache] 📥 fetching fresh posts via fetchProportionalFeed`);
+    const fresh = await fetchProportionalFeed();
+    console.log(`[rotateAndRefillCache] 📦 fetchProportionalFeed returned ${fresh.length} posts`);
+    const existingIds = new Set(existingPosts.map(p => p.id));
+    const deduped = fresh.filter(p => !existingIds.has(p.id));
+    console.log(`[rotateAndRefillCache] 🧹 after dedup — ${deduped.length} usable new posts`);
+    const refilled = [...existingPosts, ...deduped].slice(0, 45);
+    writeCache({ posts: refilled, html: DOM.list.innerHTML });
+    console.log(`[rotateAndRefillCache] 💾 cache written — total: ${refilled.length}/45`);
+  } finally {
+    isCacheRefilling = false;
+  }
 }
 
 function injectSinglePost(item, position = 'top') {
@@ -1391,6 +1381,8 @@ async function subscribeArchiveSync() {
 // ==========================================
 // 3. THE SUBSCRIBER (Fixed Syntax)
 // ==========================================
+let isCacheRefilling = false;
+
 async function subscribePublicFeed({ silent = false } = {}) {
   console.log(`[subscribePublicFeed] 🚀 called — silent: ${silent}, isAppending: ${isAppending}`);
   if (publicUnsubscribe) {
@@ -1405,19 +1397,41 @@ async function subscribePublicFeed({ silent = false } = {}) {
     showPublicPlaceholder('scanning');
   }
   try {
-    const qInitial = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(30));
-    const initialSnap = await getDocs(qInitial);
-    console.log(`[subscribePublicFeed] 📥 Firebase returned ${initialSnap.docs.length} posts`);
-    const newItems = [];
-    initialSnap.forEach(doc => {
-      const post = { id: doc.id, ...doc.data(), isFirebase: true };
-      if (!processedIds.has(post.id)) {
-        newItems.push(post);
-        processedIds.add(post.id);
-      }
-    });
-    console.log(`[subscribePublicFeed] ✅ ${newItems.length} new posts after dedup`);
-    Ledger.log("subscribePublicFeed", initialSnap.docs.length, 0, 0);
+const newItems = [];
+if (silent) {
+  console.log(`[subscribePublicFeed] 🪣 warm start — using proportional buckets`);
+  if (!isCacheRefilling) {
+    isCacheRefilling = true;
+    try {
+      const fresh = await fetchProportionalFeed();
+      fresh.forEach(post => {
+        if (!processedIds.has(post.id)) {
+          newItems.push(post);
+          processedIds.add(post.id);
+        }
+      });
+      console.log(`[subscribePublicFeed] ✅ ${newItems.length} proportional posts after dedup`);
+    } finally {
+      isCacheRefilling = false;
+    }
+  } else {
+    console.log(`[subscribePublicFeed] 🛑 cache refill in progress — skipping fetch`);
+  }
+} else {
+  // cold start — newest 30
+  const qInitial = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(30));
+  const initialSnap = await getDocs(qInitial);
+  console.log(`[subscribePublicFeed] 📥 Firebase returned ${initialSnap.docs.length} posts`);
+  initialSnap.forEach(doc => {
+    const post = { id: doc.id, ...doc.data(), isFirebase: true };
+    if (!processedIds.has(post.id)) {
+      newItems.push(post);
+      processedIds.add(post.id);
+    }
+  });
+  console.log(`[subscribePublicFeed] ✅ ${newItems.length} new posts after dedup`);
+  Ledger.log("subscribePublicFeed", initialSnap.docs.length, 0, 0);
+}
     if (isAppending) {
       console.log(`[subscribePublicFeed] ➕ appending ${newItems.length} posts to bottom`);
       newItems.forEach(p => {
