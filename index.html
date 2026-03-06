@@ -528,7 +528,14 @@
 <script>
   (function() {
     try {
-      const req = indexedDB.open('feedCache', 10); // ← was 1, must match CACHE_VERSION
+      const req = indexedDB.open('feedCache', 11);
+      req.onupgradeneeded = function(e) {
+        // Create the store if it doesn't exist so feedCache.js can use it
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('posts')) {
+          db.createObjectStore('posts');
+        }
+      };
       req.onsuccess = function(e) {
         const db = e.target.result;
         if (!db.objectStoreNames.contains('posts')) return;
@@ -536,11 +543,11 @@
                       .objectStore('posts')
                       .get('initialFeed');
         get.onsuccess = function() {
-  const cached = get.result;
-  if (!cached?.html || cached.v !== 7) return;  // ← bump this when you bump CACHE_V
-  const feedList = document.getElementById('feedList');
-  if (feedList) feedList.innerHTML = cached.html;
-};
+          const cached = get.result;
+          if (!cached?.html || cached.v !== 7) return;
+          const feedList = document.getElementById('feedList');
+          if (feedList) feedList.innerHTML = cached.html;
+        };
       };
     } catch(e) {}
   })();
