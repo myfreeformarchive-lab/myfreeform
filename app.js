@@ -1273,9 +1273,13 @@ async function loadFeed() {
     renderListItems(visiblePosts);
     console.log("renderListItems executed.from loadfeed");
 
-    console.log("Starting drip feed...from loadfeed");
+    const dripDelay = Math.random() * (4500 - 1800) + 1800;
+console.log(`[subscribePublicFeed] ⏳ drip feed starts in ${(dripDelay/1000).toFixed(1)}s`);
+setTimeout(() => {
+    console.log("Starting drip feed...from subscribePublicFeed");
     startDripFeed();
-    console.log("Drip feed initiated.from loadfeed");
+    console.log("Drip feed initiated. from subscribePublicFeed");
+}, dripDelay);
 
     console.log(`[loadFeed] 🗑️ deleting positions 1–${toShow.length} from cache (${toShow.map(p => p.id).join(', ')})`);
     writeCache({ posts: remainder, html: DOM.list.innerHTML });
@@ -1451,9 +1455,13 @@ if (silent) {
       renderListItems(visiblePosts);
       console.log("renderListItems executed. from subscribePublicFeed");
 
-      console.log("Starting drip feed...from subscribePublicFeed");
-      startDripFeed();
-      console.log("Drip feed initiated. from subscribePublicFeed");
+      const dripDelay = Math.random() * (4500 - 1800) + 1800;
+console.log(`[subscribePublicFeed] ⏳ drip feed starts in ${(dripDelay/1000).toFixed(1)}s`);
+setTimeout(() => {
+    console.log("Starting drip feed...from subscribePublicFeed");
+    startDripFeed();
+    console.log("Drip feed initiated. from subscribePublicFeed");
+}, dripDelay);
     } else {
       console.log(`[subscribePublicFeed] 🔇 silent — skipping render, cache already displayed`);
     }
@@ -2391,10 +2399,6 @@ function renderListItems(items) {
 }
 
 function showPublicPlaceholder(type) {
-	if (type === 'scanning' && DOM.list.querySelector('.feed-item')) {
-    console.log('[placeholder] 🛡️ real content exists — skipping scanning placeholder');
-    return;
-  }
   let html = '';
   if (type === 'empty') {
     html = `
