@@ -1259,6 +1259,9 @@ async function loadFeed() {
   }
 
   if (cached?.posts?.length > 0) {
+	  showPublicPlaceholder('hidden');
+    DOM.loadTrigger.style.visibility = 'hidden';
+	  
     const toShow    = cached.posts.slice(0, 15);
     const remainder = cached.posts.slice(15);
     console.log(`[loadFeed] ✅ WARM CACHE — showing: ${toShow.length}, remainder: ${remainder.length}`);
@@ -1395,7 +1398,9 @@ async function subscribePublicFeed({ silent = false } = {}) {
     postBuffer = [];
     processedIds.clear();
     if (dripTimeout) clearTimeout(dripTimeout);
-    showPublicPlaceholder('scanning');
+    if (!DOM.list.innerHTML.trim()) {
+        showPublicPlaceholder('scanning');
+    }
   }
   try {
 const newItems = [];
