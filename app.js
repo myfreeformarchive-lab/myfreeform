@@ -1279,6 +1279,7 @@ async function loadFeed() {
     console.log(`[loadFeed] 🔄 rotateAndRefillCache triggered in background`);
     subscribePublicFeed({ silent: true });
     console.log(`[loadFeed] 🔇 subscribePublicFeed → silent: true`);
+	warmCacheHit = false;
   } else {
     warmCacheHit = false;
     DOM.loadTrigger.style.visibility = 'visible';
