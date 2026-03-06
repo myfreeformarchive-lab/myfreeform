@@ -1398,14 +1398,29 @@ async function subscribePublicFeed({ silent = false } = {}) {
     publicUnsubscribe = null;
   }
   if (!isAppending && !silent) {
-    visiblePosts = [];
-    postBuffer = [];
-    processedIds.clear();
-    if (dripTimeout) clearTimeout(dripTimeout);
-    if (!DOM.list.innerHTML.trim()) {
-        showPublicPlaceholder('scanning');
-    }
+  // 1. Reset memory state
+  visiblePosts = [];
+  postBuffer = [];
+  processedIds.clear();
+  if (dripTimeout) clearTimeout(dripTimeout);
+
+  // 2. The "Instant Kill" logic
+  // We check for the presence of a DOM element directly.
+  // If the list has ANY children, we skip the scanning placeholder.
+  const hasContent = !!DOM.list.firstElementChild;
+
+  if (!hasContent) {
+    showPublicPlaceholder('scanning');
+  } else {
+    // Optional: If we are refreshing but keeping old content visible, 
+    // ensure any existing 'scanning' or 'error' placeholders are removed 
+    // so they don't sit on top of the old posts.
+    const activePlaceholder = DOM.list.querySelector('.public-placeholder');
+    if (activePlaceholder) activePlaceholder.remove();
+    
+    console.log('⚡ Instant Kill: Content detected, skipping placeholder.');
   }
+}
   try {
 const newItems = [];
 if (silent) {
