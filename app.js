@@ -1,12 +1,255 @@
+history.scrollRestoration = 'manual';
+
+const _t = (label) => console.log(`%c ⏱️ ${label}`, "color: white; background: #333; font-size: 11px;", `${performance.now().toFixed(1)}ms`);
+_t('app.js start');
+/*
+// ============================================================
+// 👻 GHOST OBSERVER: Layout shifts, LCP, long tasks + jitter
+// ============================================================
+
+// Jitter tracker: watches elements that shift repeatedly in quick succession
+const jitterMap = new Map(); // element → { count, lastTime, positions[] }
+const JITTER_WINDOW_MS = 500;  // shifts within this window = jitter
+const JITTER_THRESHOLD = 2;    // how many shifts before we flag it
+
+function trackJitter(node, rect) {
+  if (!node) return;
+  const now = performance.now();
+  const key = node;
+
+  if (!jitterMap.has(key)) {
+    jitterMap.set(key, { count: 0, lastTime: now, positions: [] });
+  }
+
+  const entry = jitterMap.get(key);
+  const timeSinceLast = now - entry.lastTime;
+
+  if (timeSinceLast < JITTER_WINDOW_MS) {
+    entry.count++;
+    entry.positions.push({ top: rect.top, left: rect.left, time: now });
+
+    if (entry.count >= JITTER_THRESHOLD) {
+      console.log(
+        `%c 🫨 JITTER DETECTED on element (${entry.count} shifts in ${timeSinceLast.toFixed(0)}ms):`,
+        "color: white; background: purple; font-size: 12px;",
+        node
+      );
+      console.table(entry.positions.map(p => ({
+        top: p.top.toFixed(2),
+        left: p.left.toFixed(2),
+        ms: p.time.toFixed(1)
+      })));
+      // Reset after reporting so we don't spam
+      entry.count = 0;
+      entry.positions = [];
+    }
+  } else {
+    // Too long ago — reset the window
+    entry.count = 1;
+    entry.positions = [{ top: rect.top, left: rect.left, time: now }];
+  }
+
+  entry.lastTime = now;
+}
+
+const ghostObserver = new PerformanceObserver((list) => {
+  list.getEntries().forEach(entry => {
+
+    // ── LAYOUT SHIFT ──────────────────────────────────────────
+    if (entry.entryType === 'layout-shift' && entry.value > 0.001) {
+      console.log(
+        `%c 👻 LAYOUT SHIFT: ${entry.value.toFixed(6)}`,
+        "color: white; background: red; font-size: 12px;"
+      );
+      entry.sources?.forEach(source => {
+        console.log('  Element:', source.node);
+        console.log('  Before: ', source.previousRect);
+        console.log('  After:  ', source.currentRect);
+
+        // Feed each shifted element into jitter tracker
+        trackJitter(source.node, source.currentRect);
+      });
+    }
+
+    // ── LCP ───────────────────────────────────────────────────
+    if (entry.entryType === 'largest-contentful-paint') {
+      console.log(
+        `%c 🖼️ LCP: ${entry.startTime.toFixed(1)}ms — element:`,
+        "color: white; background: darkblue; font-size: 12px;",
+        entry.element
+      );
+    }
+
+    // ── LONG TASK ─────────────────────────────────────────────
+    if (entry.entryType === 'longtask') {
+      console.log(
+        `%c ⚠️ LONG TASK: ${entry.duration.toFixed(1)}ms`,
+        "color: white; background: darkorange; font-size: 12px;"
+      );
+    }
+
+  });
+});
+
+ghostObserver.observe({ type: 'layout-shift', buffered: true });
+ghostObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+ghostObserver.observe({ type: 'longtask', buffered: true });
+
+// ============================================================
+// 🔬 COMPREHENSIVE SHIFT OBSERVER
+// Watches every known element for position/size changes
+// ============================================================
+
+const WATCH_SELECTORS = {
+  // Layout containers
+  'body':               document.body,
+  'html':               document.documentElement,
+  'header':             document.querySelector('header'),
+  'nav':                document.querySelector('nav'),
+  'main':               document.querySelector('main'),
+  '#tabs':              document.getElementById('tabs'),
+  '#feedList':          document.getElementById('feedList'),
+  '#loadTrigger':       document.getElementById('loadTrigger'),
+  
+  // Section
+  'section.group':      document.querySelector('section.group'),
+};
+
+// Snapshot helper — captures position + size of an element
+function snapRect(el) {
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return { top: r.top, left: r.left, width: r.width, height: r.height };
+}
+
+// Store last known positions
+const lastKnown = new Map();
+Object.entries(WATCH_SELECTORS).forEach(([name, el]) => {
+  if (el) lastKnown.set(name, snapRect(el));
+});
+
+// ── 1. POSITION POLL: checks every 100ms for any element that moved ──
+function checkAllPositions(label = 'poll') {
+  Object.entries(WATCH_SELECTORS).forEach(([name, el]) => {
+    if (!el) return;
+    const current = snapRect(el);
+    const last = lastKnown.get(name);
+    if (!last) { lastKnown.set(name, current); return; }
+
+    const dTop    = Math.abs(current.top    - last.top);
+    const dLeft   = Math.abs(current.left   - last.left);
+    const dWidth  = Math.abs(current.width  - last.width);
+    const dHeight = Math.abs(current.height - last.height);
+
+    if (dTop > 0.5 || dLeft > 0.5 || dWidth > 0.5 || dHeight > 0.5) {
+      console.log(
+        `%c 📍 [${label}] MOVED: ${name}`,
+        'color: white; background: crimson; font-size: 11px;'
+      );
+      console.table({
+        top:    { before: last.top.toFixed(2),    after: current.top.toFixed(2),    delta: dTop.toFixed(2) },
+        left:   { before: last.left.toFixed(2),   after: current.left.toFixed(2),   delta: dLeft.toFixed(2) },
+        width:  { before: last.width.toFixed(2),  after: current.width.toFixed(2),  delta: dWidth.toFixed(2) },
+        height: { before: last.height.toFixed(2), after: current.height.toFixed(2), delta: dHeight.toFixed(2) },
+      });
+    }
+    lastKnown.set(name, current);
+  });
+}
+
+const positionPollInterval = setInterval(() => checkAllPositions('poll'), 100);
+
+// ── 2. RESIZE OBSERVER: fires instantly when any element changes size ──
+const shiftResizeObserver = new ResizeObserver((entries) => {
+  entries.forEach(entry => {
+    const el = entry.target;
+    const name = Object.entries(WATCH_SELECTORS).find(([, v]) => v === el)?.[0] || el.id || el.className;
+    const r = entry.contentRect;
+    console.log(
+      `%c 📐 RESIZE: ${name} → ${r.width.toFixed(1)} x ${r.height.toFixed(1)}`,
+      'color: white; background: darkgreen; font-size: 11px;'
+    );
+    // Also do a full position check immediately when resize fires
+    checkAllPositions(`resize:${name}`);
+  });
+});
+
+Object.entries(WATCH_SELECTORS).forEach(([, el]) => {
+  if (el) shiftResizeObserver.observe(el);
+});
+
+// ── 3. MUTATION OBSERVER: catches DOM injections into feedList ──
+const shiftMutationObserver = new MutationObserver((mutations) => {
+  mutations.forEach(mutation => {
+    if (mutation.addedNodes.length > 0) {
+      mutation.addedNodes.forEach(node => {
+        if (node.nodeType === 1) { // element nodes only
+          console.log(
+            `%c ➕ DOM INJECT into ${mutation.target.id || mutation.target.className}:`,
+            'color: white; background: darkorchid; font-size: 11px;',
+            node
+          );
+          // Check all positions immediately after injection
+          checkAllPositions('post-inject');
+          
+          // Also start watching injected feed items
+          if (node.classList?.contains('feed-item')) {
+            shiftResizeObserver.observe(node);
+          }
+        }
+      });
+    }
+    if (mutation.removedNodes.length > 0) {
+      console.log(
+        `%c ➖ DOM REMOVED from ${mutation.target.id || mutation.target.className}: ${mutation.removedNodes.length} node(s)`,
+        'color: white; background: saddlebrown; font-size: 11px;'
+      );
+      checkAllPositions('post-remove');
+    }
+  });
+});
+
+// Watch feedList and section for any child changes
+[document.getElementById('feedList'), document.querySelector('section.group'), document.body]
+  .filter(Boolean)
+  .forEach(el => {
+    shiftMutationObserver.observe(el, { childList: true, subtree: false });
+  });
+
+// ── 4. SCROLL OBSERVER: log any programmatic scroll jumps ──
+let lastScrollY = window.scrollY;
+window.addEventListener('scroll', () => {
+  const delta = window.scrollY - lastScrollY;
+  if (Math.abs(delta) > 2) {
+    console.log(
+      `%c 📜 SCROLL JUMP: ${delta > 0 ? '▼' : '▲'} ${Math.abs(delta).toFixed(1)}px (y=${window.scrollY.toFixed(1)})`,
+      'color: white; background: teal; font-size: 11px;'
+    );
+  }
+  lastScrollY = window.scrollY;
+}, { passive: true });
+
+// ── CLEANUP: call window.stopShiftObservers() in console to stop ──
+window.stopShiftObservers = () => {
+  clearInterval(positionPollInterval);
+  shiftResizeObserver.disconnect();
+  shiftMutationObserver.disconnect();
+  console.log('%c 🛑 All shift observers stopped', 'background: black; color: white');
+};
+
+console.log('%c 🔬 Shift observers active — call stopShiftObservers() to stop', 
+  'background: black; color: lime; font-size: 12px');
+*/
 if (window.chrome && chrome.runtime && chrome.runtime.id) {
   document.body.classList.add('extension-view');
 }
 
+import { readCache, writeCache } from './feedCache.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
 import { 
   getFirestore, collection, addDoc, deleteDoc, doc, updateDoc,
   query, orderBy, limit, serverTimestamp, onSnapshot,
-  writeBatch, getDocs, increment, setDoc, getDoc, runTransaction, where
+  writeBatch, getDocs, increment, setDoc, getDoc, runTransaction, where, Timestamp
 } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
 
 import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.2.4/+esm';
@@ -53,6 +296,7 @@ const DOM = {
 };
 
 let currentTab = localStorage.getItem('freeform_tab_pref') || 'private';
+_t('currentTab read: ' + currentTab);
 const MY_USER_ID = getOrCreateUserId(); 
 const BATCH_SIZE = 15;
 let currentLimit = BATCH_SIZE;
@@ -89,7 +333,7 @@ window._supabase = window._supabase || (typeof _supabase !== 'undefined' ? _supa
 if (!window._supabase) {
     console.error("❌ Still can't find the Supabase client. Try typing 'supabase' or 'db' to see if it's named differently.");
 } else {
-    console.log("✅ _supabase is now connected to the console!");
+   // console.log("✅ _supabase is now connected to the console!");
 }
 
 window.pendingPostUpdates = 0;
@@ -109,12 +353,19 @@ window.getThoughtBubbleSVG = getThoughtBubbleSVG;
 // 2. INITIALIZATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+	_t('DOMContentLoaded fired');
   runMigration();
   setRandomPlaceholder();
+  
+  requestAnimationFrame(() => {
+    const skelFooter = document.querySelector('.animate-pulse .mt-6.pt-5');
+    console.log('Skeleton footer height:', skelFooter?.offsetHeight);
+  });
   
   const savedToggleState = localStorage.getItem('freeform_toggle_pref');
   DOM.toggle.checked = (savedToggleState === 'true');
   updateToggleUI(); 
+  _t('calling updateTabClasses for first time');
   updateTabClasses(); 
   
   applyFontPreference(selectedFont);
@@ -299,6 +550,7 @@ if (DOM.desktopEmojiTrigger && DOM.desktopEmojiPopup) {
 // --- INITIALIZE REALTIME ---
 if (MY_USER_ID) {
 	window.syncIncomingMessages();
+	enableNotifications();
     const dmSubscription = _supabase
         .channel('dm-relay-changes')
         .on('postgres_changes', { 
@@ -307,7 +559,7 @@ if (MY_USER_ID) {
             table: 'dm_relay',
             filter: `receiver_id=eq.${MY_USER_ID}` 
         }, (payload) => {
-            console.log("%c 🔔 REALTIME: New message detected!", "background: #22c55e; color: white; padding: 2px 5px;");
+          //  console.log("%c 🔔 REALTIME: New message detected!", "background: #22c55e; color: white; padding: 2px 5px;");
             window.syncIncomingMessages();
         })
         .subscribe();
@@ -317,86 +569,66 @@ if (MY_USER_ID) {
   
 });
 
-
-
-// 1. Add a lock to prevent double-syncing
-let isSyncing = false;
-
 window.syncIncomingMessages = async function() {
-    if (isSyncing) return; // Exit if already running
-    isSyncing = true;
+   // console.log("🔍 Sync: Checking 'dm_relay' for messages...");
 
-    console.log("🔍 Sync: Checking 'dm_relay'...");
+    // 1. Fetch messages where I am the receiver
+    const { data, error } = await _supabase
+        .from('dm_relay')
+        .select('*')
+        .eq('receiver_id', MY_USER_ID);
 
-    try {
-        const { data, error } = await _supabase
-            .from('dm_relay')
-            .select('*')
-            .eq('receiver_id', MY_USER_ID);
-
-        if (error) throw error;
-        if (!data || data.length === 0) {
-            isSyncing = false;
-            return;
-        }
-
-        // Process all messages
-        for (const row of data) {
-            const msg = row.payload;
-            const roomId = msg.roomId;
-            
-            window.saveToLocal(roomId, msg);
-
-            // Immediate cleanup
-            await _supabase.from('dm_relay').delete().eq('id', row.id);
-        }
-
-        // 3. UI Auto-Refresh (Optimized)
-        const dmModal = document.getElementById('dmModal');
-        const chatModal = document.getElementById('chatModal');
-
-        if (dmModal && !dmModal.classList.contains('hidden')) {
-            const title = document.getElementById('dmModalTitle');
-            if (title) {
-                const targetUserId = title.innerText.replace('@', '');
-                const currentRoomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
-                window.renderMessages(currentRoomId);
-            }
-        }
-
-        if (chatModal && !chatModal.classList.contains('hidden')) {
-            if (typeof renderChatList === 'function') renderChatList();
-        }
-
-    } catch (err) {
-        console.error("❌ Sync Error:", err.message);
-    } finally {
-        isSyncing = false;
-        console.log("✅ Sync: Finished.");
+    if (error) {
+        console.error("❌ Sync Error:", error.message);
+        return;
     }
+
+    if (!data || data.length === 0) {
+      //  console.log("📥 Sync: No new messages found.");
+        return;
+    }
+
+  //  console.log(`📩 Sync: Found ${data.length} messages. Processing...`);
+
+    for (const row of data) {
+        const msg = row.payload;
+        
+        // Use the raw roomId directly from the message payload
+        const roomId = msg.roomId;
+
+    //    console.log(`💾 Sync: Saving to local storage for room: ${roomId}`);
+        window.saveToLocal(roomId, msg);
+        
+        // 2. Delete from Supabase immediately (Ephemeral)
+        const { error: delError } = await _supabase
+            .from('dm_relay')
+            .delete()
+            .eq('id', row.id);
+        
+        if (delError) console.error("⚠️ Sync: Cleanup failed for ID:", row.id);
+    }
+    
+    // 3. UI Auto-Refresh
+    const dmModal = document.getElementById('dmModal');
+    const chatModal = document.getElementById('chatModal');
+
+    // If the DM window is open, refresh the messages
+    if (dmModal && !dmModal.classList.contains('hidden')) {
+        const title = document.getElementById('dmModalTitle');
+        if (title) {
+            const targetUserId = title.innerText.replace('@', '');
+            const currentRoomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
+            window.renderMessages(currentRoomId);
+        }
+    }
+
+    // If the Inbox list is open, refresh the list
+    if (chatModal && !chatModal.classList.contains('hidden')) {
+        renderChatList();
+    }
+    
+   // console.log("✅ Sync: All messages processed and UI updated.");
 };
-
-// --- INITIALIZE REALTIME ---
-// Ensure this runs AFTER MY_USER_ID is defined
-if (MY_USER_ID) {
-    // Initial fetch on load
-    window.syncIncomingMessages();
-
-    const dmSubscription = _supabase
-        .channel('dm-relay-changes')
-        .on('postgres_changes', { 
-            event: 'INSERT', 
-            schema: 'public', 
-            table: 'dm_relay',
-            filter: `receiver_id=eq.${MY_USER_ID}` 
-        }, (payload) => {
-            console.log("%c 🔔 REALTIME: New message!", "background: #22c55e; color: white;");
-            window.syncIncomingMessages();
-        })
-        .subscribe((status) => {
-            console.log("Realtime status:", status); // Debug: Ensure this says "SUBSCRIBED"
-        });
-}
 
 window.subscribeToPush = async function() {
     const registration = await navigator.serviceWorker.ready;
@@ -406,7 +638,7 @@ window.subscribeToPush = async function() {
     
     if (!subscription) {
         // Replace with your real VAPID Public Key
-        const PUBLIC_VAPID_KEY = 'BGeg4CsgjinWsVpRKe3hQKm0DIY2OyjRQ732owFaozFYkY9WuV1lQ3b-J-Z93b7ZbqnS-586JdR9yjsGW7-8PbU'; 
+        const PUBLIC_VAPID_KEY = 'BNtfmLDVxafsxgDlp8882ZXfuWY7jbgUhtcN69himY5iUkZ2Kw4MmnZlhrHEcFBe3n-tAsGjJtH9Jfrp5VChG1U';
         
         subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
@@ -421,7 +653,7 @@ window.subscribeToPush = async function() {
         .update({ push_token: JSON.stringify(subscription) })
         .eq('id', MY_USER_ID);
 
-    if (!error) console.log("🔔 Push Subscription synced to Supabase!");
+   // if (!error) console.log("🔔 Push Subscription synced to Supabase!");
 };
 
 // --- NOTIFICATION SETUP ---
@@ -434,18 +666,15 @@ function urlBase64ToUint8Array(base64String) {
 
 window.enableNotifications = async function() {
     const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return console.log("Permission denied");
-
+   if (permission !== 'granted') return console.log("Permission denied");
     const registration = await navigator.serviceWorker.ready;
-    const PUBLIC_VAPID_KEY = 'BGeg4CsgjinWsVpRKe3hQKm0DIY2OyjRQ732owFaozFYkY9WuV1lQ3b-J-Z93b7ZbqnS-586JdR9yjsGW7-8PbU'; 
+    const PUBLIC_VAPID_KEY = 'BNtfmLDVxafsxgDlp8882ZXfuWY7jbgUhtcN69himY5iUkZ2Kw4MmnZlhrHEcFBe3n-tAsGjJtH9Jfrp5VChG1U';
     const convertedKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY);
-
     try {
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: convertedKey
         });
-
         // We use the MY_USER_ID that was set by getOrCreateUserId() at the start
         const { error } = await _supabase
             .from('user_push_tokens') 
@@ -453,9 +682,8 @@ window.enableNotifications = async function() {
                 user_id: MY_USER_ID, 
                 token: JSON.stringify(subscription) // Database needs this as a string or json
             });
-
         if (error) throw error;
-        console.log("🔔 Notifications Linked for user:", MY_USER_ID);
+    //    console.log("🔔 Notifications Linked for user:", MY_USER_ID);
     } catch (err) {
         console.error("Subscription failed:", err);
     }
@@ -512,7 +740,7 @@ async function getNextUniqueTag() {
     };
 
     // --- PASTE LOG HERE ---
-    console.log("Success:", result); 
+   // console.log("Success:", result); 
     // ---------------------
 
     return result;
@@ -521,7 +749,7 @@ async function getNextUniqueTag() {
     const tempResult = { num: tempNum, tag: `#temp${tempNum.toString().slice(-4)}` };
 
     // --- PASTE LOG HERE FOR ERRORS ---
-    console.log("Failed, using temp tag:", tempResult, "Error:", e);
+  //  console.log("Failed, using temp tag:", tempResult, "Error:", e);
     // --------------------------------
 
     return tempResult;
@@ -541,7 +769,7 @@ function startDripFeed() {
   async function drip() {
     if (currentTab !== 'public' || myId !== currentDripId) return;
     if (postBuffer.length === 0) {
-		console.log("%c🚰 Drip Feed: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
+	//	console.log("%c🚰 Drip Feed: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
       await refillBufferRandomly(5);
 	  Ledger.log("refillBuffer", 1, 0, 0);
     }
@@ -573,7 +801,7 @@ function updateUISurgically(id, data) {
   const finalComments = data.commentCount ?? 0;
   const finalLikes = data.likeCount ?? 0;
   
-  console.log(`Updating UI for [${id}] -> Likes: ${finalLikes}, Comments: ${finalComments}`);
+//  console.log(`Updating UI for [${id}] -> Likes: ${finalLikes}, Comments: ${finalComments}`);
 
   updateLocalPostWithServerData(id, finalComments, finalLikes);
 
@@ -586,7 +814,7 @@ function updateUISurgically(id, data) {
 
     const commentSpan = postEl.querySelector(`.count-comment-${id}`);
     if (commentSpan) commentSpan.textContent = finalComments;
-	console.log(`✅ DOM updated for post ${id}`);
+	//console.log(`✅ DOM updated for post ${id}`);
   } else {
 	  console.warn(`⚠️ Post ${id} not found in DOM. (Maybe it scrolled off?)`);
   }
@@ -604,7 +832,7 @@ function watchPostCounts(postId) {
       return; 
   }
   
-  console.log(`[Watch] 📡 Fetching initial stats for: ${postId}`);
+ // console.log(`[Watch] 📡 Fetching initial stats for: ${postId}`);
 
   // 3. FIRE-AND-FORGET (No 'await')
   // We trigger the fetch, but we do NOT pause the code here.
@@ -617,7 +845,7 @@ function watchPostCounts(postId) {
 		window.pendingPostUpdates--;
 		
 		if (window.pendingPostUpdates === 0) {
-             console.log(`[watchPostCounts] 🟢 GREEN LIGHT. All updates finished.`);
+           //  console.log(`[watchPostCounts] 🟢 GREEN LIGHT. All updates finished.`);
         }
 		
         if (data) {
@@ -641,7 +869,7 @@ function watchPostCounts(postId) {
         filter: `id=eq.${postId}` 
     }, (payload) => {
 		
-		console.log(`[Realtime] ⚡ Event: ${payload.eventType} for ${postId}`, payload.new || "");
+	//	console.log(`[Realtime] ⚡ Event: ${payload.eventType} for ${postId}`, payload.new || "");
 
       if (payload.eventType === 'UPDATE') {
         const uiData = {
@@ -672,18 +900,18 @@ function watchPostCounts(postId) {
     })
     .subscribe((status) => {
       // --- LOG 3: CONNECTION STATUS ---
-      console.log(`[Socket] 🛰️ Status for ${postId}: ${status}`);
+  //    console.log(`[Socket] 🛰️ Status for ${postId}: ${status}`);
     });
 
 // 5. CLEANUP
   const unsubscribe = () => {
     const currentState = channel.state; // 'closed', 'errored', 'joined', or 'joining'
     
-    console.log(`[Socket Debug] 🔴 Removing ${postId}. State was: ${currentState}`);
+  //  console.log(`[Socket Debug] 🔴 Removing ${postId}. State was: ${currentState}`);
 
     _supabase.removeChannel(channel)
       .then(() => {
-        console.log(`[Socket Debug] ✅ Successfully cleaned up ${postId}`);
+  //      console.log(`[Socket Debug] ✅ Successfully cleaned up ${postId}`);
       })
       .catch((err) => {
         // This is where that WebSocket error usually gets swallowed or throws
@@ -696,7 +924,7 @@ function watchPostCounts(postId) {
 
 async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed = false) {
     const placeholder = document.getElementById('public-placeholder');
-    console.log(`%c🔄 Starting refillBufferRandomly (Target: ${count})`, "color: cyan; font-weight: bold;");
+  //  console.log(`%c🔄 Starting refillBufferRandomly (Target: ${count})`, "color: cyan; font-weight: bold;");
 	
 	if (isRefilling) {
         console.warn("🛑 Refill already in progress. Ignoring this request.");
@@ -722,7 +950,7 @@ async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed =
         const searchMaxId = maxId;
         const minId = 1;
 
-        console.log(`📊 DB Stats: Searching Entire DB | Range: ${minId} to ${searchMaxId} (Total: ${maxId})`);
+   //     console.log(`📊 DB Stats: Searching Entire DB | Range: ${minId} to ${searchMaxId} (Total: ${maxId})`);
         
         let attempts = 0;
         const MAX_ATTEMPTS = 25;
@@ -731,7 +959,7 @@ async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed =
             attempts++;
             const rand = Math.floor(Math.random() * (searchMaxId - minId + 1) + minId);    
             
-            console.log(`[Attempt ${attempts}] 🎲 Random ID: ${rand}`);      
+        //    console.log(`[Attempt ${attempts}] 🎲 Random ID: ${rand}`);      
             
             const q = query(
                 collection(db, "globalPosts"), 
@@ -752,15 +980,15 @@ async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed =
                                    postBuffer.some(p => p.id === post.id); 			
 
 // --- DEBUG LOG START ---
-                console.log(`🔍 Check: Found Post ${post.serialId}. Duplicate? ${isDuplicate}`);
-                console.log(`📂 Current Session "Seen" Count: ${processedIds.size}`);
+            //    console.log(`🔍 Check: Found Post ${post.serialId}. Duplicate? ${isDuplicate}`);
+            //    console.log(`📂 Current Session "Seen" Count: ${processedIds.size}`);
                 // --- DEBUG LOG END ---								   
                 
                 if (!isDuplicate) {
 					
                     postBuffer.push(post);
 					processedIds.add(post.id);
-                    console.log(`  ✅ Added Post ${post.serialId}. Buffer: ${postBuffer.length}/${count}`);
+              //      console.log(`  ✅ Added Post ${post.serialId}. Buffer: ${postBuffer.length}/${count}`);
                     
                     if (placeholder) {
                         placeholder.remove();   
@@ -769,31 +997,109 @@ async function refillBufferRandomly(count = 5, silent = false, ignoreProcessed =
                     }      
                 } else {
                     const reason = (!ignoreProcessed && processedIds.has(post.id)) ? "Already Processed" : "In Buffer";
-                    console.log(`  ❌ Skip: Post ${post.serialId} (${reason})`);
+            //        console.log(`  ❌ Skip: Post ${post.serialId} (${reason})`);
                 }
                 
             } else {
-                console.log(`  ❓ No post found >= ${rand}. (Might be at the very end of DB)`);
+          //      console.log(`  ❓ No post found >= ${rand}. (Might be at the very end of DB)`);
                 continue; 
             }
         }
 		
 		// --- FINAL DEBUG SUMMARY ---
         if (processedIds.size > 0) {
-            console.log("📝 List of IDs currently in processedIds:");
+         //   console.log("📝 List of IDs currently in processedIds:");
             console.table(Array.from(processedIds)); 
         }
 
         if (attempts >= MAX_ATTEMPTS && postBuffer.length < count) {
             console.warn(`🛑 MAX_ATTEMPTS reached. Only found ${postBuffer.length}/${count} posts.`);
         }
-		console.log("🔓 Refill complete. Gate opened.");
+	//	console.log("🔓 Refill complete. Gate opened.");
     } catch (err) {
         console.error("🔥 Error in refillBufferRandomly:", err);
     } finally {
         // 3. ALWAYS open the gate here, even if there was an error
         isRefilling = false;
     }
+}
+
+// 4 parallel bucketed queries → 15 random-ish, time-proportional posts
+// Uses a random createdAt cursor inside each time window (same idea as serialId trick)
+async function fetchProportionalFeed() {
+  console.log(`[fetchProportionalFeed] 🪣 firing 4 bucket queries in parallel`);
+  const now = Date.now();
+  const H24 = 24 * 60 * 60 * 1000;
+  const buckets = [
+  { start: now - H24,      end: now,           count: 10 },
+  { start: now - 2 * H24,  end: now - H24,     count: 10 },
+  { start: now - 3 * H24,  end: now - 2 * H24, count: 6  },
+  { start: now - 7 * H24,  end: now - 3 * H24, count: 4  },
+];
+  const fetchBucket = async ({ start, end, count }) => {
+    const randomMs = start + Math.random() * (end - start);
+    const q = query(
+      collection(db, "globalPosts"),
+      where("createdAt", ">=", Timestamp.fromMillis(randomMs)),
+      where("createdAt", "<=", Timestamp.fromMillis(end)),
+      orderBy("createdAt", "desc"),
+      limit(count)
+    );
+    let snap = await getDocs(q);
+    if (snap.docs.length < count) {
+      console.log(`[fetchProportionalFeed] ⚠️ bucket fallback triggered (got ${snap.docs.length}/${count})`);
+      const fallback = query(
+        collection(db, "globalPosts"),
+        where("createdAt", ">=", Timestamp.fromMillis(start)),
+        where("createdAt", "<=", Timestamp.fromMillis(end)),
+        orderBy("createdAt", "desc"),
+        limit(count)
+      );
+      snap = await getDocs(fallback);
+    }
+    Ledger.log("fetchProportionalFeed_bucket", snap.docs.length, 0, 0);
+    console.log(`[fetchProportionalFeed] 🪣 bucket returned ${snap.docs.length} posts`);
+    return snap.docs.map(d => ({ id: d.id, ...d.data(), isFirebase: true }));
+  };
+  const bucketResults = await Promise.all(buckets.map(fetchBucket));
+  const seen  = new Set();
+  const posts = [];
+  for (const bucket of bucketResults) {
+    for (const post of bucket) {
+      if (!seen.has(post.id)) {
+        seen.add(post.id);
+        posts.push(post);
+      }
+    }
+  }
+  console.log(`[fetchProportionalFeed] ✅ total unique posts returned: ${posts.length}`);
+  return posts;
+}
+
+async function rotateAndRefillCache(existingPosts) {
+  console.log(`[rotateAndRefillCache] 🔄 called — existingPosts: ${existingPosts.length}`);
+  if (isCacheRefilling) {
+    console.log(`[rotateAndRefillCache] 🛑 cache refill already in progress — skipping`);
+    return;
+  }
+  if (existingPosts.length >= 30) {
+    console.log(`[rotateAndRefillCache] ✋ cache sufficient (${existingPosts.length}/30) — skipping`);
+    return;
+  }
+  isCacheRefilling = true;
+  try {
+    console.log(`[rotateAndRefillCache] 📥 fetching fresh posts via fetchProportionalFeed`);
+    const fresh = await fetchProportionalFeed();
+    console.log(`[rotateAndRefillCache] 📦 fetchProportionalFeed returned ${fresh.length} posts`);
+    const existingIds = new Set(existingPosts.map(p => p.id));
+    const deduped = fresh.filter(p => !existingIds.has(p.id));
+    console.log(`[rotateAndRefillCache] 🧹 after dedup — ${deduped.length} usable new posts`);
+    const refilled = [...existingPosts, ...deduped].slice(0, 45);
+    writeCache({ posts: refilled, html: DOM.list.innerHTML });
+    console.log(`[rotateAndRefillCache] 💾 cache written — total: ${refilled.length}/45`);
+  } finally {
+    isCacheRefilling = false;
+  }
 }
 
 function injectSinglePost(item, position = 'top') {
@@ -845,17 +1151,23 @@ function applyFontPreference(font) {
 }
 
 function switchTab(tab) {
+	history.scrollRestoration = 'manual';
   if (currentTab === tab) return;
   
-  // 🕵️‍♂️ MOVE THE LOGS HERE (Before the 300ms wait)
+  currentTab = tab;  // ← lock immediately, prevents double fire
+  
+  console.log(`[DEBUG] switchTab initiated to: ${tab}. Current counter: ${window.pendingPostUpdates}`);
+  
+  // 🕵️‍♂️ MOVE THE LOGS HERE (Before the 300ms waitf)
   console.log(`[DEBUG] switchTab initiated to: ${tab}. Current counter: ${window.pendingPostUpdates}`);
   
   if (activePostListeners && activePostListeners.size > 0) {
       console.log(`[DEBUG] Immediate cleanup of ${activePostListeners.size} listeners...`);
       activePostListeners.forEach((unsubscribe, id) => {
-          unsubscribe(); // This should now trigger your "State was: ..." logs immediately
+          unsubscribe(); // This should now trigger your "State was: ......" logs immediately
       });
       activePostListeners.clear();
+	  window.pendingPostUpdates = 0;
   }
   
   DOM.list.style.transition = 'none';
@@ -868,7 +1180,6 @@ function switchTab(tab) {
   DOM.list.style.transform = tab === 'public' ? 'translateX(0px)' : 'translateX(0px)';
 
   setTimeout(() => {
-    currentTab = tab;
     localStorage.setItem('freeform_tab_pref', tab);
     currentLimit = BATCH_SIZE;
     updateTabClasses();
@@ -877,6 +1188,7 @@ function switchTab(tab) {
     requestAnimationFrame(() => {
       DOM.list.style.opacity = '1'; 
       DOM.list.style.transform = 'translateX(0)'; 
+	  window.scrollTo({ top: 0, behavior: 'instant' });
       setTimeout(refreshSnap, 100); 
     });
 
@@ -884,9 +1196,9 @@ function switchTab(tab) {
 }
 
 function updateTabClasses() {
+  _t('updateTabClasses running — tab is: ' + currentTab);
   const activeClass = "flex-1 pb-3 text-sm font-bold text-brand-600 border-b-2 border-brand-500 transition-all";
-  const inactiveClass = "flex-1 pb-3 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-all";
-
+  const inactiveClass = "flex-1 pb-3 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-all border-b-2 border-transparent";
   if (currentTab === 'private') {
     DOM.tabPrivate.className = activeClass;
     DOM.tabPublic.className = inactiveClass;
@@ -897,55 +1209,112 @@ function updateTabClasses() {
 }
 
 function updateToggleUI() {
+  if (window.__toggleUISet) {
+    window.__toggleUISet = false; // 👈 consume the flag, allow future calls normally
+    return;
+  }
+
   const isPublic = DOM.toggle.checked;
-  DOM.label.textContent = isPublic ? "Public Mode" : "Private Mode";
-  DOM.label.className = isPublic 
-    ? "text-xs font-bold text-brand-600 transition-colors"
-    : "text-xs font-semibold text-slate-500 transition-colors";
-}
-let feedSafetyTimeout = null;
-function loadFeed() {
-	if (feedSafetyTimeout) clearTimeout(feedSafetyTimeout);
-  if (dripTimeout) {
-    clearTimeout(dripTimeout);
-    dripTimeout = null;
-  }
-
-  if (publicUnsubscribe) { 
-    publicUnsubscribe(); 
-    publicUnsubscribe = null; 
-  }
-
-  if (activePostListeners && activePostListeners.size > 0) {
-	  console.log(`[loadFeed] 🧨 STARTING CLEANUP: Killing ${activePostListeners.size} listeners...`);
-    activePostListeners.forEach((unsubscribe) => unsubscribe());
-    activePostListeners.clear();
-	console.log(`[loadFeed] 🧹 activePostListeners Map cleared.`);
-  }
+  const newText = isPublic ? "Public" : "Private";
   
-  visiblePosts = [];
-  postBuffer = [];
-  processedIds.clear();
-
-  if (currentTab === 'private') {
-    allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
-    renderPrivateBatch();
-    subscribeArchiveSync();
-  } else {
-	DOM.loadTrigger.style.display = 'flex';
-	
-	// 🟢 NEW: Start the 5-second timer
-    feedSafetyTimeout = setTimeout(() => {
-      const placeholder = document.getElementById('public-placeholder');
-      // If we are still 'scanning', give up and show 'empty'
-      if (placeholder && placeholder.innerText.includes('Scanning')) {
-        console.warn("[UI Guard] Network is too slow. Showing empty state.");
-        showPublicPlaceholder('empty');
-      }
-    }, 5000);
-	
-    subscribePublicFeed();
+  if (DOM.label.textContent !== newText) {
+    DOM.label.textContent = newText;
+    DOM.label.className = isPublic 
+      ? "text-xs font-bold text-brand-600 transition-colors"
+      : "text-xs font-semibold text-slate-500 transition-colors";
   }
+}
+
+let feedSafetyTimeout = null;
+
+async function loadFeed() {
+    // --- 1. THE RIGID CLEANUP (Exactly as you had it) ---
+    if (feedSafetyTimeout) clearTimeout(feedSafetyTimeout);
+    if (dripTimeout) { 
+        clearTimeout(dripTimeout); 
+        dripTimeout = null; 
+    }
+
+    if (publicUnsubscribe) { 
+        publicUnsubscribe(); 
+        publicUnsubscribe = null; 
+    }
+
+    if (activePostListeners && activePostListeners.size > 0) {
+        console.log(`[loadFeed] 🧨 STARTING CLEANUP: Killing ${activePostListeners.size} listeners...`);
+        activePostListeners.forEach((unsubscribe) => unsubscribe());
+        activePostListeners.clear();
+        console.log(`[loadFeed] 🧹 activePostListeners Map cleared.`);
+    }
+  
+    visiblePosts = [];
+    postBuffer = [];
+    processedIds.clear();
+
+    // --- 2. PRIVATE TAB (Identical to your working version) ---
+    if (currentTab === 'private') {
+        allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
+        renderPrivateBatch();
+        subscribeArchiveSync();
+        return; // Hard exit so public logic NEVER runs
+    } 
+
+    // --- 3. PUBLIC TAB (The "Upgraded" Section) ---
+    DOM.loadTrigger.style.display = 'flex';
+
+    // A. Read the Cache
+    const cached = await readCache();
+
+    // B. Critical Safety Check: Did the user switch to Private while we waited for the disk?
+    if (currentTab !== 'public') {
+        console.log('[loadFeed] 🛡️ Tab switched during cache read — bailing');
+        return;
+    }
+
+    if (cached?.posts?.length > 0) {
+        // --- WARM START ---
+        console.log(`[loadFeed] ✅ WARM CACHE — posts: ${cached.posts.length}`);
+        
+        const toShow = cached.posts.slice(0, 15);
+        const remainder = cached.posts.slice(15);
+        
+        visiblePosts = toShow;
+        toShow.forEach(p => processedIds.add(p.id));
+        
+        DOM.list.innerHTML = ''; 
+        renderListItems(visiblePosts);
+
+        // Feature: Drip Delay (Assigned to dripTimeout so it's killable)
+        const dripDelay = Math.random() * (4500 - 1800) + 1800;
+        console.log(`[loadFeed] ⏳ Drip starts in ${(dripDelay/1000).toFixed(1)}s`);
+        
+        dripTimeout = setTimeout(() => {
+            if (currentTab === 'public') { // Final guard
+                startDripFeed();
+            }
+        }, dripDelay);
+
+        // Feature: Cache Rotation & Background Refill
+        writeCache({ posts: remainder, html: DOM.list.innerHTML });
+        rotateAndRefillCache(remainder);
+
+        // Background sync
+        subscribePublicFeed({ silent: true });
+
+    } else {
+        // --- COLD START ---
+        console.log('[loadFeed] ❄️ COLD START — going to Firebase');
+
+        feedSafetyTimeout = setTimeout(() => {
+            const placeholder = document.getElementById('public-placeholder');
+            if (placeholder && placeholder.innerText.includes('Scanning')) {
+                console.warn("[UI Guard] Network is too slow. Showing empty state.");
+                showPublicPlaceholder('empty');
+            }
+        }, 5000);
+
+        subscribePublicFeed({ silent: false });
+    }
 }
 
 function renderPrivateBatch() {
@@ -955,11 +1324,11 @@ function renderPrivateBatch() {
   const visible = allPrivatePosts.slice(0, currentLimit);
   DOM.list.innerHTML = ''; 
   renderListItems(visible);
-  DOM.loadTrigger.style.display = (currentLimit >= allPrivatePosts.length) ? 'none' : 'flex';
+  DOM.loadTrigger.style.visibility = (currentLimit >= allPrivatePosts.length) ? 'hidden' : 'visible';
 }
 
 async function subscribeArchiveSync() {
-	console.log(`[Private Debug] 🛰️ subscribeArchiveSync starting. Tab: ${currentTab}`);
+	//console.log(`[Private Debug] 🛰️ subscribeArchiveSync starting. Tab: ${currentTab}`);
   if (publicUnsubscribe) { 
     await publicUnsubscribe(); // Wait for the old one to die before born-ing the new one
     publicUnsubscribe = null; 
@@ -1014,13 +1383,13 @@ async function subscribeArchiveSync() {
     if (!channel) return;
 
     const state = channel.state;
-    console.log(`[Socket Debug] 🔴 Unsubscribing. State: ${state}`);
+  //  console.log(`[Socket Debug] 🔴 Unsubscribing. State: ${state}`);
 
     // If it's still joining, Supabase might throw if we remove it too fast
     try {
       if (state === 'joined' || state === 'joining') {
         await _supabase.removeChannel(channel);
-        console.log(`[Socket Debug] ✅ Channel removed.`);
+     //   console.log(`[Socket Debug] ✅ Channel removed.`);
       }
     } catch (e) {
       console.warn(`[Socket Debug] ⚠️ Handled WebSocket race condition:`, e.message);
@@ -1031,83 +1400,119 @@ async function subscribeArchiveSync() {
 // ==========================================
 // 3. THE SUBSCRIBER (Fixed Syntax)
 // ==========================================
-async function subscribePublicFeed() {
+let isCacheRefilling = false;
+
+async function subscribePublicFeed({ silent = false } = {}) {
+  console.log(`[subscribePublicFeed] 🚀 called — silent: ${silent}, isAppending: ${isAppending}`);
   if (publicUnsubscribe) {
     publicUnsubscribe();
     publicUnsubscribe = null;
   }
-  if (!isAppending) {
+  if (!isAppending && !silent) {
     visiblePosts = [];
-    postBuffer = []; 
+    postBuffer = [];
     processedIds.clear();
     if (dripTimeout) clearTimeout(dripTimeout);
     showPublicPlaceholder('scanning');
   }
   try {
-    const qInitial = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(15));
-    const initialSnap = await getDocs(qInitial);   
-    const newItems = [];
-    initialSnap.forEach(doc => {
-      const post = { id: doc.id, ...doc.data(), isFirebase: true };
-      if (!processedIds.has(post.id)) {
-        newItems.push(post);
-        processedIds.add(doc.id);
-      }
-    });
-	Ledger.log("subscribePublicFeed", initialSnap.docs.length, 0, 0);
-    if (isAppending) {
-        newItems.forEach(p => {
-            visiblePosts.push(p);
-            injectSinglePost(p, 'bottom');
-        });
-    } else {
-        visiblePosts = newItems;
-        renderListItems(visiblePosts);
-        startDripFeed(); // Only start the loop on first load
+const newItems = [];
+if (silent) {
+  console.log(`[subscribePublicFeed] 🪣 warm start — using proportional buckets`);
+  if (!isCacheRefilling) {
+    isCacheRefilling = true;
+    try {
+      const fresh = await fetchProportionalFeed();
+      fresh.forEach(post => {
+        if (!processedIds.has(post.id)) {
+          newItems.push(post);
+          processedIds.add(post.id);
+        }
+      });
+      console.log(`[subscribePublicFeed] ✅ ${newItems.length} proportional posts after dedup`);
+    } finally {
+      isCacheRefilling = false;
     }
+  } else {
+    console.log(`[subscribePublicFeed] 🛑 cache refill in progress — skipping fetch`);
+  }
+} else {
+  // cold start — newest 30
+  const qInitial = query(collection(db, "globalPosts"), orderBy("createdAt", "desc"), limit(30));
+  const initialSnap = await getDocs(qInitial);
+  console.log(`[subscribePublicFeed] 📥 Firebase returned ${initialSnap.docs.length} posts`);
+  initialSnap.forEach(doc => {
+    const post = { id: doc.id, ...doc.data(), isFirebase: true };
+    if (!processedIds.has(post.id)) {
+      newItems.push(post);
+      processedIds.add(post.id);
+    }
+  });
+  console.log(`[subscribePublicFeed] ✅ ${newItems.length} new posts after dedup`);
+  Ledger.log("subscribePublicFeed", initialSnap.docs.length, 0, 0);
+}
+    if (isAppending) {
+      console.log(`[subscribePublicFeed] ➕ appending ${newItems.length} posts to bottom`);
+      newItems.forEach(p => {
+        visiblePosts.push(p);
+        injectSinglePost(p, 'bottom');
+      });
+    } else if (!silent) {
+      console.log(`[subscribePublicFeed] 🎨 cold render — renderListItems + startDripFeed`);
+      visiblePosts = newItems;
+      console.log("Calling renderListItems...from subscribePublicFeed");
+      renderListItems(visiblePosts);
+      console.log("renderListItems executed. from subscribePublicFeed");
 
-    DOM.loadTrigger.style.opacity = '0';
-
-    // ============================================================
-    // 3. Ego-Listener (Tweaked: The "Instant Feedback" Loop)
-    // ============================================================
-    
-    const listenStartTime = Date.now(); 
-    const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID)); 
+      const dripDelay = Math.random() * (4500 - 1800) + 1800;
+console.log(`[subscribePublicFeed] ⏳ drip feed starts in ${(dripDelay/1000).toFixed(1)}s`);
+setTimeout(() => {
+    console.log("Starting drip feed...from subscribePublicFeed");
+    startDripFeed();
+    console.log("Drip feed initiated. from subscribePublicFeed");
+}, dripDelay);
+    } else {
+      console.log(`[subscribePublicFeed] 🔇 silent — skipping render, cache already displayed`);
+    }
+    if (!isAppending && !silent) {
+  writeCache({ posts: newItems, html: DOM.list.innerHTML });
+  console.log(`[subscribePublicFeed] 💾 cache written with ${newItems.length} posts`);
+}
+    DOM.loadTrigger.style.visibility = 'hidden';
+    const listenStartTime = Date.now();
+    const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
     publicUnsubscribe = onSnapshot(myPostsQuery, (snapshot) => {
-		
-		// --- LOG 2: CORRECTED (Only log real changes/billed reads) ---
       const billedChanges = snapshot.docChanges().length;
       if (billedChanges > 0) {
+        console.log(`[subscribePublicFeed] 👂 ego-listener fired — ${billedChanges} changes`);
         Ledger.log("subscribePublicFeed_Live", billedChanges, 0, 0);
       }
-		
       snapshot.docChanges().forEach((change) => {
-        const docId = change.doc.id;
-        const data = change.doc.data();
-        const isNewPost = !data.createdAt || (data.createdAt.toMillis ? data.createdAt.toMillis() : Date.now()) > listenStartTime;
-
+        const docId  = change.doc.id;
+        const data   = change.doc.data();
+        const isNewPost = !data.createdAt ||
+                          (data.createdAt.toMillis ? data.createdAt.toMillis() : Date.now()) > listenStartTime;
         if (change.type === "added" && !processedIds.has(docId)) {
-          if (!isNewPost) {
-             processedIds.add(docId);
-             return; 
-          }
+          if (!isNewPost) { processedIds.add(docId); return; }
+          console.log(`[subscribePublicFeed] ⬆️ new own post detected — injecting at top`);
           const postObj = { id: docId, ...data, isFirebase: true };
           processedIds.add(docId);
-          visiblePosts.unshift(postObj);      
+          visiblePosts.unshift(postObj);
           injectSinglePost(postObj, 'top');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
         if (change.type === "modified") {
+          console.log(`[subscribePublicFeed] ✏️ post modified — updateUISurgically: ${docId}`);
           updateUISurgically(docId, data);
         }
       });
-	   
     });
-
+    console.log(`[subscribePublicFeed] 👂 ego-listener opened`);
   } catch (err) {
-	  console.error("Error in subscribePublicFeed:", err);
-    if(!isAppending) DOM.list.innerHTML = `<div class="text-center py-12">Feed offline.</div>`;
+    console.error("[subscribePublicFeed] 🔥 error:", err);
+    if (!isAppending && !silent) {
+      DOM.list.innerHTML = `<div class="text-center py-12">Feed offline.</div>`;
+    }
   }
 }
 
@@ -1442,8 +1847,8 @@ window.viewStorage = function() {
 };
 
 window.openDirectMessage = function(e, targetUserId) {
-	console.log("%c 🚀 STEP 1: openDirectMessage triggered!", "color: white; background: red; font-size: 16px; font-weight: bold;");
-    console.log("📍 Target User:", targetUserId);
+//	console.log("%c 🚀 STEP 1: openDirectMessage triggered!", "color: white; background: red; font-size: 16px; font-weight: bold;");
+  //  console.log("📍 Target User:", targetUserId);
     if (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -1452,22 +1857,24 @@ window.openDirectMessage = function(e, targetUserId) {
     // 1. DIRECT SWAP (Avoids the history.back conflict)
     const chatModal = document.getElementById('chatModal');
     const dmModal = document.getElementById('dmModal');
-	const comingFromList = chatModal && !chatModal.classList.contains('hidden');
+	const dmOverlay = document.getElementById('dmOverlay');
     
     if (chatModal) chatModal.classList.add('hidden'); // Hide Inbox
     if (dmModal) dmModal.classList.remove('hidden'); // Show DM
+	if (dmOverlay) dmOverlay.classList.remove('hidden');
 	
 	if (!dmModal) {
         console.error("❌ ERROR: Could not find #dmModal in the HTML!");
         return;
     }
 	
+	const comingFromList = chatModal && !chatModal.classList.contains('hidden');
+	
 	// --- TRACK THE SOURCE ---
     history.pushState({ 
-    modal: 'dm', 
-    fromList: comingFromList,
-    targetUserId: targetUserId // <--- Crucial for the popstate render!
-}, "");
+        modal: 'dm', 
+        fromList: comingFromList 
+    }, "");
     
     // Ensure background remains locked
     document.body.style.overflow = 'hidden';
@@ -1475,7 +1882,7 @@ window.openDirectMessage = function(e, targetUserId) {
     // 2. Setup IDs and Logic
     const myId = MY_USER_ID;
     const roomId = [myId, targetUserId].sort().join('--chat--');
-	console.log(`%c 🆔 STEP 2: Room ID generated: ${roomId}`, "color: yellow; background: black; font-size: 12px;");
+	//console.log(`%c 🆔 STEP 2: Room ID generated: ${roomId}`, "color: yellow; background: black; font-size: 12px;");
     const title = document.getElementById('dmModalTitle');
     const container = document.getElementById('dmMessagesContainer');
   
@@ -1483,7 +1890,7 @@ window.openDirectMessage = function(e, targetUserId) {
     
     // 3. Set the Handshake UI
     if (container) {
-		console.log("%c 🏗️ STEP 3: Setting Handshake UI...", "color: cyan; font-weight: bold;");
+	//	console.log("%c 🏗️ STEP 3: Setting Handshake UI...", "color: cyan; font-weight: bold;");
       container.innerHTML = `
         <div class="flex flex-col items-center text-center py-12">
           <div class="w-20 h-20 rounded-3xl bg-brand-50 flex items-center justify-center text-brand-500 mb-6 border border-brand-100 shadow-sm animate-pulse">
@@ -1500,7 +1907,7 @@ window.openDirectMessage = function(e, targetUserId) {
     }
 	
 	// 4. Render real messages if they exist
-    console.log(`%c 🔍 STEP 4: Calling window.renderMessages('${roomId}')...`, "color: white; background: green; font-weight: bold;");
+   // console.log(`%c 🔍 STEP 4: Calling window.renderMessages('${roomId}')...`, "color: white; background: green; font-weight: bold;");
     
     if (typeof window.renderMessages !== 'function') {
         console.error("%c ❌ ERROR: window.renderMessages is NOT a function!", "color: white; background: red; font-size: 18px;");
@@ -1635,7 +2042,7 @@ window.saveToLocal = function(roomId, msgObj) {
  * Pulls from LocalStorage and displays in the modal
  */
 window.renderMessages = function(roomId) {
-    console.log(`%c 📥 renderMessages started for: ${roomId}`, "color: orange; font-weight: bold;");
+  //  console.log(`%c 📥 renderMessages started for: ${roomId}`, "color: orange; font-weight: bold;");
     
     // Check if the container exists
     const container = document.getElementById('dmMessagesContainer');
@@ -1645,7 +2052,7 @@ window.renderMessages = function(roomId) {
     // We want the key to match exactly what's in LocalStorage: "user1--chat--user2"
     const history = JSON.parse(localStorage.getItem(roomId) || '[]');
     
-    console.log("📦 Loaded History Count:", history.length);
+ //   console.log("📦 Loaded History Count:", history.length);
 
     // 1. If no history exists, STOP HERE so the "Splash Screen" stays visible
     if (history.length === 0) {
@@ -1868,7 +2275,7 @@ window.deleteConversation = function(event, roomId) {
             // 4. Show the Success Toast
             showToast("Conversation deleted");
             
-            console.log(`🗑️ Conversation ${roomId} deleted via custom dialog.`);
+           console.log(`🗑️ Conversation ${roomId} deleted via custom dialog.`);
         }
     );
 };
@@ -1919,7 +2326,7 @@ function renderListItems(items) {
   }
 	
 	if (window.pendingPostUpdates > 0) {
-      console.log(`[renderListItems] 🚦 RED LIGHT. Waiting for ${window.pendingPostUpdates} updates to finish.`);
+    //  console.log(`[renderListItems] 🚦 RED LIGHT. Waiting for ${window.pendingPostUpdates} updates to finish.`);
       return; 
   }
 
@@ -1983,6 +2390,20 @@ function renderListItems(items) {
 	window.pendingPostUpdates++;
     watchPostCounts(item.id);
   });
+  
+  // ── DIAGNOSTIC: measure real post section heights ──
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.feed-item').forEach((el, i) => {
+      const header = el.querySelector('.flex.justify-between');
+      const body   = el.querySelector('.post-body');
+      const footer = el.querySelector('.mt-6.pt-5');
+      console.log(`Post ${i+1}: header=${header?.offsetHeight} body=${body?.offsetHeight} footer=${footer?.offsetHeight} total=${el.offsetHeight}`);
+    });
+	// ← ADD THIS RIGHT HERE
+  const realFooter = document.querySelector('.feed-item .mt-6.pt-5');
+  console.log('Real footer height:', realFooter?.offsetHeight);
+});
+  
   refreshSnap();
 }
 
@@ -2004,26 +2425,62 @@ function showPublicPlaceholder(type) {
       </div>`;
   } else if (type === 'scanning') {
     html = `
-      <div id="public-placeholder" class="text-center py-20 opacity-50 font-medium italic">
-        Scanning the horizon...
+      <div id="public-placeholder" style="min-height: calc(100vh - 418px);">
+        <div class="text-center py-4 mb-2">
+          <p class="text-slate-400 opacity-50 font-medium italic text-sm">Scanning the horizon...</p>
+        </div>
+
+        <div class="feed-item block w-full bg-white px-4 py-3 mb-4 pb-6 border-b border-slate-100 animate-pulse">
+          <div class="flex justify-between items-start mb-6">
+            <div class="flex items-center gap-2">
+              <div class="h-4 bg-slate-100 rounded w-16"></div>
+              <div class="h-3 bg-slate-50 rounded w-12"></div>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <div class="h-4 bg-slate-100 rounded w-3/4"></div>
+            <div class="h-4 bg-slate-100 rounded w-1/2"></div>
+          </div>
+          <div class="mt-6 pt-5 flex items-center justify-between">
+            <div class="flex items-center gap-5">
+              <div class="h-8 bg-slate-100 rounded w-10"></div>
+              <div class="h-8 bg-slate-100 rounded w-10"></div>
+            </div>
+            <div class="h-8 bg-slate-100 rounded w-6"></div>
+          </div>
+        </div>
+
+        <div class="feed-item block w-full bg-white px-4 py-3 mb-4 pb-6 border-b border-slate-100 animate-pulse">
+          <div class="flex justify-between items-start mb-6">
+            <div class="flex items-center gap-2">
+              <div class="h-4 bg-slate-100 rounded w-16"></div>
+              <div class="h-3 bg-slate-50 rounded w-12"></div>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <div class="h-4 bg-slate-100 rounded w-full"></div>
+            <div class="h-4 bg-slate-100 rounded w-1/3"></div>
+          </div>
+          <div class="mt-6 pt-5 flex items-center justify-between">
+            <div class="flex items-center gap-5">
+              <div class="h-8 bg-slate-100 rounded w-10"></div>
+              <div class="h-8 bg-slate-100 rounded w-10"></div>
+            </div>
+            <div class="h-8 bg-slate-100 rounded w-6"></div>
+          </div>
+        </div>
+
       </div>`;
 
-    // 🕒 THE 3-SECOND PANIC TIMER
-    console.log("[UI] Scanning started. 3s timeout armed.");
-    
     setTimeout(() => {
       const stillScanning = document.getElementById('public-placeholder');
       if (stillScanning && stillScanning.innerText.includes('Scanning')) {
         console.error("🚨 STUCK DETECTED: Forcing internal reload.");
-        
-        // We use window.location.reload() or re-trigger your loadFeed()
-        // But a reload is the most "billion-dollar" way to guarantee a fresh state
         window.location.reload(); 
       }
     }, 3000);
   }
   DOM.list.innerHTML = html;
-  
 }
 
 async function handleBruteForce() {
@@ -2046,7 +2503,7 @@ async function handleBruteForce() {
             document.getElementById('public-placeholder').outerHTML = '';
         }
     }
-	console.log("%c🚰 Brute Force: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
+	//console.log("%c🚰 Brute Force: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
     await refillBufferRandomly(5, false, true);
 
     if (postBuffer.length > 0) {
@@ -2142,31 +2599,22 @@ document.addEventListener('click', (e) => {
 // ==========================================
 function setupInfiniteScroll() {
   // 1. If an observer already exists, kill it first
-  console.log("%c📜 setupInfiniteScroll initiated", "color: orange; font-weight: bold;");
+ // console.log("%c📜 setupInfiniteScroll initiated", "color: orange; font-weight: bold;");
   if (scrollObserver) {
-	  console.log("  Previous observer disconnected.");
+	//  console.log("  Previous observer disconnected.");
     scrollObserver.disconnect();
   }
 
   // 2. Create the new observer
   scrollObserver = new IntersectionObserver((entries) => {
-	  console.log(`  👁️ Scroll Check: Intersecting? ${entries[0].isIntersecting} | isLoadingMore? ${isLoadingMore} | Tab: ${currentTab}`);
     if (entries[0].isIntersecting && !isLoadingMore) {
-      // Only trigger if we are actually on the public tab
-      if (currentTab === 'public') {
-		  console.log("     ✅ Conditions met! Triggering loadMoreData()...");
-        loadMoreData();
-      } else {
-        console.log(`     ⛔ Blocked: Wrong tab ('${currentTab}')`);
-      }
-    } else if (entries[0].isIntersecting && isLoadingMore) {
-       console.log("     ⏳ Blocked: Already loading data.");
+        loadMoreData(); // ✅ loadMoreData already handles private vs public internally
     }
-  }, { 
+}, { 
     root: null, 
     threshold: 0.1,
-    rootMargin: '150px' // Increased margin for a smoother "Discovery" feel
-  });
+    rootMargin: '150px'
+});
   
   // 3. Start watching the trigger
   if (DOM.loadTrigger) {
@@ -2178,8 +2626,8 @@ function setupInfiniteScroll() {
 }
 
 function loadMoreData() {
-	console.log("%c🚀 loadMoreData triggered", "color: magenta; font-weight: bold;");
-	console.log(`[Scroll Debug] Buffer: ${postBuffer.length}, Visible: ${visiblePosts.length}, Tab: ${currentTab}`);
+//	console.log("%c🚀 loadMoreData triggered", "color: magenta; font-weight: bold;");
+	//console.log(`[Scroll Debug] Buffer: ${postBuffer.length}, Visible: ${visiblePosts.length}, Tab: ${currentTab}`);
   if (isLoadingMore) {
     console.log("  ⛔ Blocked: isLoadingMore is already TRUE (Prev load still running?)");
     return;
@@ -2191,7 +2639,7 @@ function loadMoreData() {
   DOM.loadTrigger.style.opacity = '1';
 
   if (currentTab === 'private') {
-	  console.log("  📂 Path: Private Tab");
+//	  console.log("  📂 Path: Private Tab");
     currentLimit += BATCH_SIZE;
     renderPrivateBatch();
     isLoadingMore = false;
@@ -2201,22 +2649,22 @@ function loadMoreData() {
 	  console.log("%c🚰 Loadmoredata: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
     // Discovery Mode: Fetch a batch of random posts to append to the bottom
     refillBufferRandomly(5, true).then(() => {
-		console.log(`  📦 Refill Promise Resolved. Buffer contains: ${postBuffer.length} posts`);
+	//	console.log(`  📦 Refill Promise Resolved. Buffer contains: ${postBuffer.length} posts`);
       if (postBuffer.length === 0) {
 		  console.warn("  ⚠️ Random buffer EMPTY. Fallback to Chronological (subscribePublicFeed).");
-		  console.log(`[Fallback Debug] Calling subscribePublicFeed. IsAppending: ${isAppending}`);
+	//	  console.log(`[Fallback Debug] Calling subscribePublicFeed. IsAppending: ${isAppending}`);
           // If randomizer found nothing, fallback to chronological
           isAppending = true;
           subscribePublicFeed().then(() => {
-			  console.log("  🔄 Fallback feed loaded.");
+	//		  console.log("  🔄 Fallback feed loaded.");
               isLoadingMore = false;
               isAppending = false;
               DOM.loadTrigger.style.visibility = 'hidden';
-			  console.log("  ✅ Fallback complete. Lock released.");
+		//	  console.log("  ✅ Fallback complete. Lock released.");
           });
       } else {
           // Append the random "discoveries" to the bottom
-		  console.log(`  ✨ Injecting ${postBuffer.length} posts from buffer...`);
+	//	  console.log(`  ✨ Injecting ${postBuffer.length} posts from buffer...`);
           while(postBuffer.length > 0) {
             const p = postBuffer.shift();
             visiblePosts.push(p);
@@ -2224,7 +2672,7 @@ function loadMoreData() {
           }
           isLoadingMore = false;
           DOM.loadTrigger.style.visibility = 'hidden';
-		  console.log("  ✅ Injection complete. Lock released.");
+		//  console.log("  ✅ Injection complete. Lock released.");
       }
     });
   }
@@ -2642,7 +3090,7 @@ async function deleteComment(postId, commentId) {
     "Delete",
     async () => {
       try {
-        // Keep Firebase: Delete comment from subcollection
+        // Keep Firebase: Delete comment from subcollectionn
         const commentRef = doc(db, "globalPosts", postId, "comments", commentId);
         await deleteDoc(commentRef);
 
@@ -3229,6 +3677,7 @@ function initProfileAndTheme() {
 initProfileAndTheme();
 
 function setRandomPlaceholder() {
+  if (window.__placeholderSet) return; // 👈 skip if already set
   const phrases = [
     "What's on your mind?", "Share your ideas...", "What's the vibe today?",
     "Capture a thought...", "Everything starts with a note...", 
@@ -3573,7 +4022,7 @@ document.addEventListener('click', (e) => {
 });
 
 
-window.addEventListener('popstate', (event) => {
+    window.addEventListener('popstate', (event) => {
     const dmModal = document.getElementById('dmModal');
     const chatModal = document.getElementById('chatModal');
     const profileModal = document.getElementById('profileModal');
@@ -3582,40 +4031,35 @@ window.addEventListener('popstate', (event) => {
 
     const state = event.state;
 
-    // 1. Hide everything first to reset the UI
+    // 1. First, hide everything to be safe
     allModals.forEach(m => m?.classList.add('hidden'));
     document.body.style.overflow = '';
 
-    // 2. Route to the correct modal based on state
+    // 2. ONLY re-open the Chat if we specifically land back on the 'open' state
     if (state?.modal === 'open') {
-        // This is your Inbox/Chat list
         chatModal?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
-    } 
-    else if (state?.modal === 'dm') {
-        // 🚀 THIS WAS MISSING: Re-show the DM modal
-        dmModal?.classList.remove('hidden');
-		document.getElementById('dmOverlay')?.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
+    } else {
+        // --- 🚀 THE FIX STARTS HERE ---
         
-        // Optional: If you stored targetUserId in the state, 
-        // you could re-render the messages here to ensure they are fresh.
-        if (state.targetUserId) {
-            const roomId = [MY_USER_ID, state.targetUserId].sort().join('--chat--');
-            window.renderMessages(roomId);
-        }
-    } 
-    else {
-        // This runs when we are back on the main feed (no modals open)
+        // A. Force the browser to release the "active" focus
         document.activeElement?.blur();
+
+        // B. The "Caret Killer": Clear internal text selection memory
+        // This is what removes that black line (oklch caret)
         window.getSelection()?.removeAllRanges();
 
-        if (window.DOM?.input) {
-            window.DOM.input.disabled = true;
+        if (DOM.input) {
+            // C. Visual Flush: Briefly toggle disabled to force a redraw
+            DOM.input.disabled = true;
+            
             setTimeout(() => {
-                window.DOM.input.disabled = false;
+                DOM.input.disabled = false;
+                console.log("UI Sync: Caret cleared, Swipes enabled.");
             }, 50); 
         }
+        
+        // --- THE FIX ENDS HERE ---
     }
 });
 
@@ -3646,11 +4090,11 @@ const Ledger = {
       (this.deletes / 100000) * 0.02
     ).toFixed(5);
 
-    console.groupCollapsed(`💰 Ledger: [${category}] +${r}R/+${w}W/+${d}D`);
-    console.log(`Session Totals: ${this.reads}R | ${this.writes}W | ${this.deletes}D`);
-    console.log(`Estimated Session Cost: $${cost}`);
-    console.table(this.categories);
-    console.groupEnd();
+ //   console.groupCollapsed(`💰 Ledger: [${category}] +${r}R/+${w}W/+${d}D`);
+ //   console.log(`Session Totals: ${this.reads}R | ${this.writes}W | ${this.deletes}D`);
+//    console.log(`Estimated Session Cost: $${cost}`);
+ //   console.table(this.categories);
+ //   console.groupEnd();
   }
 };
 
