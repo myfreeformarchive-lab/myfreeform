@@ -1269,9 +1269,13 @@ async function loadFeed() {
     console.log("Calling renderListItems...from loadfeed");
     renderListItems(visiblePosts);
     console.log("renderListItems executed.from loadfeed");
-    console.log("Starting drip feed...from loadfeed");
+    const dripDelay = Math.random() * (4500 - 1800) + 1800;
+console.log(`[subscribePublicFeed] ⏳ drip feed starts in ${(dripDelay/1000).toFixed(1)}s`);
+setTimeout(() => {
+    console.log("Starting drip feed...from subscribePublicFeed");
     startDripFeed();
-    console.log("Drip feed initiated.from loadfeed");
+    console.log("Drip feed initiated. from subscribePublicFeed");
+}, dripDelay);
     console.log(`[loadFeed] 🗑️ deleting positions 1–${toShow.length} from cache (${toShow.map(p => p.id).join(', ')})`);
     writeCache({ posts: remainder, html: DOM.list.innerHTML });
     console.log(`[loadFeed] 💾 cache rotated — wrote ${remainder.length} posts`);
