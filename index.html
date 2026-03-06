@@ -528,7 +528,7 @@
 <script>
   (function() {
     try {
-      const req = indexedDB.open('feedCache', 10); // ← was 1, must match CACHE_VERSION
+      const req = indexedDB.open('feedCache', 9); // ← was 1, must match CACHE_VERSION
       req.onsuccess = function(e) {
         const db = e.target.result;
         if (!db.objectStoreNames.contains('posts')) return;
