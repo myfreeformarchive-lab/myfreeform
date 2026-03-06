@@ -1249,14 +1249,6 @@ async function loadFeed() {
     return;
   }
   // ── PUBLIC ──────────────────────────────────────────────────────────
-  DOM.loadTrigger.style.visibility = 'visible';
-  feedSafetyTimeout = setTimeout(() => {
-    const placeholder = document.getElementById('public-placeholder');
-    if (placeholder && placeholder.innerText.includes('Scanning')) {
-      console.warn("[UI Guard] Network is too slow. Showing empty state.");
-      showPublicPlaceholder('empty');
-    }
-  }, 5000);
   const cached = await readCache();
   console.log(`[loadFeed] 📦 cache read — posts: ${cached?.posts?.length ?? 0}, v: ${cached?.v ?? 'none'}`);
   if (currentTab !== 'public') {
@@ -1264,6 +1256,9 @@ async function loadFeed() {
     return;
   }
   if (cached?.posts?.length > 0) {
+    if (currentTab !== 'public') { console.log('[loadFeed] 🛡️ tab switched before warm render — bailing'); return; }
+    warmCacheHit = true;
+    DOM.loadTrigger.style.visibility = 'hidden';
     const toShow    = cached.posts.slice(0, 15);
     const remainder = cached.posts.slice(15);
     console.log(`[loadFeed] ✅ WARM CACHE — showing: ${toShow.length}, remainder: ${remainder.length}`);
@@ -1273,13 +1268,9 @@ async function loadFeed() {
     console.log("Calling renderListItems...from loadfeed");
     renderListItems(visiblePosts);
     console.log("renderListItems executed.from loadfeed");
-    const dripDelay = Math.random() * (4500 - 1800) + 1800;
-console.log(`[subscribePublicFeed] ⏳ drip feed starts in ${(dripDelay/1000).toFixed(1)}s`);
-setTimeout(() => {
-    console.log("Starting drip feed...from subscribePublicFeed");
+    console.log("Starting drip feed...from loadfeed");
     startDripFeed();
-    console.log("Drip feed initiated. from subscribePublicFeed");
-}, dripDelay);
+    console.log("Drip feed initiated.from loadfeed");
     console.log(`[loadFeed] 🗑️ deleting positions 1–${toShow.length} from cache (${toShow.map(p => p.id).join(', ')})`);
     writeCache({ posts: remainder, html: DOM.list.innerHTML });
     console.log(`[loadFeed] 💾 cache rotated — wrote ${remainder.length} posts`);
@@ -1288,6 +1279,15 @@ setTimeout(() => {
     subscribePublicFeed({ silent: true });
     console.log(`[loadFeed] 🔇 subscribePublicFeed → silent: true`);
   } else {
+    warmCacheHit = false;
+    DOM.loadTrigger.style.visibility = 'visible';
+    feedSafetyTimeout = setTimeout(() => {
+      const placeholder = document.getElementById('public-placeholder');
+      if (placeholder && placeholder.innerText.includes('Scanning')) {
+        console.warn("[UI Guard] Network is too slow. Showing empty state.");
+        showPublicPlaceholder('empty');
+      }
+    }, 5000);
     console.log('[loadFeed] ❄️ COLD START — no cache, going to Firebase');
     subscribePublicFeed({ silent: false });
     console.log(`[loadFeed] 📡 subscribePublicFeed → silent: false`);
