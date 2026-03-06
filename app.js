@@ -1259,7 +1259,7 @@ async function loadFeed() {
         return; // Hard exit so public logic NEVER runs
     } 
 
-    // --- 3. PUBLIC TAB (The "Upgraded" Section) ---
+    // --- 3. PUBLIC TAB (The "Upgraded" Sectionn) ---
     DOM.loadTrigger.style.display = 'flex';
 
     // A. Read the Cache
