@@ -1228,7 +1228,7 @@ function updateToggleUI() {
 let feedSafetyTimeout = null;
 
 async function loadFeed() {
-  console.log(%c 🍔 loadFeed called — currentTab: ${currentTab}, "color: white; background: darkred; font-size: 14px;");
+  console.log(loadFeed called — currentTab: ${currentTab}, "color: white; background: darkred; font-size: 14px;");
   if (feedSafetyTimeout) clearTimeout(feedSafetyTimeout);
   if (dripTimeout) { clearTimeout(dripTimeout); dripTimeout = null; }
   if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
