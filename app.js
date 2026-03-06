@@ -356,7 +356,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	_t('DOMContentLoaded fired');
   runMigration();
   setRandomPlaceholder();
-  autoResubscribeIfNeeded();
   
   requestAnimationFrame(() => {
     const skelFooter = document.querySelector('.animate-pulse .mt-6.pt-5');
