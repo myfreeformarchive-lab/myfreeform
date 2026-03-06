@@ -2,7 +2,7 @@
 
 const CACHE_DB_NAME  = 'feedCache';
 const CACHE_STORE    = 'posts';
-const CACHE_VERSION  = 8;
+const CACHE_VERSION  = 9;
 const CACHE_KEY      = 'initialFeed';
 const CACHE_V        = 7;  // ← bump this to wipe all user caches
 
