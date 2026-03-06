@@ -459,7 +459,7 @@
 
 <!-- 3. FEED AREA: Container for displaying posts in a list -->
 <div id="feedList" class="bg-white min-h-[300px] flex flex-col w-full">
-
+ <div id="feedSkeletons">
   <!-- Skeleton Loader 1 -->
   <div class="feed-item block w-full bg-white px-4 py-3 mb-4 pb-6 border-b border-slate-100 animate-pulse">
     <div class="flex justify-between items-start mb-6">
@@ -522,32 +522,45 @@
       <div class="h-8 bg-slate-100 rounded w-6"></div>
     </div>
   </div>
-
+</div>
 </div>
 
 <script>
   (function() {
     try {
+      const lastTab = localStorage.getItem('freeform_tab_pref') || 'private';
+      if (lastTab !== 'public') return;
+
+      // Hide skeletons immediately — before IDB even opens
+      const skeletons = document.getElementById('feedSkeletons');
+      if (skeletons) skeletons.style.display = 'none';
+
       const req = indexedDB.open('feedCache', 11);
       req.onupgradeneeded = function(e) {
-        // Create the store if it doesn't exist so feedCache.js can use it
         const db = e.target.result;
-        if (!db.objectStoreNames.contains('posts')) {
-          db.createObjectStore('posts');
-        }
+        if (!db.objectStoreNames.contains('posts')) db.createObjectStore('posts');
       };
       req.onsuccess = function(e) {
         const db = e.target.result;
-        if (!db.objectStoreNames.contains('posts')) return;
-        const get = db.transaction('posts', 'readonly')
-                      .objectStore('posts')
-                      .get('initialFeed');
+        if (!db.objectStoreNames.contains('posts')) {
+          // No cache possible — show skeletons again
+          if (skeletons) skeletons.style.display = '';
+          return;
+        }
+        const get = db.transaction('posts', 'readonly').objectStore('posts').get('initialFeed');
         get.onsuccess = function() {
           const cached = get.result;
-          if (!cached?.html || cached.v !== 7) return;
+          if (!cached?.html || cached.v !== 7) {
+            // Cache miss — show skeletons
+            if (skeletons) skeletons.style.display = '';
+            return;
+          }
           const feedList = document.getElementById('feedList');
           if (feedList) feedList.innerHTML = cached.html;
         };
+      };
+      req.onerror = function() {
+        if (skeletons) skeletons.style.display = '';
       };
     } catch(e) {}
   })();
