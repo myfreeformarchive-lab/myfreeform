@@ -1260,7 +1260,7 @@ async function loadFeed() {
     } 
 
     // --- 3. PUBLIC TAB (The "Upgraded" Sectionn) ---
-    DOM.loadTrigger.style.display = 'flex';
+    DOM.loadTrigger.style.display = 'visible';
 
     // A. Read the Cache
     const cached = await readCache();
