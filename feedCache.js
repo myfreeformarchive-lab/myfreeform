@@ -1,11 +1,12 @@
 // feedCache.js — IndexedDB relay cache for initial feedd
-console.log('📦 feedCache.js loaded — CACHE_V:', CACHE_V);
 
 const CACHE_DB_NAME  = 'feedCache';
 const CACHE_STORE    = 'posts';
 const CACHE_VERSION  = 7;
 const CACHE_KEY      = 'initialFeed';
 const CACHE_V        = 7;  // ← bump this to wipe all user caches
+
+console.log('📦 feedCache.js loaded — CACHE_V:', CACHE_V);
 
 function _openCacheDB() {
   return new Promise((resolve, reject) => {
