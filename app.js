@@ -666,7 +666,7 @@ function urlBase64ToUint8Array(base64String) {
 
 window.enableNotifications = async function() {
     const permission = await Notification.requestPermission();
-   // if (permission !== 'granted') return console.log("Permission denied");
+   if (permission !== 'granted') return console.log("Permission denied");
     const registration = await navigator.serviceWorker.ready;
     const PUBLIC_VAPID_KEY = 'BNtfmLDVxafsxgDlp8882ZXfuWY7jbgUhtcN69himY5iUkZ2Kw4MmnZlhrHEcFBe3n-tAsGjJtH9Jfrp5VChG1U';
     const convertedKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY);
