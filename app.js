@@ -4,7 +4,7 @@ const _t = (label) => console.log(`%c ⏱️ ${label}`, "color: white; backgroun
 _t('app.js start');
 /*
 // ============================================================
-// 👻 GHOST OBSERVER: Layout shifts, LCP, long taskss + jitterrr
+// 👻 GHOST OBSERVER: Layout shifts, LCP, long tasks + jitter
 // ============================================================
 
 // Jitter tracker: watches elements that shift repeatedly in quick succession
@@ -665,46 +665,29 @@ function urlBase64ToUint8Array(base64String) {
     return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
 }
 
-async function subscribeAndSave() {
-  const registration = await navigator.serviceWorker.ready;
-  const PUBLIC_VAPID_KEY = 'BNtfmLDVxafsxgDlp8882ZXfuWY7jbgUhtcN69himY5iUkZ2Kw4MmnZlhrHEcFBe3n-tAsGjJtH9Jfrp5VChG1U';
-  const convertedKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY);
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: convertedKey
-  });
-  const { error } = await _supabase
-    .from('user_push_tokens')
-    .upsert({
-      user_id: MY_USER_ID,
-      token: JSON.stringify(subscription)
-    });
-  if (error) throw error;
-  localStorage.setItem('notifications_enabled', '1');
-}
-
 window.enableNotifications = async function() {
-  const permission = await Notification.requestPermission();  // ← needs user gesture
-  if (permission !== 'granted') return;
-  try {
-    await subscribeAndSave();
-  } catch (err) {
-    console.error("Subscription failed:", err);
-  }
-}
-
-async function autoResubscribeIfNeeded() {
-  try {
+    const permission = await Notification.requestPermission();
+   // if (permission !== 'granted') return console.log("Permission denied");
     const registration = await navigator.serviceWorker.ready;
-    const existing = await registration.pushManager.getSubscription();
-    if (existing) return;
-    const wasSubscribed = localStorage.getItem('notifications_enabled');
-    if (!wasSubscribed) return;
-    console.log('[Push] 🔄 re-subscribing silently...');
-    await subscribeAndSave();  // ← skips permission request
-  } catch (err) {
-    console.error('[Push] resubscribe failed:', err);
-  }
+    const PUBLIC_VAPID_KEY = 'BNtfmLDVxafsxgDlp8882ZXfuWY7jbgUhtcN69himY5iUkZ2Kw4MmnZlhrHEcFBe3n-tAsGjJtH9Jfrp5VChG1U';
+    const convertedKey = urlBase64ToUint8Array(PUBLIC_VAPID_KEY);
+    try {
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: convertedKey
+        });
+        // We use the MY_USER_ID that was set by getOrCreateUserId() at the start
+        const { error } = await _supabase
+            .from('user_push_tokens') 
+            .upsert({ 
+                user_id: MY_USER_ID, 
+                token: JSON.stringify(subscription) // Database needs this as a string or json
+            });
+        if (error) throw error;
+    //    console.log("🔔 Notifications Linked for user:", MY_USER_ID);
+    } catch (err) {
+        console.error("Subscription failed:", err);
+    }
 }
 
 // --- AUTO-OPEN LOGIC ---
