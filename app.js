@@ -1233,11 +1233,11 @@ async function loadFeed() {
   if (dripTimeout) { clearTimeout(dripTimeout); dripTimeout = null; }
   if (publicUnsubscribe) { publicUnsubscribe(); publicUnsubscribe = null; }
   if (activePostListeners && activePostListeners.size > 0) {
-    console.log([loadFeed] 🧨 STARTING CLEANUP: Killing ${activePostListeners.size} listeners...);
+    console.log(`[loadFeed] 🧨 STARTING CLEANUP: Killing ${activePostListeners.size} listeners...`);
     activePostListeners.forEach((unsubscribe) => unsubscribe());
     activePostListeners.clear();
     window.pendingPostUpdates = 0;
-    console.log([loadFeed] 🧹 activePostListeners Map cleared.);
+    console.log(`[loadFeed] 🧹 activePostListeners Map cleared.`);
   }
   visiblePosts  = [];
   postBuffer    = [];
@@ -1258,7 +1258,7 @@ async function loadFeed() {
     }
   }, 5000);
   const cached = await readCache();
-  console.log([loadFeed] 📦 cache read — posts: ${cached?.posts?.length ?? 0}, v: ${cached?.v ?? 'none'});
+  console.log(`[loadFeed] 📦 cache read — posts: ${cached?.posts?.length ?? 0}, v: ${cached?.v ?? 'none'}`);
   if (currentTab !== 'public') {
     console.log('[loadFeed] 🛡️ tab switched during cache read — bailing');
     return;
@@ -1266,27 +1266,31 @@ async function loadFeed() {
   if (cached?.posts?.length > 0) {
     const toShow    = cached.posts.slice(0, 15);
     const remainder = cached.posts.slice(15);
-    console.log([loadFeed] ✅ WARM CACHE — showing: ${toShow.length}, remainder: ${remainder.length});
+    console.log(`[loadFeed] ✅ WARM CACHE — showing: ${toShow.length}, remainder: ${remainder.length}`);
     visiblePosts = toShow;
     toShow.forEach(p => processedIds.add(p.id));
     DOM.list.innerHTML = '';
     console.log("Calling renderListItems...from loadfeed");
     renderListItems(visiblePosts);
     console.log("renderListItems executed.from loadfeed");
-    console.log("Starting drip feed...from loadfeed");
+    const dripDelay = Math.random() * (4500 - 1800) + 1800;
+console.log(`[subscribePublicFeed] ⏳ drip feed starts in ${(dripDelay/1000).toFixed(1)}s`);
+setTimeout(() => {
+    console.log("Starting drip feed...from subscribePublicFeed");
     startDripFeed();
-    console.log("Drip feed initiated.from loadfeed");
-    console.log([loadFeed] 🗑️ deleting positions 1–${toShow.length} from cache (${toShow.map(p => p.id).join(', ')}));
+    console.log("Drip feed initiated. from subscribePublicFeed");
+}, dripDelay);
+    console.log(`[loadFeed] 🗑️ deleting positions 1–${toShow.length} from cache (${toShow.map(p => p.id).join(', ')})`);
     writeCache({ posts: remainder, html: DOM.list.innerHTML });
-    console.log([loadFeed] 💾 cache rotated — wrote ${remainder.length} posts);
+    console.log(`[loadFeed] 💾 cache rotated — wrote ${remainder.length} posts`);
     rotateAndRefillCache(remainder);
-    console.log([loadFeed] 🔄 rotateAndRefillCache triggered in background);
+    console.log(`[loadFeed] 🔄 rotateAndRefillCache triggered in background`);
     subscribePublicFeed({ silent: true });
-    console.log([loadFeed] 🔇 subscribePublicFeed → silent: true);
+    console.log(`[loadFeed] 🔇 subscribePublicFeed → silent: true`);
   } else {
     console.log('[loadFeed] ❄️ COLD START — no cache, going to Firebase');
     subscribePublicFeed({ silent: false });
-    console.log([loadFeed] 📡 subscribePublicFeed → silent: false);
+    console.log(`[loadFeed] 📡 subscribePublicFeed → silent: false`);
   }
 }
 
