@@ -34,6 +34,7 @@ function shufflePosts(posts) {
 export async function readCache() {
   try {
     const idb = await _openCacheDB();
+	console.log('📦 objectStoreNames:', Array.from(idb.objectStoreNames));
     if (!idb.objectStoreNames.contains(CACHE_STORE)) return null;
     return new Promise((resolve) => {
       const req = idb.transaction(CACHE_STORE, 'readonly')
