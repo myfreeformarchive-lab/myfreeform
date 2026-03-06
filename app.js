@@ -1261,6 +1261,14 @@ async function loadFeed() {
 
     // --- 3. PUBLIC TAB (The "Upgraded" Sectionn) ---
     DOM.loadTrigger.style.display = 'visible';
+	
+	feedSafetyTimeout = setTimeout(() => {
+    const placeholder = document.getElementById('public-placeholder');
+    if (placeholder && placeholder.innerText.includes('Scanning')) {
+      console.warn("[UI Guard] Network is too slow. Showing empty state.");
+      showPublicPlaceholder('empty');
+    }
+  }, 5000);
 
     // A. Read the Cache
     const cached = await readCache();
