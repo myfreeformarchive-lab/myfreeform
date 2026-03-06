@@ -1275,7 +1275,7 @@ async function loadFeed() {
     writeCache({ posts: remainder, html: DOM.list.innerHTML });
     console.log(`[loadFeed] 💾 cache rotated — wrote ${remainder.length} posts`);
     rotateAndRefillCache(remainder);
-    subscribePublicFeed({ silent: true });
+    subscribePublicFeed({ silent: true, token: myToken });
   } else {
     DOM.loadTrigger.style.visibility = 'visible';
     feedSafetyTimeout = setTimeout(() => {
@@ -1286,7 +1286,7 @@ async function loadFeed() {
       }
     }, 5000);
     console.log('[loadFeed] ❄️ COLD START — no cache, going to Firebase');
-    subscribePublicFeed({ silent: false });
+    subscribePublicFeed({ silent: false, token: myToken });
   }
 }
 
@@ -1375,7 +1375,9 @@ async function subscribeArchiveSync() {
 // ==========================================
 let isCacheRefilling = false;
 
-async function subscribePublicFeed({ silent = false } = {}) {
+async function subscribePublicFeed({ silent = false, token = null } = {}) {
+  if (currentTab !== 'public') { console.log('[subscribePublicFeed] 🛡️ not on public tab — bailing'); return; }
+  if (token !== null && token !== loadFeedToken) { console.log('[subscribePublicFeed] 🛡️ stale token — bailing'); return; }
   console.log(`[subscribePublicFeed] 🚀 called — silent: ${silent}, isAppending: ${isAppending}`);
   if (publicUnsubscribe) {
     publicUnsubscribe();
@@ -1424,6 +1426,7 @@ if (silent) {
   console.log(`[subscribePublicFeed] ✅ ${newItems.length} new posts after dedup`);
   Ledger.log("subscribePublicFeed", initialSnap.docs.length, 0, 0);
 }
+if (token !== null && token !== loadFeedToken) { console.log('[subscribePublicFeed] 🛡️ stale token after fetch — bailing'); return; }
     if (isAppending) {
       console.log(`[subscribePublicFeed] ➕ appending ${newItems.length} posts to bottom`);
       newItems.forEach(p => {
