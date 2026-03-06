@@ -1,4 +1,6 @@
 const CACHE_NAME = 'site-cache-2026-3-3';
+const NUKE_VERSION = 'nuke-v1'; // ← bump this ONLY when you need to wipe users again
+const NUKE_FLAG_KEY = 'nuke-applied';
 
 self.addEventListener('install', event => {
     self.skipWaiting();
@@ -8,7 +10,22 @@ self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys().then(keys =>
             Promise.all(keys.map(k => (k !== CACHE_NAME) ? caches.delete(k) : Promise.resolve()))
-        ).then(() => self.clients.claim())
+        ).then(async () => {
+            // Check if this nuke has already been applied
+            const cache = await caches.open('nuke-flags');
+            const already = await cache.match(NUKE_FLAG_KEY);
+            const appliedVersion = already ? await already.text() : null;
+
+            if (appliedVersion !== NUKE_VERSION) {
+                console.log('💣 New nuke version detected — wiping IDB...');
+                const clients = await self.clients.matchAll({ includeUncontrolled: true });
+                clients.forEach(c => c.postMessage({ type: 'NUKE_IDB' }));
+                // Store the flag so it never runs again
+                await cache.put(NUKE_FLAG_KEY, new Response(NUKE_VERSION));
+            } else {
+                console.log('✅ Nuke already applied — skipping');
+            }
+        }).then(() => self.clients.claim())
     );
 });
 
