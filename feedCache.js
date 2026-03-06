@@ -2,7 +2,7 @@
 
 const CACHE_DB_NAME  = 'feedCache';
 const CACHE_STORE    = 'posts';
-const CACHE_VERSION  = 10;
+const CACHE_VERSION  = 11;
 const CACHE_KEY      = 'initialFeed';
 const CACHE_V        = 7;  // ← bump this to wipe all user caches
 
@@ -37,28 +37,37 @@ function _openCacheDB() {
       console.log('📦 onupgradeneeded: store created. storesAfter:', Array.from(db.objectStoreNames));
     };
 
-    req.onsuccess = (e) => {
-      const db = e.target.result;
-      const stores = Array.from(db.objectStoreNames);
-      console.log('📦 onsuccess fired!', {
-        name: db.name,
-        version: db.version,
-        objectStoreNames: stores,
-      });
+    req.onsuccess = async (e) => {
+  const db = e.target.result;
+  const stores = Array.from(db.objectStoreNames);
+  console.log('📦 onsuccess fired!', { name: db.name, version: db.version, objectStoreNames: stores });
 
-      if (!stores.includes(CACHE_STORE)) {
-        console.error('📦 CRITICAL: onsuccess fired but store is MISSING. This usually means onupgradeneeded never ran (DB version already matched) but the store was somehow never created. Try deleting the DB in DevTools > Application > IndexedDB.');
-      } else {
-        console.log('📦 onsuccess: store found ✅:', CACHE_STORE);
-      }
+  db.onversionchange = () => {
+    console.warn('📦 DB versionchange — closing connection.');
+    db.close();
+  };
 
-      db.onversionchange = () => {
-        console.warn('📦 DB versionchange event — another tab is trying to upgrade. Closing this connection.');
-        db.close();
-      };
-
-      resolve(db);
+  if (!stores.includes(CACHE_STORE)) {
+    console.warn('📦 Store missing — self-healing: deleting corrupt DB...');
+    db.close();
+    await new Promise((res, rej) => {
+      const del = indexedDB.deleteDatabase(CACHE_DB_NAME);
+      del.onsuccess = res;
+      del.onerror = rej;
+    });
+    const req2 = indexedDB.open(CACHE_DB_NAME, db.version + 1);
+    req2.onupgradeneeded = (e) => {
+      e.target.result.createObjectStore(CACHE_STORE);
+      console.log('📦 Store recreated after self-heal ✅');
     };
+    req2.onsuccess = (e) => resolve(e.target.result);
+    req2.onerror = (e) => reject(e.target.error);
+    return;
+  }
+
+  console.log('📦 Store found ✅');
+  resolve(db);
+};
 
     req.onerror = (e) => {
       console.error('📦 _openCacheDB: onerror fired', e.target.error);
