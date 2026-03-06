@@ -41,6 +41,7 @@ export async function readCache() {
                      .get(CACHE_KEY);
       req.onsuccess = () => {
   const result = req.result;
+  console.log('📦 raw readCache result:', result); 
   if (!result || result.v !== CACHE_V) { resolve(null); return; }
   const shuffled = { ...result, posts: shufflePosts(result.posts) };
   console.log(`📦 readCache — ${shuffled.posts.length} posts in cache:`);
