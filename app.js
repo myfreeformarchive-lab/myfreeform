@@ -1402,24 +1402,8 @@ async function subscribePublicFeed({ silent = false } = {}) {
     postBuffer = [];
     processedIds.clear();
     if (dripTimeout) clearTimeout(dripTimeout);
+    showPublicPlaceholder('scanning');
   }
-  
-  // 1. Try to get the cache first
-const cachedData = await readCache();
-
-// 2. RUTHLESS CHECK: Only show placeholder if we have NO cached posts
-if (!isAppending && !silent) {
-    const hasCache = cachedData && cachedData.posts && cachedData.posts.length > 0;
-    const hasVisibleContent = !!DOM.list.firstElementChild;
-
-    if (!hasCache && !hasVisibleContent) {
-        console.log('🚫 No cache found. Showing scanning placeholder.');
-        showPublicPlaceholder('scanning');
-    } else {
-        console.log('⚡ Cache found or content present. Placeholder KILLED.');
-    }
-}
-  
   try {
 const newItems = [];
 if (silent) {
