@@ -810,13 +810,20 @@ main.max-w-xl.mx-auto {
   0% {
     transform: translateY(0);
     opacity: 0;
+	will-change: transform, opacity;
+  }
+  50% {
+    transform: translateY(0);
+    opacity: 0.5;
+	will-change: transform, opacity;
   }
   100% {
     transform: translateY(0);
     opacity: 1;
+	will-change: auto;
   }
 }
 
 .feed-item-enter-2 {
-  animation: slideInFromTop2 1.4s ease forwards;
+  animation: slideInFromTop2 0.7s ease forwards;
 }
