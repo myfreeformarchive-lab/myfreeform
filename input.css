@@ -796,3 +796,18 @@ main.max-w-xl.mx-auto {
 .feed-item-enter {
   animation: slideInFromTop 0.65s ease forwards;
 }
+
+@keyframes slideInFromTop2 {
+  0% {
+    transform: translateY(-0.75rem);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.feed-item-enter-2 {
+  animation: slideInFromTop2 0.65s ease forwards;
+}
