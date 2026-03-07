@@ -3611,9 +3611,16 @@ function saveUsername(value) {
 }
 
 function loadUsername() {
-  const name = localStorage.getItem('freeform_username');
-  if (name) document.getElementById('usernameInput').value = name;
+  const name = localStorage.getItem('freeform_username') || '';
+  document.getElementById('usernameInput').value = name;
+  return name;
 }
+
+const MY_USERNAME = loadUsername();
+
+document.getElementById('usernameInput').addEventListener('change', (e) => {
+  saveUsername(e.target.value);
+});
 
 function getOrCreateUserId() {
   let id = localStorage.getItem('freeform_user_id');
