@@ -308,6 +308,12 @@ section.group {
   transition: transform 0.3s ease, opacity 0.3s ease;
   backface-visibility: hidden;
   transform-style: preserve-3d;
+  
+  /* The Magic Property */
+  overflow-anchor: auto; 
+  
+  /* Help the browser identify this as a stable container */
+  contain-anchor: content;
 }
 
 /* Feed Item: Snapping for dynamic post sizes */
@@ -317,6 +323,8 @@ section.group {
   scroll-snap-align: start;
   /* FIX: Updated for fixed tabs (header 56px + tabs 56px = 112px, no extra margin) */
   scroll-margin-top: 112px !important; /* Accounts for fixed header + fixed tabs */
+  
+  overflow-anchor: none;
 }
 
 /* Responsive Adjustments: Tabs behavior on smaller screens */
