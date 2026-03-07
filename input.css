@@ -800,7 +800,7 @@ main.max-w-xl.mx-auto {
 @keyframes slideInFromTop2 {
   0% {
     transform: translateY(-0.75rem);
-    opacity: 0;
+    opacity: 0.9;
   }
   100% {
     transform: translateY(0);
