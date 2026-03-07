@@ -794,5 +794,5 @@ main.max-w-xl.mx-auto {
 }
 
 .feed-item-enter {
-  animation: slideInFromTop 0.3s ease forwards;
+  animation: slideInFromTop 0.65s ease forwards;
 }
