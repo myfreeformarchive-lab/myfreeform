@@ -802,5 +802,5 @@ main.max-w-xl.mx-auto {
   animation: fadeSlideIn 0.3s ease forwards;
 }
 .feed-item-enter-soft {
-  animation: 0.4s ease forwards;
+  animation: 0.3s ease forwards;
 }
