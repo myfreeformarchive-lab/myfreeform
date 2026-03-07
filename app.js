@@ -3605,24 +3605,86 @@ async function updateLocalPostWithServerData(postId, serverCommentCount = null, 
   }
 }
 
+const usernameInput = document.getElementById('usernameInput');
+const profileHeader = document.getElementById('profileHeaderTitle');
+const saveCheck = document.getElementById('saveCheck');
+const charCounter = document.getElementById('charCounter');
+let saveTimeout;
+
 function saveUsername(value) {
   const clean = value.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 24);
-  if (!clean) return;
-  localStorage.setItem('freeform_username', clean);
-  console.log('saved username:', clean);
+  const currentSaved = localStorage.getItem('freeform_username');
+
+  // Only save and show feedback if the name is new/different
+  if (clean && clean !== currentSaved) {
+    localStorage.setItem('freeform_username', clean);
+    console.log(`%c 💾 Auto-Saved: @${clean} `, 'background: #6366f1; color: white; padding: 2px 5px; border-radius: 4px;');
+    showSuccessFeedback();
+  }
 }
 
+// Visual feedback: Flash the checkmark and highlight the border
+function showSuccessFeedback() {
+  // Reset classes first to ensure the transition triggers if the user saves twice quickly
+  saveCheck.classList.remove('opacity-0', 'translate-x-2');
+  saveCheck.classList.add('opacity-100', 'translate-x-0');
+  
+  // Highlight the input border (using emerald to match the checkmark)
+  usernameInput.classList.add('border-emerald-400');
+  usernameInput.classList.remove('border-slate-300');
+  
+  setTimeout(() => {
+    saveCheck.classList.add('opacity-0', 'translate-x-2');
+    saveCheck.classList.remove('opacity-100', 'translate-x-0');
+    usernameInput.classList.remove('border-emerald-400');
+    usernameInput.classList.add('border-slate-300');
+  }, 1500);
+}
+
+// Live Header Update & Input Validation
+usernameInput.addEventListener('input', (e) => {
+  const val = e.target.value.replace(/[^a-zA-Z0-9_]/g, '');
+  e.target.value = val; // Force clean input while typing
+  
+  // Update Character Counter
+  const len = val.length;
+  charCounter.textContent = `${len}/24`;
+
+  // Visual hint: turn text amber if near limit
+  if (len >= 20) {
+    charCounter.classList.add('text-amber-500');
+    charCounter.classList.remove('text-slate-300');
+  } else {
+    charCounter.classList.remove('text-amber-500');
+    charCounter.classList.add('text-slate-300');
+  }
+
+  // 2. Live Header Update
+  if (len > 0) {
+    profileHeader.textContent = `@${val.toUpperCase()}`;
+    profileHeader.classList.add('text-brand-500');
+  } else {
+    profileHeader.textContent = 'MY PROFILE';
+    profileHeader.classList.remove('text-brand-500');
+  }
+  // DEBOUNCE LOGIC:
+  // Clear the existing timer every time the user types
+  clearTimeout(saveTimeout);
+
+  // Start a new timer. It will only fire if the user stops typing for 800ms
+  saveTimeout = setTimeout(() => {
+    saveUsername(val);
+  }, 800);
+});
+
+// Update loadUsername to also set the header on page load
 function loadUsername() {
   const name = localStorage.getItem('freeform_username') || '';
-  document.getElementById('usernameInput').value = name;
+  usernameInput.value = name;
+  charCounter.textContent = `${name.length}/24`; // Initial count
+  if (name) profileHeader.textContent = `@${name.toUpperCase()}`;
   return name;
 }
-
-const MY_USERNAME = loadUsername();
-
-document.getElementById('usernameInput').addEventListener('change', (e) => {
-  saveUsername(e.target.value);
-});
 
 function getOrCreateUserId() {
   let id = localStorage.getItem('freeform_user_id');
