@@ -3686,6 +3686,8 @@ function loadUsername() {
   return name;
 }
 
+loadUsername();
+
 function getOrCreateUserId() {
   let id = localStorage.getItem('freeform_user_id');
   if (!id) {
