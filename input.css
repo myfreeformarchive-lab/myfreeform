@@ -799,7 +799,7 @@ main.max-w-xl.mx-auto {
 }
 
 .feed-item-enter {
-  animation: fadeSlideIn 0.3s ease forwards;
+  animation: 0.3s ease forwards;
 }
 .feed-item-enter-soft {
   animation: 0.3s ease forwards;
