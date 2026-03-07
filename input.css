@@ -803,13 +803,13 @@ main.max-w-xl.mx-auto {
 }
 
 .feed-item-enter {
-  animation: slideInFromTop 0.65s ease forwards;
+  animation: slideInFromTop 0.7s ease forwards;
 }
 
 @keyframes slideInFromTop2 {
   0% {
     transform: translateY(0);
-    opacity: 0.9;
+    opacity: 0;
   }
   100% {
     transform: translateY(0);
@@ -818,5 +818,5 @@ main.max-w-xl.mx-auto {
 }
 
 .feed-item-enter-2 {
-  animation: slideInFromTop2 1s ease forwards;
+  animation: slideInFromTop2 1.4s ease forwards;
 }
