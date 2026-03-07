@@ -2353,6 +2353,8 @@ function renderListItems(items) {
     return; 
   }
   
+  const existingCount = DOM.list.querySelectorAll('.feed-item').length;
+  
   items.forEach((item, index) => {
     // If we have a placeholder, kill it
     if (placeholder) {
@@ -2362,15 +2364,10 @@ function renderListItems(items) {
       if (ghost) ghost.remove();
     }
     const postNode = createPostNode(item);
-	const existingCount = DOM.list.querySelectorAll('.feed-item').length;
 	if (existingCount === 0) {
       // Only animate the first batch — fresh render
       postNode.style.animationDelay = `${index * 325}ms`;
       postNode.classList.add('feed-item-enter');
-    } else {
-      // Only animate the first batch — fresh render
-      postNode.style.animationDelay = `${index * 325}ms`;
-      postNode.classList.add('feed-item-enter-soft');
     }
     DOM.list.appendChild(postNode);
 	window.pendingPostUpdates++;
