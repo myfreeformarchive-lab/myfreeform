@@ -2341,7 +2341,8 @@ function renderListItems(items) {
     DOM.list.innerHTML = `
       <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
            style="scroll-snap-align: start; scroll-margin-top: calc(112px + 24px); min-height: calc(100vh - 418px);">
-        <div class="mb-4 text-slate-300">
+        
+        <div class="mb-4 text-slate-300 flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 3c7.2 0 9 1.8 9 9s-1.8 9-9 9-9-1.8-9-9 1.8-9 9-9"/>
             <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
@@ -2349,16 +2350,21 @@ function renderListItems(items) {
             <line x1="15" y1="9" x2="15.01" y2="9"/>
           </svg>
         </div>
-        <p class="m-0 leading-none text-slate-700 font-medium tracking-tight">Awaiting inspiration.</p>
-        <p class="m-0 mt-2 text-slate-600 text-xs text-center">
-  The best ideas are the ones you 
-  <span onclick="document.getElementById('postInput').scrollIntoView({ behavior: 'smooth', block: 'center' })" 
-      class="underline cursor-pointer text-slate-600 hover:text-slate-800 transition-colors">
-    write down
-</span>
-</p>
+
+        <div class="text-slate-700 font-medium tracking-tight leading-tight select-none">
+          Awaiting inspiration.
+        </div>
+
+        <div class="mt-2 text-slate-600 text-xs flex flex-wrap justify-center gap-1 select-none">
+          <span>The best ideas are the ones you</span>
+          <span onclick="document.getElementById('postInput').scrollIntoView({ behavior: 'smooth', block: 'center' })" 
+                class="underline cursor-pointer text-slate-600 hover:text-slate-800 transition-colors decoration-slate-300">
+            write down
+          </span>
+        </div>
+
       </div>`;
-	  }
+}
 	  else { 
 	  if (totalGlobalPosts === 0) {
       showPublicPlaceholder('empty');
