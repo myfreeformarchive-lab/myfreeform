@@ -793,14 +793,6 @@ main.max-w-xl.mx-auto {
   pointer-events: none;
 }
 
-@keyframes fadeSlideIn {
-  from { transform: translateY(4px); }
-  to   { transform: translateY(0); }
-}
-
 .feed-item-enter {
-  animation: 0.3s ease forwards;
-}
-.feed-item-enter-soft {
-  animation: 0.3s ease forwards;
+  animation: slideInFromTop 0.3s ease forwards;
 }
