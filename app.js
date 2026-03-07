@@ -2349,8 +2349,8 @@ function renderListItems(items) {
             <line x1="15" y1="9" x2="15.01" y2="9"/>
           </svg>
         </div>
-        <p class="text-slate-700 font-medium tracking-tight">Awaiting inspiration.</p>
-        <p class="text-slate-600 text-xs mt-2">
+        <p class="m-0 leading-none text-slate-700 font-medium tracking-tight">Awaiting inspiration.</p>
+        <p class="m-0 mt-2 text-slate-600 text-xs text-center">
   The best ideas are the ones you 
   <span onclick="document.getElementById('postInput').scrollIntoView({ behavior: 'smooth', block: 'center' })" 
       class="underline cursor-pointer text-slate-600 hover:text-slate-800 transition-colors">
