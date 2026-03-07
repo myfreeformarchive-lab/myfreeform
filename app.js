@@ -3612,14 +3612,23 @@ const charCounter = document.getElementById('charCounter');
 let saveTimeout;
 
 function saveUsername(value) {
+  // 1. Clean the input
   const clean = value.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 24);
-  const currentSaved = localStorage.getItem('freeform_username');
+  const currentSaved = localStorage.getItem('freeform_username') || '';
 
-  // Only save and show feedback if the name is new/different
-  if (clean && clean !== currentSaved) {
+  // 2. If the name is different (even if it's now empty), we need to update
+  if (clean !== currentSaved) {
     localStorage.setItem('freeform_username', clean);
-    console.log(`%c 💾 Auto-Saved: @${clean} `, 'background: #6366f1; color: white; padding: 2px 5px; border-radius: 4px;');
-    showSuccessFeedback();
+    
+    if (clean === '') {
+      // Log that we cleared the handle
+      console.log('%c 🗑️ Username cleared ', 'background: #f43f5e; color: white; padding: 2px 5px; border-radius: 4px;');
+      // We don't show the success checkmark here to keep it clean
+    } else {
+      // Log the new save and show the checkmark
+      console.log(`%c 💾 Auto-Saved: @${clean} `, 'background: #6366f1; color: white; padding: 2px 5px; border-radius: 4px;');
+      showSuccessFeedback();
+    }
   }
 }
 
