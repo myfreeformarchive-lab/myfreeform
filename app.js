@@ -2391,7 +2391,7 @@ function renderListItems(items) {
       if (ghost) ghost.remove();
     }
     const postNode = createPostNode(item);
-	if (index === 0) {
+	if (existingCount === 0) {
       if (isFreshRender) {
         postNode.classList.add('feed-item-enter');
       } else {
