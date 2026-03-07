@@ -2644,8 +2644,6 @@ function setupInfiniteScroll() {
 }
 
 function loadMoreData() {
-//	console.log("%c🚀 loadMoreData triggered", "color: magenta; font-weight: bold;");
-	//console.log(`[Scroll Debug] Buffer: ${postBuffer.length}, Visible: ${visiblePosts.length}, Tab: ${currentTab}`);
   if (isLoadingMore) {
     console.log("  ⛔ Blocked: isLoadingMore is already TRUE (Prev load still running?)");
     return;
@@ -2653,44 +2651,43 @@ function loadMoreData() {
   isLoadingMore = true;
   console.log("  🔒 Lock set: isLoadingMore = true");
 
-  DOM.loadTrigger.style.visibility = 'visible';
-  DOM.loadTrigger.style.opacity = '1';
-
   if (currentTab === 'private') {
-//	  console.log("  📂 Path: Private Tab");
+    const previousLimit = currentLimit;
     currentLimit += BATCH_SIZE;
-    renderPrivateBatch();
+
+    allPrivatePosts = (JSON.parse(localStorage.getItem('freeform_v2')) || []).reverse();
+
+    const newPosts = allPrivatePosts.slice(previousLimit, currentLimit);
+    newPosts.forEach(p => {
+      visiblePosts.push(p);
+      injectSinglePost(p, 'bottom');
+    });
+
+    DOM.loadTrigger.style.visibility = (currentLimit >= allPrivatePosts.length) ? 'hidden' : 'visible';
     isLoadingMore = false;
-    DOM.loadTrigger.style.visibility = 'hidden';
-	console.log("  ✅ Private batch rendered. Lock released.");
+    console.log("  ✅ Private batch injected. Lock released.");
+
   } else {
-	  console.log("%c🚰 Loadmoredata: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
-    // Discovery Mode: Fetch a batch of random posts to append to the bottom
+    console.log("%c🚰 Loadmoredata: Buffer Empty! Triggering Refill...", "color: #ffaa00; font-weight: bold;");
+    DOM.loadTrigger.style.visibility = 'visible';
+    DOM.loadTrigger.style.opacity = '1';
     refillBufferRandomly(5, true).then(() => {
-	//	console.log(`  📦 Refill Promise Resolved. Buffer contains: ${postBuffer.length} posts`);
       if (postBuffer.length === 0) {
-		  console.warn("  ⚠️ Random buffer EMPTY. Fallback to Chronological (subscribePublicFeed).");
-	//	  console.log(`[Fallback Debug] Calling subscribePublicFeed. IsAppending: ${isAppending}`);
-          // If randomizer found nothing, fallback to chronological
-          isAppending = true;
-          subscribePublicFeed().then(() => {
-	//		  console.log("  🔄 Fallback feed loaded.");
-              isLoadingMore = false;
-              isAppending = false;
-              DOM.loadTrigger.style.visibility = 'hidden';
-		//	  console.log("  ✅ Fallback complete. Lock released.");
-          });
-      } else {
-          // Append the random "discoveries" to the bottom
-	//	  console.log(`  ✨ Injecting ${postBuffer.length} posts from buffer...`);
-          while(postBuffer.length > 0) {
-            const p = postBuffer.shift();
-            visiblePosts.push(p);
-            injectSinglePost(p, 'bottom');
-          }
+        console.warn("  ⚠️ Random buffer EMPTY. Fallback to Chronological (subscribePublicFeed).");
+        isAppending = true;
+        subscribePublicFeed().then(() => {
           isLoadingMore = false;
+          isAppending = false;
           DOM.loadTrigger.style.visibility = 'hidden';
-		//  console.log("  ✅ Injection complete. Lock released.");
+        });
+      } else {
+        while(postBuffer.length > 0) {
+          const p = postBuffer.shift();
+          visiblePosts.push(p);
+          injectSinglePost(p, 'bottom');
+        }
+        isLoadingMore = false;
+        DOM.loadTrigger.style.visibility = 'hidden';
       }
     });
   }
