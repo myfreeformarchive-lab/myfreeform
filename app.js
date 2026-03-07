@@ -2365,7 +2365,7 @@ function renderListItems(items) {
 	const existingCount = DOM.list.querySelectorAll('.feed-item').length;
 	if (existingCount === 0) {
       // Only animate the first batch — fresh render
-      postNode.style.animationDelay = `${index * 286}ms`;
+      postNode.style.animationDelay = `${index * 312}ms`;
       postNode.classList.add('feed-item-enter');
     }
     DOM.list.appendChild(postNode);
