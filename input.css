@@ -701,13 +701,14 @@ main.max-w-xl.mx-auto {
     will-change: transform, opacity;
   }
   60% {
-    transform: translateY(-0.5rem); /* undershoot */
-    opacity: 1;
+    transform: translateY(0); /* undershoot */
+    opacity: 0.8;
     will-change: transform, opacity;
   }
   80% {
     transform: translateY(0); /* Start slowing down */
     opacity: 1;
+	will-change: transform, opacity;
   }
   100% {
     transform: translateY(0); /* Rest at final position */
