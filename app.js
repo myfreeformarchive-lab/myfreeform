@@ -2353,7 +2353,7 @@ function renderListItems(items) {
     return; 
   }
   
-  items.forEach(item => {
+  items.forEach((item, index) => {
     // If we have a placeholder, kill it
     if (placeholder) {
       placeholder.remove();
