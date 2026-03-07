@@ -2365,11 +2365,11 @@ function renderListItems(items) {
 	const existingCount = DOM.list.querySelectorAll('.feed-item').length;
 	if (existingCount === 0) {
       // Only animate the first batch — fresh render
-      postNode.style.animationDelay = `${index * 40}ms`;
+      postNode.style.animationDelay = `${index * 325}ms`;
       postNode.classList.add('feed-item-enter');
     } else {
       // Only animate the first batch — fresh render
-      postNode.style.animationDelay = `${index * 40}ms`;
+      postNode.style.animationDelay = `${index * 325}ms`;
       postNode.classList.add('feed-item-enter-soft');
     }
     DOM.list.appendChild(postNode);
