@@ -163,9 +163,12 @@ img, video, canvas {
 /* HTML root: Full width, prevent forced scrolling for dynamic content */
 html {
   width: 100%;
-  overflow: visible !important; /* Allow content to expand naturally */
-  height: auto !important;      /* Dynamic height based on content */
+ /* overflow: visible !important; /* Allow content to expand naturally */
+ /* height: auto !important;      /* Dynamic height based on content */
+ height: 100%;
+  overflow: hidden;
   scrollbar-gutter: stable;
+  overscroll-behavior: none;
 }
 
 /* 3. THE MASTER SCROLLER (The Engine): Body styles for smooth scrolling */
@@ -174,11 +177,14 @@ body {
   margin: 0;
   padding: 0;
   width: 100%;
-  overflow: visible !important;
-  height: auto !important;
+/*  overflow: visible !important; */
+/*  height: auto !important; */
+height: 100%;
+  overflow: hidden;
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior-y: contain;
+ /* overscroll-behavior-y: contain; */
+ overscroll-behavior: none;
   touch-action: pan-y pinch-zoom;
 }
 
@@ -190,18 +196,10 @@ body.extension-view {
 }
 
 #appShell {
-  position: fixed;
-  width: 100vw;
-  height: 100dvh;
-  inset: 0; /* top/right/bottom/left: 0 */
+  height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  z-index: 999;
-}
-#appShell::-webkit-scrollbar {
-  display: none;
 }
 
 /* 4. THE HEADER (Fixed Anchor): Styles for the fixed top navigation */
