@@ -3608,6 +3608,7 @@ async function updateLocalPostWithServerData(postId, serverCommentCount = null, 
 function saveUsername(value) {
   const clean = value.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 24);
   localStorage.setItem('freeform_username', clean);
+  console.log('saved username:', clean);
 }
 
 function loadUsername() {
