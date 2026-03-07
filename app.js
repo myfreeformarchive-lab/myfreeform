@@ -2425,15 +2425,6 @@ function renderListItems(items) {
   refreshSnap();
 }
 
-let scanStartTime = null;
-const MIN_SCAN_DURATION = 5000;
-
-function afterScanDelay(callback) {
-  const elapsed = Date.now() - scanStartTime;
-  const remaining = Math.max(0, MIN_SCAN_DURATION - elapsed);
-  setTimeout(callback, remaining);
-}
-
 function showPublicPlaceholder(type) {
   let html = '';
   if (type === 'empty') {
@@ -2451,7 +2442,6 @@ function showPublicPlaceholder(type) {
         <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
       </div>`;
   } else if (type === 'scanning') {
-	  scanStartTime = Date.now();
     html = `
       <div id="public-placeholder" style="min-height: calc(100vh - 418px);">
         <div class="text-center py-4 mb-2">
@@ -2506,7 +2496,7 @@ function showPublicPlaceholder(type) {
         console.error("🚨 STUCK DETECTED: Forcing internal reload.");
         window.location.reload(); 
       }
-    }, 3000);
+    }, 4000);
   }
   DOM.list.innerHTML = html;
 }
