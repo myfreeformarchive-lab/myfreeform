@@ -2370,7 +2370,7 @@ function renderListItems(items) {
     } else {
       // Only animate the first batch — fresh render
       postNode.style.animationDelay = `${index * 325}ms`;
-      postNode.classList.add('feed-item-enter');
+      postNode.classList.add('feed-item-enter-2');
     }
     DOM.list.appendChild(postNode);
 	window.pendingPostUpdates++;
