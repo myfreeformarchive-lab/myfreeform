@@ -2379,6 +2379,9 @@ function renderListItems(items) {
     return; 
   }
   
+  const existingCount = DOM.list.querySelectorAll('.feed-item').length;
+  const isFreshRender = existingCount === 0;
+  
   items.forEach((item, index) => {
     // If we have a placeholder, kill it
     if (placeholder) {
@@ -2388,13 +2391,18 @@ function renderListItems(items) {
       if (ghost) ghost.remove();
     }
     const postNode = createPostNode(item);
-	const existingCount = DOM.list.querySelectorAll('.feed-item').length;
-	if (existingCount === 0) {
-      // Only animate the first batch — fresh render
-      postNode.classList.add('feed-item-enter');
-    } if else (existingCount > 1) {
-      // Only animate the first batch — fresh render
-      postNode.classList.add('feed-item-enter-2');
+	if (index === 0) {
+      if (isFreshRender) {
+        postNode.classList.add('feed-item-enter');
+      } else {
+        postNode.classList.add('feed-item-enter-2');
+      }
+      // Only the leader needs a delay if you want a staggered start
+      postNode.style.animationDelay = `40ms`; 
+    } else {
+      // These are the "Tail" - they appear instantly relative to the leader
+      // They don't need animation classes if the leader expands the container
+      postNode.style.animationDelay = `0ms`;
     }
     DOM.list.appendChild(postNode);
 	window.pendingPostUpdates++;
