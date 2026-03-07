@@ -2398,7 +2398,7 @@ function renderListItems(items) {
         postNode.classList.add('feed-item-enter-2');
       }
       // Only the leader needs a delay if you want a staggered start
-      postNode.style.animationDelay = `40ms`; 
+      postNode.style.animationDelay = `0ms`; 
     } else {
       // These are the "Tail" - they appear instantly relative to the leader
       // They don't need animation classes if the leader expands the container
