@@ -3605,6 +3605,16 @@ async function updateLocalPostWithServerData(postId, serverCommentCount = null, 
   }
 }
 
+function saveUsername(value) {
+  const clean = value.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 24);
+  localStorage.setItem('freeform_username', clean);
+}
+
+function loadUsername() {
+  const name = localStorage.getItem('freeform_username');
+  if (name) document.getElementById('usernameInput').value = name;
+}
+
 function getOrCreateUserId() {
   let id = localStorage.getItem('freeform_user_id');
   if (!id) {
