@@ -1106,7 +1106,7 @@ function injectSinglePost(item, position = 'top') {
   if (document.getElementById(`post-${item.id}`)) return;
   if (currentTab === 'private' && item.isFirebase) return;
   const postNode = createPostNode(item); 
-  postNode.classList.add('animate-in');
+  postNode.classList.add('slideInFromTop');
   if (position === 'top') {
 	const randomDelay = Math.floor(Math.random() * (4500 - 1500 + 1) + 1500);  
     setTimeout(() => {
