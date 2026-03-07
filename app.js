@@ -2426,7 +2426,7 @@ function renderListItems(items) {
 }
 
 let scanStartTime = null;
-const MIN_SCAN_DURATION = 300;
+const MIN_SCAN_DURATION = 1000;
 
 function afterScanDelay(callback) {
   const elapsed = Date.now() - scanStartTime;
