@@ -331,7 +331,7 @@
 </script>
       
       <!-- Font Toolbar: Buttons to select font styles for the input text -->
-      <div class="flex items-center gap-4 p-2 overflow-x-auto no-scrollbar" id="fontToolbar" style="visibility: hidden;">
+      <div class="flex items-center gap-4 p-2 overflow-x-auto no-scrollbar" id="fontToolbar" style="opacity: 0; transition: opacity 0.15s ease;">
         <!-- Sans-serif font button (default, highlighted) -->
         <button class="font-btn w-8 h-8 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-all ring-2 ring-brand-500 ring-offset-1 shrink-0" data-font="font-sans">
           <span class="font-sans text-xs font-bold">Aa</span>
@@ -414,9 +414,9 @@
 
     // ✅ Reveal toolbar only after fonts are loaded
     document.fonts.ready.then(() => {
-      const toolbar = document.getElementById('fontToolbar');
-      if (toolbar) toolbar.style.visibility = 'visible';
-    });
+  const toolbar = document.getElementById('fontToolbar');
+  if (toolbar) toolbar.style.opacity = '1';
+});
   })();
 </script>
 
