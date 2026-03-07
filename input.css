@@ -798,7 +798,7 @@ main.max-w-xl.mx-auto {
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes fadeInpost {
-  from { opacity: 0.5; }
+  from { opacity: 0.9; }
   to   { opacity: 1; }
 }
 
@@ -806,5 +806,5 @@ main.max-w-xl.mx-auto {
   animation: fadeSlideIn 0.3s ease forwards;
 }
 .feed-item-enter-soft {
-  animation: fadeInpost 0.3s ease forwards;
+  animation: fadeInpost 0.4s ease forwards;
 }
