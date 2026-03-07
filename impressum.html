@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex"> <title>Impressum - My Freeform</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link rel="preload" href="fonts/inter-v20-latin-regular.woff2" as="font" type="font/woff2" crossorigin>
+
+  <style>
+    :root {
+      /* Default to Indigo if JS hasn't loaded theme yet */
+      --brand-primary: #3f51b5; 
+    }
+    .text-brand-500 { color: var(--brand-primary); }
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+
+  <script>
+    /* Synchronize the brand color with the main app settings */
+    (function() {
+      const _themes = {
+        indigo: '#3f51b5', rose: '#e11d48', emerald: '#059669',
+        amber: '#d97706', violet: '#7c3aed', slate: '#475569',
+        sky: '#0ea5e9', orange: '#ea580c'
+      };
+      const _theme = localStorage.getItem('selected_theme') || 'indigo';
+      document.documentElement.style.setProperty('--brand-primary', _themes[_theme] || _themes.indigo);
+    })();
+  </script>
+</head>
+
+<body class="bg-white text-slate-900 pb-24 lg:pb-0 lg:pl-20">
+  <div id="appShell">
+    
+    <header class="fixed top-0 left-0 lg:left-20 right-0 bg-white/80 backdrop-blur-md border-b border-slate-100 z-50">
+      <div class="max-w-xl mx-auto px-4 h-14 flex items-center justify-between">
+        <a href="index.html" class="text-xl font-bold text-brand-500 tracking-tight decoration-none">Freeform</a>
+        <span class="text-xs font-mono text-slate-400">LEGAL // IMPRESSUM</span>
+      </div>
+    </header>
+
+    <main class="max-w-xl mx-auto w-full px-4">
+      <div class="h-20"></div>
+
+      <section class="prose prose-slate max-w-none">
+        <h1 class="text-2xl font-bold mb-6">Impressum</h1>
+        
+        <div class="space-y-8 text-sm leading-relaxed text-slate-700">
+          
+          <div>
+            <h2 class="font-bold text-slate-900 uppercase tracking-wider text-xs mb-2">Angaben gemäß § 5 TMG</h2>
+            <p>
+              [Dein Vorname] [Dein Nachname]<br>
+              [Straße Hausnummer]<br>
+              [PLZ] [Stadt]
+            </p>
+          </div>
+
+          <div>
+            <h2 class="font-bold text-slate-900 uppercase tracking-wider text-xs mb-2">Kontakt</h2>
+            <p>
+              Telefon: [Deine Telefonnummer]<br>
+              E-Mail: [Deine E-Mail-Adresse]
+            </p>
+          </div>
+
+          <div>
+            <h2 class="font-bold text-slate-900 uppercase tracking-wider text-xs mb-2">Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
+            <p>
+              [Dein Vorname] [Dein Nachname]<br>
+              [Straße Hausnummer]<br>
+              [PLZ] [Stadt]
+            </p>
+          </div>
+
+          <hr class="border-slate-100">
+
+          <div class="text-xs text-slate-500 space-y-4">
+            <p><strong>Haftung für Inhalte:</strong> Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich...</p>
+            <p><strong>Urheberrecht:</strong> Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht.</p>
+          </div>
+
+        </div>
+      </section>
+
+      <div class="mt-12">
+        <a href="index.html" class="text-brand-500 font-medium text-sm hover:underline">
+          &larr; Zurück zur App
+        </a>
+      </div>
+    </main>
+
+    <footer class="max-w-xl mx-auto px-4 py-12 text-center text-slate-400 text-xs">
+      <p>&copy; <span id="year"></span> My Freeform</p>
+    </footer>
+
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
