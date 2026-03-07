@@ -188,6 +188,19 @@ body.extension-view {
   margin: 0;
   overflow-x: hidden;
 }
+
+#appShell {
+  position: fixed;
+  inset: 0; /* top/right/bottom/left: 0 */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+#appShell::-webkit-scrollbar {
+  display: none;
+}
+
 /* 4. THE HEADER (Fixed Anchor): Styles for the fixed top navigation */
 /* Keeps the header in place while content scrolls beneath it */
 header {
