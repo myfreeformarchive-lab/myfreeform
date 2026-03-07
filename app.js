@@ -2362,7 +2362,7 @@ function renderListItems(items) {
       if (ghost) ghost.remove();
     }
     const postNode = createPostNode(item);
-	postNode.style.animationDelay = `${index * 91}ms`;
+	postNode.style.animationDelay = `${index * 104}ms`;
     postNode.classList.add('feed-item-enter');
     DOM.list.appendChild(postNode);
 	window.pendingPostUpdates++;
