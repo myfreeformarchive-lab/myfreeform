@@ -1107,21 +1107,47 @@ function injectSinglePost(item, position = 'top') {
   if (currentTab === 'private' && item.isFirebase) return;
   const postNode = createPostNode(item); 
   postNode.classList.add('animate-in');
+
   if (position === 'top') {
-	const randomDelay = Math.floor(Math.random() * (4500 - 1500 + 1) + 1500);  
+    const randomDelay = Math.floor(Math.random() * (4500 - 1500 + 1) + 1500);  
+    
     setTimeout(() => {
       if (currentTab !== 'public' || document.getElementById(`post-${item.id}`)) {
         return; 
       }
-	  
-	  const ghost = document.getElementById('public-placeholder');
+      
+      const ghost = document.getElementById('public-placeholder');
       if (ghost) ghost.remove();
-	  
-      const currentScrollTop = window.scrollY;
+      
+      // 1. Capture current scroll and height
+      const scrollBefore = window.scrollY;
+      const heightBefore = document.documentElement.scrollHeight;
+      
+      // 2. Check if user is "busy" (hovering the list or scrolled down)
+      const isHovering = DOM.list.matches(':hover');
+      const isScrolledDown = scrollBefore > 10;
+      const shouldLock = isHovering || isScrolledDown;
+
+      // 3. Inject the post
       DOM.list.prepend(postNode);
       watchPostCounts(item.id);
+
+      // 4. Correct the shift
       requestAnimationFrame(() => {
-        window.scrollTo(0, currentScrollTop);
+        if (shouldLock) {
+          const heightAfter = document.documentElement.scrollHeight;
+          const heightDifference = heightAfter - heightBefore;
+          
+          // Move the scroll position by the exact amount the page grew
+          window.scrollTo({
+            top: scrollBefore + heightDifference,
+            behavior: 'instant'
+          });
+        } else {
+          // User is at the very top and not interacting; let it slide down
+          window.scrollTo(0, 0);
+        }
+        
         requestAnimationFrame(refreshSnap);
       });
     }, randomDelay); 
