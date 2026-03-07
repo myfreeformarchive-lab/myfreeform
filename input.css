@@ -800,7 +800,7 @@ main.max-w-xl.mx-auto {
 @keyframes slideInFromTop2 {
   0% {
     transform: translateY(-0.75rem);
-    opacity: 1;
+    opacity: 0;
   }
   100% {
     transform: translateY(0);
@@ -809,5 +809,5 @@ main.max-w-xl.mx-auto {
 }
 
 .feed-item-enter-2 {
-  animation: slideInFromTop2 0.65s ease forwards;
+  animation: slideInFromTop2 0.7s ease forwards;
 }
