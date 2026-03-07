@@ -2378,11 +2378,11 @@ function renderListItems(items) {
 		
     return; 
   }
-  
   const existingCount = DOM.list.querySelectorAll('.feed-item').length;
   const isFreshRender = existingCount === 0;
   
   items.forEach((item, index) => {
+	  const existingCount2 = DOM.list.querySelectorAll('.feed-item').length;
     // If we have a placeholder, kill it
     if (placeholder) {
       placeholder.remove();
@@ -2391,7 +2391,7 @@ function renderListItems(items) {
       if (ghost) ghost.remove();
     }
     const postNode = createPostNode(item);
-	if (existingCount === 0) {
+	if (existingCount2 === 0) {
       if (isFreshRender) {
         postNode.classList.add('feed-item-enter');
       } else {
