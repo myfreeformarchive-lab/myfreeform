@@ -1988,7 +1988,7 @@ window.sendMessage = async function() {
     if (!messageText) return;
     
 	const titleEl = document.getElementById('dmModalTitle');
-    const targetUserId = titleEl.getAttribute('data-target-id') || titleEl.innerText.replace('@', '');
+    const targetUserId = titleEl.getAttribute('data-target-id');
 	const myHandle = localStorage.getItem('freeform_username') || '';
     if (!targetUserId) return;
 
