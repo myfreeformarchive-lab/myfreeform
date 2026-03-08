@@ -2083,12 +2083,8 @@ window.renderMessages = function(roomId) {
     const isMe = msg.senderId === MY_USER_ID;
 	// Process the text to catch links and turn them into pretty pills
         const processedText = renderSmartText(msg.text);
-		const handleLabel = (!isMe && msg.senderHandle) 
-            ? `<p class="text-[9px] font-black text-slate-400 mb-1 ml-1 uppercase tracking-widest">@${msg.senderHandle.toLowerCase()}</p>` 
-            : '';
     return `
         <div class="flex ${isMe ? 'justify-end' : 'justify-start'} mb-4 w-full px-2">
-		${handleLabel}
             <div class="max-w-[85%] md:max-w-[75%] rounded-2xl px-4 py-2 ${
                 isMe 
                 ? 'bg-brand-500 text-white rounded-tr-none' 
