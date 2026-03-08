@@ -1891,9 +1891,9 @@ window.openDirectMessage = function(e, targetUserId, targetHandle) {
     const roomId = [myId, targetUserId].sort().join('--chat--');
 	//console.log(`%c 🆔 STEP 2: Room ID generated: ${roomId}`, "color: yellow; background: black; font-size: 12px;");
     const title = document.getElementById('dmModalTitle');
-	const displayIdentifier = (targetHandle && targetHandle !== 'undefined') 
-        ? `@${targetHandle.toLowerCase()}` 
-        : `ID: ${targetUserId.split('-')[0]}`;
+	const displayIdentifier = (targetHandle && targetHandle !== 'undefined' && targetHandle !== '') 
+    ? `@${targetHandle.toLowerCase()}` 
+    : `ID:${targetUserId}`;
     const container = document.getElementById('dmMessagesContainer');
   
     if (title) {
@@ -1989,6 +1989,7 @@ window.sendMessage = async function() {
     
 	const titleEl = document.getElementById('dmModalTitle');
     const targetUserId = titleEl.getAttribute('data-target-id') || titleEl.innerText.replace('@', '');
+	const myHandle = localStorage.getItem('freeform_username') || '';
     if (!targetUserId) return;
 
     const roomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
