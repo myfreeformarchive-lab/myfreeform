@@ -1734,7 +1734,7 @@ const isMe = item.authorId === MY_USER_ID;
   
   // Only show DM if it's Global and NOT mine
 const dmButtonHtml = (item.isFirebase && !isMe) ? `
-  <button onclick="openDirectMessage(event, '${item.authorId}', '${item.authorHandle}')" 
+  <button onclick="window.openDirectMessage(event, '${item.authorId}', '')"
           class="relative z-30 p-1.5 rounded-full bg-slate-50 text-slate-400 hover:bg-brand-50 hover:text-brand-500 transition-all active:scale-95 cursor-pointer">
     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-14h1.4c2 0 4 2 4 4v2"></path>
