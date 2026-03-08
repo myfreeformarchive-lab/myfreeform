@@ -725,6 +725,8 @@ function handleAutoOpen() {
         if (!targetId) return;
 
         console.log(`🚀 Auto-opening chat with: ${targetId} (@${targetHandle})`);
+        console.log("%c 📌 history.state at load:", "color: #38bdf8;", history.state);
+        console.log("%c 📚 history.length at load:", "color: #38bdf8;", history.length);
 
         const checkExist = setInterval(() => {
             if (typeof window.openDirectMessage === 'function') {
@@ -734,6 +736,11 @@ function handleAutoOpen() {
 				
 				const cleanUrl = window.location.origin + window.location.pathname;
                 history.replaceState({ modal: 'open' }, '', cleanUrl);
+				// 2. Open the DM (this will pushState { modal: 'dm' } internally)
+                window.openDirectMessage(null, targetId, targetHandle);
+                console.log("%c 💬 openDirectMessage fired", "color: #10b981;");
+                console.log("%c 📌 history.state after open:", "color: #38bdf8;", history.state);
+                console.log("%c 📚 history.length after open:", "color: #38bdf8;", history.length);
                 clearInterval(checkExist);
             }
         }, 100);
