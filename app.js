@@ -4294,44 +4294,42 @@ document.addEventListener('click', (e) => {
 });
 
 
-    window.addEventListener('popstate', (event) => {
+window.addEventListener('popstate', (event) => {
     const dmModal = document.getElementById('dmModal');
     const chatModal = document.getElementById('chatModal');
     const profileModal = document.getElementById('profileModal');
     const commentModal = document.getElementById('commentModal');
     const allModals = [dmModal, chatModal, profileModal, commentModal];
-
     const state = event.state;
+
+    console.log("%c 🔙 popstate fired", "color: white; background: #8b5cf6; padding: 2px 6px;");
+    console.log("%c 📌 state:", "color: #38bdf8;", state);
 
     // 1. First, hide everything to be safe
     allModals.forEach(m => m?.classList.add('hidden'));
+    console.log("%c 🙈 All modals hidden", "color: #94a3b8;");
     document.body.style.overflow = '';
 
     // 2. ONLY re-open the Chat if we specifically land back on the 'open' state
     if (state?.modal === 'open') {
+        console.log("%c 📋 state is 'open' — reopening chatModal", "color: #f59e0b;");
         chatModal?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     } else {
-        // --- 🚀 THE FIX STARTS HERE ---
-        
+        console.log("%c ⏭️ state is not 'open' — running caret/focus fix", "color: #94a3b8;");
+
         // A. Force the browser to release the "active" focus
         document.activeElement?.blur();
-
-        // B. The "Caret Killer": Clear internal text selection memory
-        // This is what removes that black line (oklch caret)
+        // B. The "Caret Killer"
         window.getSelection()?.removeAllRanges();
-
         if (DOM.input) {
-            // C. Visual Flush: Briefly toggle disabled to force a redraw
+            // C. Visual Flush
             DOM.input.disabled = true;
-            
             setTimeout(() => {
                 DOM.input.disabled = false;
-                console.log("UI Sync: Caret cleared, Swipes enabled.");
+                console.log("%c ✅ UI Sync: Caret cleared, Swipes enabled.", "color: #10b981;");
             }, 50); 
         }
-        
-        // --- THE FIX ENDS HERE ---
     }
 });
 
