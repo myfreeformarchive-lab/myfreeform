@@ -89,9 +89,9 @@ self.addEventListener('push', (event) => {
         // 🛑 CRITICAL FIXES END HERE
         actions: data.actions || [{ action: 'open', title: 'Open Message' }],
         data: {
-            // FIX: Use relative path or data.url from Edge Function 
-            // so it works on any environment (local or prod)
-            url: `/?open=chat&user=${senderId}&handle=${authorHandle || ''}`
+            // 🛑 THE FIX: Use the URL that the Edge Function already created
+            // If it fails for some reason, fallback to just the ID
+            url: data.data?.url || `/?open=chat&user=${senderId}`
         }
     };
 
