@@ -712,11 +712,13 @@ function handleAutoOpen() {
 
         console.log(`🚀 Auto-opening chat with: ${targetId} (@${targetHandle})`);
 		
-		history.pushState({ modal: 'open' }, '', window.location.href);
 
         const checkExist = setInterval(() => {
             if (typeof window.openDirectMessage === 'function') {
+				history.pushState({ modal: 'open' }, '');
                 window.openDirectMessage(null, targetId, targetHandle);
+				
+				
 				const cleanUrl = window.location.origin + window.location.pathname;
                 history.replaceState({ modal: 'open' }, '', cleanUrl);
                 clearInterval(checkExist);
