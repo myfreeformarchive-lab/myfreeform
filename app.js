@@ -733,7 +733,7 @@ function handleAutoOpen() {
 				const cleanUrl = window.location.origin + window.location.pathname;
                 history.replaceState({ modal: 'open' }, '', cleanUrl);
 				// 2. Open the DM (this will pushState { modal: 'dm' } internally)
-                window.openDirectMessage(null, targetId, targetHandle, true); 
+                window.openDirectMessage(null, targetId, targetHandle); 
                 console.log("%c 💬 openDirectMessage fired", "color: #10b981;");
                 console.log("%c 📌 history.state after open:", "color: #38bdf8;", history.state);
                 console.log("%c 📚 history.length after open:", "color: #38bdf8;", history.length);
@@ -1965,39 +1965,6 @@ window.openDirectMessage = function(e, targetUserId, targetHandle, fromNotificat
     } else {
         window.renderMessages(roomId);
 		window.clearUnread(roomId);
-		
-		// 📱 Android fix: only when opened via notification
-    if (fromNotification) {
-        setTimeout(() => {
-            const target = container || dmModal;
-            if (target) {
-                try {
-                    const touch = new Touch({
-                        identifier: 1,
-                        target: target,
-                        clientX: 0,
-                        clientY: 0,
-                        screenX: 0,
-                        screenY: 0,
-                        pageX: 0,
-                        pageY: 0,
-                    });
-                    target.dispatchEvent(new TouchEvent('touchstart', { 
-                        bubbles: true, 
-                        cancelable: true,
-                        touches: [touch],
-                        targetTouches: [touch],
-                        changedTouches: [touch]
-                    }));
-                } catch {
-                    target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-                    console.log("%c 📱 Fallback: MouseEvent click fired", "color: #f59e0b;");
-                }
-                console.log("%c 📱 Android tap simulated (notification auto-open)", "color: #f59e0b;");
-				console.log("%c 📱 just checking (notification auto-open)", "color: #f59e0b;");
-            }
-        }, 150);
-    }
 	}
 };
 
@@ -4340,6 +4307,7 @@ window.addEventListener('popstate', (event) => {
 
     console.log("%c 🔙 popstate fired", "color: white; background: #8b5cf6; padding: 2px 6px;");
     console.log("%c 📌 state:", "color: #38bdf8;", state);
+                console.log("%c 📚 history.length after open:", "color: #38bdf8;", history.length);
 
     // 1. First, hide everything to be safee
     allModals.forEach(m => m?.classList.add('hidden'));
