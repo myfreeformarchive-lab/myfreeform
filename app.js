@@ -707,13 +707,14 @@ function handleAutoOpen() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('open') === 'chat') {
         const targetId = params.get('user'); 
+		const targetHandle = params.get('handle') || '';
         if (!targetId) return;
 
-        console.log(`🚀 Auto-opening chat with: ${targetId}`);
+        console.log(`🚀 Auto-opening chat with: ${targetId} (@${targetHandle})`);
 
         const checkExist = setInterval(() => {
             if (typeof window.openDirectMessage === 'function') {
-                window.openDirectMessage(null, targetId);
+                window.openDirectMessage(null, targetId, targetHandle);
                 clearInterval(checkExist);
             }
         }, 100);
