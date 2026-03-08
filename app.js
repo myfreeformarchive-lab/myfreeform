@@ -4317,7 +4317,7 @@ window.addEventListener('popstate', (event) => {
         document.body.style.overflow = 'hidden';
 		renderChatList();
     } else {
-        console.log("%c ⏭️ state is not 'open' — running caret/focus fix", "color: #94a3b8;");
+       console.log("%c ⏭️ state is not 'open' — running caret/focus fix | state.modal:", "color: #94a3b8;", state?.modal ?? 'null/undefined');
 
         // A. Force the browser to release the "active" focus
         document.activeElement?.blur();
