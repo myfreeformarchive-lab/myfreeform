@@ -1,8 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 26 26" fill="none" stroke="#3f51b5" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Chat bubble body -->
-  <path stroke-width="1.8"
-    d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-14h1.4c2 0 4 2 4 4v2"/>
-  <!-- Eyes — rendered as round dots via zero-length strokes -->
-  <path stroke-width="2.4" d="M9 11l.01 0"/>
-  <path stroke-width="2.4" d="M15 11l.01 0"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- White premium fill inside the bubble -->
+  <path
+    d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-14h1.4c2 0 4 2 4 4v2Z"
+    fill="#f8f8ff"
+    stroke="none"
+  />
+  <!-- Indigo outer stroke -->
+  <path
+    d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-14h1.4c2 0 4 2 4 4v2"
+    fill="none"
+    stroke="#3f51b5"
+    stroke-width="1.75"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <!-- Eyes / dot accents in indigo -->
+  <circle cx="9.005" cy="11" r="0.9" fill="#3f51b5"/>
+  <circle cx="15.005" cy="11" r="0.9" fill="#3f51b5"/>
 </svg>
