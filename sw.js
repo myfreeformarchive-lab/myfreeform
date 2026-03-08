@@ -91,7 +91,7 @@ self.addEventListener('push', (event) => {
         data: {
             // FIX: Use relative path or data.url from Edge Function 
             // so it works on any environment (local or prod)
-            url: `/?open=chat&user=${senderId}`
+            url: `/?open=chat&user=${senderId}&handle=${authorHandle || ''}`
         }
     };
 
