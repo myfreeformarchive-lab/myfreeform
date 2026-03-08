@@ -1651,6 +1651,12 @@ function createPostNode(item) {
   const time = getRelativeTime(item.createdAt);
   const fontClass = item.font || 'font-sans'; 
   const isMyGlobalPost = item.isFirebase && item.authorId === MY_USER_ID;
+  const handle = item.authorHandle;
+  const hasHandle = handle && handle.trim() !== '';
+  const identityText = hasHandle ? `@${handle.toLowerCase()}` : (item.isFirebase ? 'Global' : 'Local');
+  const identityClass = (item.isFirebase || hasHandle) 
+  ? 'bg-brand-50 text-brand-600' 
+  : 'bg-slate-100 text-slate-500 lg:bg-slate-200';
   const tagDisplay = item.uniqueTag 
     ? `<span class="text-brand-500 font-bold text-[11px] bg-brand-50 px-2 py-0.5 rounded-full">${item.uniqueTag}</span>`
     : `<span class="text-slate-400 font-medium text-[11px] bg-slate-50 px-2 py-0.5 rounded-full">#draft</span>`;
@@ -1730,9 +1736,8 @@ const dmButtonHtml = (item.isFirebase && !isMe) ? `
  
 <div class="flex justify-between items-start mb-6"> 
   <div class="flex items-center gap-2">
-    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider 
-      ${item.isFirebase ? 'bg-brand-50 text-brand-600' : 'bg-slate-100 text-slate-500 lg:bg-slate-200'}">
-      ${item.isFirebase ? 'Global' : 'Local'}
+    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${identityClass}">
+	${identityText}
     </span>
     <span class="text-xs text-slate-400 font-medium">${time}</span>
   </div>
@@ -2729,11 +2734,14 @@ async function handlePost() {
       const idData = await getNextUniqueTag();
       uniqueTag = idData.tag;
 	  serialId = idData.num;
+	  
+	  const currentHandle = localStorage.getItem('freeform_username') || '';
 
       const docRef = await addDoc(collection(db, "globalPosts"), { 
         content: text, 
         font: selectedFont, 
         authorId: MY_USER_ID,
+		authorHandle: currentHandle,
         uniqueTag: uniqueTag,
 		serialId: serialId,
         createdAt: serverTimestamp()
@@ -2806,12 +2814,14 @@ async function publishDraft(post) {
       
       // === 🟢 PUBLISH LOGIC STARTS HERE ===
       try {
-        const idData = await getNextUniqueTag();		
+        const idData = await getNextUniqueTag();
+        const currentHandle = localStorage.getItem('freeform_username') || '';		
         
         const docRef = await addDoc(collection(db, "globalPosts"), { 
           content: post.content, 
           font: post.font || 'font-sans', 
           authorId: MY_USER_ID,
+		  authorHandle: currentHandle,
           uniqueTag: idData.tag,
 		  serialId: idData.num,
           createdAt: serverTimestamp()
@@ -3338,10 +3348,12 @@ async function postComment() {
   DOM.sendComment.style.opacity = "0.5";
 
   try {
+	  const currentHandle = localStorage.getItem('freeform_username') || '';
     // Keep Firebase: Add comment to subcollection
     await addDoc(collection(db, `globalPosts/${activePostId}/comments`), {
       text: text,
       authorId: MY_USER_ID, 
+	  authorHandle: currentHandle,
       createdAt: serverTimestamp()
     });
 
