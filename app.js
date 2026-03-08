@@ -1975,6 +1975,12 @@ window.closeDMModal = function(shouldFocus = false) {
     
     // Restore scrolling
     document.body.style.overflow = '';
+	
+	// ✅ Refresh inbox if it's open behind the DM
+    const chatModal = document.getElementById('chatModal');
+    if (chatModal && !chatModal.classList.contains('hidden')) {
+        renderChatList();
+    }
 
     // Handle History
     if (history.state && (history.state.modalOpen || history.state.modal === 'open')) {
@@ -4293,11 +4299,7 @@ document.addEventListener('click', (e) => {
     if (state?.modal === 'open') {
         chatModal?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
-    } else if (state?.modal === 'dm') { // ✅ ADD THIS
- //   chatModal?.classList.remove('hidden');
-  //  document.body.style.overflow = 'hidden';
-    renderChatList(); // ✅ Refresh badges + bold previews
-} else {
+    } else {
         // --- 🚀 THE FIX STARTS HERE ---
         
         // A. Force the browser to release the "active" focus
