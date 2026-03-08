@@ -9,8 +9,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>eruda.init();</script>
+<!--<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script>-->
   <!-- Character encoding for the document -->
   <meta charset="UTF-8" />
 
@@ -126,8 +126,9 @@
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js">
   
   <!-- Favicon and app icons -->
-  <link rel="icon" href="icon.png" type="image/png">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="apple-touch-icon" href="icon.png">
+  <link rel="alternate icon" href="icon.ico">
   <meta name="theme-color" content="#ffffff">
   
   <script>
@@ -209,7 +210,7 @@
     <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-white">
       <div class="flex items-center gap-2">
         <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-brand-50 text-brand-600">Secure Chat</span>
-        <h3 id="dmModalTitle" style="opacity: 0.99" class="font-bold text-gray-800 text-sm tracking-wide font-mono lowercase">@ghost</h3>
+        <h3 id="dmModalTitle" class="font-bold text-gray-800 text-sm tracking-wide font-mono lowercase">@ghost</h3>
       </div>
       <button onclick="closeDMModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 cursor-pointer hover:bg-gray-200 transition-colors">✕</button>
     </div>
