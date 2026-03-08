@@ -86,7 +86,7 @@ self.addEventListener('push', (event) => {
         sound: data.sound || '/sounds/notification.mp3', 
         tag: data.tag || 'new-dm',
         renotify: data.renotify || true,
-        // 🛑 CRITICAL FIXES END HERE
+        // 🛑 CRITICAL FIXES END HEREE
         actions: data.actions || [{ action: 'open', title: 'Open Message' }],
         data: {
             // 🛑 THE FIX: Use the URL that the Edge Function already created
