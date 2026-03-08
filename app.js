@@ -615,9 +615,10 @@ window.syncIncomingMessages = async function() {
     // If the DM window is open, refresh the messages
     if (dmModal && !dmModal.classList.contains('hidden')) {
         const title = document.getElementById('dmModalTitle');
-        if (title) {
-            const targetUserId = title.innerText.replace('@', '');
+		const targetUserId = title.getAttribute('data-target-id');
+        if (targetUserId) {
             const currentRoomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
+			console.log(`%c 🔄 Syncing Live Room: ${currentRoomId}`, "color: #10b981; font-weight: bold;");
             window.renderMessages(currentRoomId);
         }
     }
@@ -1889,6 +1890,7 @@ window.openDirectMessage = function(e, targetUserId, targetHandle) {
     // 2. Setup IDs and Logic
     const myId = MY_USER_ID;
     const roomId = [myId, targetUserId].sort().join('--chat--');
+	console.log(`%c 🔎 ROOM ID TRACE: [${MY_USER_ID}, ${targetUserId}].sort().join('--chat--') ===> ${roomId}`, "color: cyan; background: #002244; font-weight: bold; padding: 4px;");
 	//console.log(`%c 🆔 STEP 2: Room ID generated: ${roomId}`, "color: yellow; background: black; font-size: 12px;");
     const title = document.getElementById('dmModalTitle');
 	const displayIdentifier = (targetHandle && targetHandle !== 'undefined' && targetHandle !== '') 
@@ -1993,6 +1995,7 @@ window.sendMessage = async function() {
     if (!targetUserId) return;
 
     const roomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
+	console.log(`%c 🔎 ROOM ID TRACE: [${MY_USER_ID}, ${targetUserId}].sort().join('--chat--') ===> ${roomId}`, "color: cyan; background: #002244; font-weight: bold; padding: 4px;");
 
     // Create the Message Object with the sanitized text
     const messageData = {
