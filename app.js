@@ -1721,7 +1721,7 @@ const isMe = item.authorId === MY_USER_ID;
   
   // Only show DM if it's Global and NOT mine
 const dmButtonHtml = (item.isFirebase && !isMe) ? `
-  <button onclick="openDirectMessage(event, '${item.authorId}')" 
+  <button onclick="openDirectMessage(event, '${item.authorId}', '${item.authorHandle}')" 
           class="relative z-30 p-1.5 rounded-full bg-slate-50 text-slate-400 hover:bg-brand-50 hover:text-brand-500 transition-all active:scale-95 cursor-pointer">
     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-14h1.4c2 0 4 2 4 4v2"></path>
@@ -1853,7 +1853,7 @@ window.viewStorage = function() {
     console.log("📂 Expand the object below for full details:", allData);
 };
 
-window.openDirectMessage = function(e, targetUserId) {
+window.openDirectMessage = function(e, targetUserId, targetHandle) {
 //	console.log("%c 🚀 STEP 1: openDirectMessage triggered!", "color: white; background: red; font-size: 16px; font-weight: bold;");
   //  console.log("📍 Target User:", targetUserId);
     if (e) {
@@ -1891,9 +1891,16 @@ window.openDirectMessage = function(e, targetUserId) {
     const roomId = [myId, targetUserId].sort().join('--chat--');
 	//console.log(`%c 🆔 STEP 2: Room ID generated: ${roomId}`, "color: yellow; background: black; font-size: 12px;");
     const title = document.getElementById('dmModalTitle');
+	const displayIdentifier = (targetHandle && targetHandle !== 'undefined') 
+        ? `@${targetHandle.toLowerCase()}` 
+        : `ID: ${targetUserId.split('-')[0]}`;
     const container = document.getElementById('dmMessagesContainer');
   
-    if (title) title.innerText = `@${targetUserId}`;
+    if (title) {
+        title.innerText = displayIdentifier;
+        // Store the raw ID in a data attribute so sendMessage can find it
+        title.setAttribute('data-user-id', targetUserId);
+    }
     
     // 3. Set the Handshake UI
     if (container) {
@@ -1979,8 +1986,9 @@ window.sendMessage = async function() {
     
     // Safety checks: if empty after sanitization, stop.
     if (!messageText) return;
-
-    const targetUserId = document.getElementById('dmModalTitle').innerText.replace('@', '');
+    
+	const titleEl = document.getElementById('dmModalTitle');
+    const targetUserId = titleEl.getAttribute('data-target-id') || titleEl.innerText.replace('@', '');
     if (!targetUserId) return;
 
     const roomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
@@ -1989,6 +1997,7 @@ window.sendMessage = async function() {
     const messageData = {
         id: crypto.randomUUID(),
         senderId: MY_USER_ID,
+		senderHandle: myHandle,
         receiverId: targetUserId,
         roomId: roomId,
         text: messageText, // Now safe from injection
@@ -2011,6 +2020,7 @@ window.sendMessage = async function() {
                 id: messageData.id,
                 room_id: roomId,
                 receiver_id: targetUserId,
+				author_handle: myHandle,
                 payload: messageData
             }]);
 
