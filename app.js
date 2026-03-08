@@ -729,6 +729,10 @@ function handleAutoOpen() {
 				const cleanUrl = window.location.origin + window.location.pathname;
 				history.replaceState({ modal: 'base' }, '', cleanUrl);
                 history.pushState({ modal: 'open' }, '', cleanUrl);
+				history.pushState({ modal: 'open' }, '', cleanUrl);
+				history.pushState({ modal: 'open' }, '', cleanUrl);
+				history.pushState({ modal: 'open' }, '', cleanUrl);
+				history.pushState({ modal: 'open' }, '', cleanUrl);
 				console.log("%c 📚 history.length after stack setup:", "color: #38bdf8;", history.length);
 				// 2. Open the DM (this will pushState { modal: 'dm' } internally)
                 window.openDirectMessage(null, targetId, targetHandle); 
