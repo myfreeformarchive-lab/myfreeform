@@ -4315,6 +4315,7 @@ window.addEventListener('popstate', (event) => {
         console.log("%c 📋 state is 'open' — reopening chatModal", "color: #f59e0b;");
         chatModal?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
+		renderChatList();
     } else {
         console.log("%c ⏭️ state is not 'open' — running caret/focus fix", "color: #94a3b8;");
 
