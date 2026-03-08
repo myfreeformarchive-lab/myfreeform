@@ -734,6 +734,14 @@ function handleAutoOpen() {
                 window.openDirectMessage(null, targetId, targetHandle); 
                 console.log("%c 📌 history.state after open:", "color: #38bdf8;", history.state);
                 console.log("%c 📚 history.length after open:", "color: #38bdf8;", history.length);
+				// 📱 Android reflow trick
+setTimeout(() => {
+    const title = document.getElementById('dmModalTitle');
+    if (title) {
+        title.style.opacity = '1';
+        console.log("%c 📱 Opacity reflow triggered on dmModalTitle", "color: #f59e0b;");
+    }
+}, 50);
                 clearInterval(checkExist);
             }
         }, 100);
