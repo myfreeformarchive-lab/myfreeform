@@ -1655,7 +1655,7 @@ function createPostNode(item) {
   const hasHandle = handle && handle.trim() !== '';
   const identityText = hasHandle ? `@${handle.toLowerCase()}` : (item.isFirebase ? 'Global' : 'Local');
   const identityClass = (item.isFirebase || hasHandle) 
-  ? 'bg-brand-50 text-brand-600' 
+  ? 'bg-brand-50 text-brand-600 lg:bg-brand-200' 
   : 'bg-slate-100 text-slate-500 lg:bg-slate-200';
   const tagDisplay = item.uniqueTag 
     ? `<span class="text-brand-500 font-bold text-[11px] bg-brand-50 px-2 py-0.5 rounded-full">${item.uniqueTag}</span>`
