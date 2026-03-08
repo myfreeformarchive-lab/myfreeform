@@ -4294,8 +4294,8 @@ document.addEventListener('click', (e) => {
         chatModal?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     } else if (state?.modal === 'dm') { // ✅ ADD THIS
-    chatModal?.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
+ //   chatModal?.classList.remove('hidden');
+  //  document.body.style.overflow = 'hidden';
     renderChatList(); // ✅ Refresh badges + bold previews
 } else {
         // --- 🚀 THE FIX STARTS HERE ---
