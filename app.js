@@ -2242,7 +2242,7 @@ window.renderChatList = function() {
             ? 'text-xs text-gray-900 font-semibold truncate pr-4'
             : 'text-xs text-gray-500 truncate pr-4';
         const unreadBadge = unread > 0
-            ? `<span class="min-w-[20px] h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+            ? `<span class="min-w-[20px] h-5 bg-brand-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
                    ${unread > 99 ? '99+' : unread}
                </span>`
             : `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
