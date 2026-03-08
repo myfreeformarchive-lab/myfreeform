@@ -1969,34 +1969,46 @@ window.openDirectMessage = function(e, targetUserId, targetHandle) {
 window.closeDMModal = function(shouldFocus = false) {
   const modal = document.getElementById('dmModal');
   const overlay = document.getElementById('dmOverlay');
+  console.log("%c 🔒 closeDMModal triggered", "color: white; background: #6366f1; padding: 2px 6px;");
+
   if (modal && !modal.classList.contains('hidden')) {
     modal.classList.add('hidden');
-	if (overlay) overlay.classList.add('hidden');
+    if (overlay) overlay.classList.add('hidden');
+    console.log("%c ✅ DM Modal hidden", "color: #10b981;");
     
     // Restore scrolling
     document.body.style.overflow = '';
-	
-	// ✅ Refresh inbox if it's open behind the DM
+
+    // ✅ Refresh inbox if it's open behind the DM
     const chatModal = document.getElementById('chatModal');
     if (chatModal && !chatModal.classList.contains('hidden')) {
+        console.log("%c 📋 chatModal is open — calling renderChatList()", "color: #f59e0b;");
         renderChatList();
+    } else {
+        console.log("%c ⏭️ chatModal not open — skipping renderChatList()", "color: #94a3b8;");
     }
 
     // Handle History
+    console.log("%c 🕰️ history.state:", "color: #38bdf8;", history.state);
     if (history.state && (history.state.modalOpen || history.state.modal === 'open')) {
+      console.log("%c ⬅️ Calling history.back()", "color: #f97316;");
       history.back();
+    } else {
+      console.log("%c ⏭️ No matching history state — skipping history.back()", "color: #94a3b8;");
     }
 
     // THE GLOBAL FOCUS FIX
     if (DOM.input) {
       DOM.input.disabled = false;
-      
       if (shouldFocus) {
         setTimeout(() => {
+          console.log("%c 🎯 Focusing input", "color: #a3e635;");
           DOM.input.focus();
         }, 50);
       } 
     }
+  } else {
+    console.warn("⚠️ closeDMModal: modal already hidden or not found — aborting.");
   }
 };
 
