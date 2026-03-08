@@ -2414,11 +2414,11 @@ window.updateUnreadBadge = function() {
     if (total === 1) {
         // Plain dot — matches your original design
         badge.textContent = '';
-        badge.className = 'absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full';
+        badge.className = 'absolute top-0 right-0 w-3 h-3 bg-brand-500 border-2 border-white rounded-full';
     } else {
         // Count badge
         badge.textContent = total > 99 ? '99+' : total;
-        badge.className = 'absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 border-2 border-white rounded-full text-white text-[9px] font-bold flex items-center justify-center px-[3px]';
+        badge.className = 'absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-brand-500 border-2 border-white rounded-full text-white text-[9px] font-bold flex items-center justify-center px-[3px]';
     }
 };
 
@@ -4293,7 +4293,11 @@ document.addEventListener('click', (e) => {
     if (state?.modal === 'open') {
         chatModal?.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
-    } else {
+    } else if (state?.modal === 'dm') { // ✅ ADD THIS
+    chatModal?.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    renderChatList(); // ✅ Refresh badges + bold previews
+} else {
         // --- 🚀 THE FIX STARTS HERE ---
         
         // A. Force the browser to release the "active" focus
