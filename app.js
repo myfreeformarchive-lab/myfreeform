@@ -1967,18 +1967,35 @@ window.openDirectMessage = function(e, targetUserId, targetHandle, fromNotificat
 		window.clearUnread(roomId);
 		
 		// 📱 Android fix: only when opened via notification
-        if (fromNotification) {
-            setTimeout(() => {
-                const target = container || dmModal;
-                if (target) {
-                    try {
-                        target.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, cancelable: true }));
-                    } catch {
-                        target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-                    }
-                    console.log("%c 📱 Android tap simulated (notification auto-open)", "color: #f59e0b;");
+    if (fromNotification) {
+        setTimeout(() => {
+            const target = container || dmModal;
+            if (target) {
+                try {
+                    const touch = new Touch({
+                        identifier: 1,
+                        target: target,
+                        clientX: 0,
+                        clientY: 0,
+                        screenX: 0,
+                        screenY: 0,
+                        pageX: 0,
+                        pageY: 0,
+                    });
+                    target.dispatchEvent(new TouchEvent('touchstart', { 
+                        bubbles: true, 
+                        cancelable: true,
+                        touches: [touch],
+                        targetTouches: [touch],
+                        changedTouches: [touch]
+                    }));
+                } catch {
+                    target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                    console.log("%c 📱 Fallback: MouseEvent click fired", "color: #f59e0b;");
                 }
-            }, 50);
+                console.log("%c 📱 Android tap simulated (notification auto-open)", "color: #f59e0b;");
+            }
+        }, 50);
     }
 	}
 };
