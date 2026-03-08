@@ -725,26 +725,33 @@ function handleAutoOpen() {
         if (!targetId) return;
 
         const checkExist = setInterval(() => {
-            if (typeof window.openDirectMessage === 'function') {
-				const cleanUrl = window.location.origin + window.location.pathname;
-				history.replaceState({ modal: 'base' }, '', cleanUrl);
-                history.pushState({ modal: 'open' }, '', cleanUrl);
-				console.log("%c 📚 history.length after stack setup:", "color: #38bdf8;", history.length);
-				// 2. Open the DM (this will pushState { modal: 'dm' } internally)
-                window.openDirectMessage(null, targetId, targetHandle); 
+    if (typeof window.openDirectMessage === 'function') {
+        const cleanUrl = window.location.origin + window.location.pathname;
+        history.replaceState({ modal: 'base' }, '', cleanUrl);
+        history.pushState({ modal: 'open' }, '', cleanUrl);
+        console.log("%c 📚 history.length after stack setup:", "color: #38bdf8;", history.length);
+
+        // 1. Flash the inbox first so OS registers a real page entry
+        const chatModal = document.getElementById('chatModal');
+        if (chatModal) {
+            chatModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            renderChatList();
+            console.log("%c 📋 Inbox flashed for OS entry point", "color: #f59e0b;");
+        }
+
+        // 2. Open the DM on top after a frame
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                window.openDirectMessage(null, targetId, targetHandle);
                 console.log("%c 📌 history.state after open:", "color: #38bdf8;", history.state);
                 console.log("%c 📚 history.length after open:", "color: #38bdf8;", history.length);
-				// 📱 Android reflow trick
-setTimeout(() => {
-    const title = document.getElementById('dmModalTitle');
-    if (title) {
-        title.style.opacity = '1';
-        console.log("%c 📱 Opacity reflow triggered on dmModalTitle", "color: #f59e0b;");
+            }, 100);
+        });
+
+        clearInterval(checkExist);
     }
-}, 50);
-                clearInterval(checkExist);
-            }
-        }, 100);
+}, 100);
 
         // Stop checking after 5 seconds
         setTimeout(() => clearInterval(checkExist), 5000);
