@@ -356,6 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	_t('DOMContentLoaded fired');
   runMigration();
   setRandomPlaceholder();
+  window.updateUnreadBadge();
   
   requestAnimationFrame(() => {
     const skelFooter = document.querySelector('.animate-pulse .mt-6.pt-5');
@@ -607,6 +608,19 @@ window.syncIncomingMessages = async function() {
 
     //    console.log(`💾 Sync: Saving to local storage for room: ${roomId}`);
         window.saveToLocal(roomId, msg);
+		
+		// ✅ ADD THIS: Only count as unread if this chat isn't currently open
+    const openModal = document.getElementById('dmModal');
+    const openTitle = document.getElementById('dmModalTitle');
+    const currentOpenRoom = openTitle
+        ? [MY_USER_ID, openTitle.getAttribute('data-target-id')].sort().join('--chat--')
+        : null;
+
+    const chatIsOpen = openModal && !openModal.classList.contains('hidden') && currentOpenRoom === roomId;
+    if (!chatIsOpen) {
+        window.incrementUnread(roomId);
+    }
+    // ✅ END ADD
         
         // 2. Delete from Supabase immediately (Ephemeral)
         const { error: delError } = await _supabase
@@ -1947,6 +1961,7 @@ window.openDirectMessage = function(e, targetUserId, targetHandle) {
         console.error("%c ❌ ERROR: window.renderMessages is NOT a function!", "color: white; background: red; font-size: 18px;");
     } else {
         window.renderMessages(roomId);
+		window.clearUnread(roomId);
     }
 };
 
@@ -2205,15 +2220,28 @@ window.renderChatList = function() {
     listContainer.innerHTML = chats.map(chat => {
 	
 	const stencil = window.getStencilData(chat.otherUser);
-const initials = chat.otherUser.substring(0, 2).toUpperCase();
+    const initials = chat.otherUser.substring(0, 2).toUpperCase();
 
 // Handle vs ID Display Logic
-        const displayName = chat.otherHandle ? `@${chat.otherHandle.toLowerCase()}` : `ID:${chat.otherUser.slice(0,8)}`;
+    const displayName = chat.otherHandle ? `@${chat.otherHandle.toLowerCase()}` : `ID:${chat.otherUser.slice(0,8)}`;
 	
     const words = (chat.lastText || "").split(' ');
     const previewText = words.length > 8 
         ? words.slice(0, 8).join(' ') + '...' 
         : chat.lastText;
+		
+	// ── Unread logic ──────────────────────────────
+        const unread = window.getUnreadCount(chat.roomId);
+        const previewClass = unread > 0
+            ? 'text-xs text-gray-900 font-semibold truncate pr-4'
+            : 'text-xs text-gray-500 truncate pr-4';
+        const unreadBadge = unread > 0
+            ? `<span class="min-w-[20px] h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                   ${unread > 99 ? '99+' : unread}
+               </span>`
+            : `<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+               </svg>`;	
 
     return `
         <div onclick="window.openDirectMessage(event, '${chat.otherUser}', '${chat.otherHandle || ''}')" 
@@ -2248,9 +2276,7 @@ const initials = chat.otherUser.substring(0, 2).toUpperCase();
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                 </button>
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
+                ${unreadBadge}
             </div>
         </div>
     `;
@@ -2328,6 +2354,72 @@ window.deleteConversation = function(event, roomId) {
            console.log(`🗑️ Conversation ${roomId} deleted via custom dialog.`);
         }
     );
+};
+
+// ── unread.js ─────────────────────────────────────────────────────────────
+// Tracks per-room unread counts in localStorage under key: 'unread_counts'
+// Shape: { "userA--chat--userB": 2, "userA--chat--userC": 5 }
+// ─────────────────────────────────────────────────────────────────────────
+
+const UNREAD_KEY = 'unread_counts';
+
+function getUnreadMap() {
+    try { return JSON.parse(localStorage.getItem(UNREAD_KEY) || '{}'); }
+    catch { return {}; }
+}
+
+function saveUnreadMap(map) {
+    localStorage.setItem(UNREAD_KEY, JSON.stringify(map));
+}
+
+// Call when a new message arrives for a room that isn't currently open
+window.incrementUnread = function(roomId) {
+    const map = getUnreadMap();
+    map[roomId] = (map[roomId] || 0) + 1;
+    saveUnreadMap(map);
+    window.updateUnreadBadge();
+};
+
+// Call when a user opens a conversation
+window.clearUnread = function(roomId) {
+    const map = getUnreadMap();
+    delete map[roomId];
+    saveUnreadMap(map);
+    window.updateUnreadBadge();
+};
+
+// Returns unread count for a specific room (used in chat list UI)
+window.getUnreadCount = function(roomId) {
+    return getUnreadMap()[roomId] || 0;
+};
+
+// Returns total unread across ALL rooms
+window.getTotalUnread = function() {
+    return Object.values(getUnreadMap()).reduce((sum, n) => sum + n, 0);
+};
+
+// ── Nav Badge Renderer ────────────────────────────────────────────────────
+window.updateUnreadBadge = function() {
+    const badge = document.querySelector('#navMessages .absolute');
+    if (!badge) return;
+
+    const total = window.getTotalUnread();
+
+    if (total === 0) {
+        badge.className = 'absolute top-0 right-0 w-3 h-3 border-2 border-white rounded-full hidden';
+        badge.textContent = '';
+        return;
+    }
+
+    if (total === 1) {
+        // Plain dot — matches your original design
+        badge.textContent = '';
+        badge.className = 'absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full';
+    } else {
+        // Count badge
+        badge.textContent = total > 99 ? '99+' : total;
+        badge.className = 'absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 border-2 border-white rounded-full text-white text-[9px] font-bold flex items-center justify-center px-[3px]';
+    }
 };
 
 function showHeartAnimation(container) {
