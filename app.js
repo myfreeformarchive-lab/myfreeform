@@ -1892,14 +1892,14 @@ window.openDirectMessage = function(e, targetUserId, targetHandle) {
 	//console.log(`%c 🆔 STEP 2: Room ID generated: ${roomId}`, "color: yellow; background: black; font-size: 12px;");
     const title = document.getElementById('dmModalTitle');
 	const displayIdentifier = (targetHandle && targetHandle !== 'undefined' && targetHandle !== '') 
-    ? `@${targetHandle.toLowerCase()}` 
-    : `ID:${targetUserId}`;
+        ? `@${targetHandle.toLowerCase()}` 
+        : `ID:${targetUserId}`;
     const container = document.getElementById('dmMessagesContainer');
   
     if (title) {
         title.innerText = displayIdentifier;
         // Store the raw ID in a data attribute so sendMessage can find it
-        title.setAttribute('data-user-id', targetUserId);
+        title.setAttribute('data-target-id', targetUserId);
     }
     
     // 3. Set the Handshake UI
