@@ -79,8 +79,8 @@ self.addEventListener('push', (event) => {
 
     const options = {
         body: data.body,
-        icon: '/logo.png', 
-        badge: '/badge.png', 
+        icon: data.icon || '/logo.png', 
+        badge: data.badge || '/badge.png',
         vibrate: [100, 50, 100],
         // 🛑 CRITICAL FIXES START HERE
         sound: data.sound || '/sounds/notification.mp3', 
@@ -89,7 +89,9 @@ self.addEventListener('push', (event) => {
         // 🛑 CRITICAL FIXES END HERE
         actions: data.actions || [{ action: 'open', title: 'Open Message' }],
         data: {
-            url: `https://myfreeform.page/?open=chat&user=${senderId}`
+            // FIX: Use relative path or data.url from Edge Function 
+            // so it works on any environment (local or prod)
+            url: `/?open=chat&user=${senderId}`
         }
     };
 
@@ -101,13 +103,16 @@ self.addEventListener('push', (event) => {
 // --- CLICK HANDLER ---
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
-    const targetUrl = event.notification.data.url;
+    // Get the relative URL from the notification data
+    const path = event.notification.data.url;
+    // Construct the full URL based on where the service worker is running
+    const targetUrl = new URL(path, self.location.origin).href;
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
             // Try to find an existing tab and navigate it
             for (const client of windowClients) {
-                if (new URL(client.url).hostname === location.hostname) {
+                if (new URL(client.url).origin === self.location.origin) {
                     return client.navigate(targetUrl).then(c => c.focus());
                 }
             }
