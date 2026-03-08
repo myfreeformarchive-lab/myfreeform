@@ -1990,7 +1990,7 @@ window.closeDMModal = function(shouldFocus = false) {
 
     // Handle History
     console.log("%c 🕰️ history.state:", "color: #38bdf8;", history.state);
-    if (history.state && (history.state.modalOpen || history.state.modal === 'open')) {
+    if (history.state && (history.state.modalOpen || history.state.modal === 'open' || history.state.modal === 'dm')) {
       console.log("%c ⬅️ Calling history.back()", "color: #f97316;");
       history.back();
     } else {
