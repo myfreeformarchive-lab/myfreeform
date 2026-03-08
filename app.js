@@ -2147,9 +2147,17 @@ window.renderChatList = function() {
 
                     // Only push if we successfully identified the other person
                     if (otherUser) {
+						let otherHandle = "";
+                        for (let j = history.length - 1; j >= 0; j--) {
+                            if (history[j].senderId === otherUser && history[j].senderHandle) {
+                                otherHandle = history[j].senderHandle;
+                                break; // Found the latest handle, stop looking
+                            }
+                        }
                         chats.push({
                             roomId: roomId,
                             otherUser: otherUser,
+							otherHandle: otherHandle,
                             lastText: lastMsg.text || "",
                             timestamp: lastMsg.timestamp || Date.now()
                         });
@@ -2177,6 +2185,9 @@ window.renderChatList = function() {
 	
 	const stencil = window.getStencilData(chat.otherUser);
 const initials = chat.otherUser.substring(0, 2).toUpperCase();
+
+// Handle vs ID Display Logic
+        const displayName = chat.otherHandle ? `@${chat.otherHandle.toLowerCase()}` : `ID:${chat.otherUser.slice(0,8)}`;
 	
     const words = (chat.lastText || "").split(' ');
     const previewText = words.length > 8 
@@ -2184,7 +2195,7 @@ const initials = chat.otherUser.substring(0, 2).toUpperCase();
         : chat.lastText;
 
     return `
-        <div onclick="window.openDirectMessage(event, '${chat.otherUser}')" 
+        <div onclick="window.openDirectMessage(event, '${chat.otherUser}', '${chat.otherHandle || ''}')" 
              class="group flex items-center gap-4 px-4 py-4 border-b border-gray-50 hover:bg-slate-50 cursor-pointer transition-colors active:bg-slate-100">
             
             <div class="stencil-avatar w-12 h-12 flex-shrink-0 flex items-center justify-center ${stencil.radius} shadow-sm overflow-hidden relative"
@@ -2201,7 +2212,7 @@ const initials = chat.otherUser.substring(0, 2).toUpperCase();
 
             <div class="flex-1 min-w-0">
                 <div class="flex justify-between items-baseline mb-0.5">
-                    <h4 class="font-bold text-gray-900 text-sm truncate">@${chat.otherUser}</h4>
+                    <h4 class="font-bold text-gray-900 text-sm truncate">${displayName}</h4>
                     <span class="text-[10px] text-gray-400">
                         ${new Date(chat.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </span>
