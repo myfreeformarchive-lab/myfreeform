@@ -1996,7 +1996,7 @@ window.openDirectMessage = function(e, targetUserId, targetHandle, fromNotificat
                 console.log("%c 📱 Android tap simulated (notification auto-open)", "color: #f59e0b;");
 				console.log("%c 📱 just checking (notification auto-open)", "color: #f59e0b;");
             }
-        }, 50);
+        }, 150);
     }
 	}
 };
