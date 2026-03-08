@@ -711,12 +711,6 @@ function handleAutoOpen() {
         if (!targetId) return;
 
         console.log(`🚀 Auto-opening chat with: ${targetId} (@${targetHandle})`);
-		// 1. Force the current page to be 'Home' (null state)
-        history.replaceState(null, '', window.location.pathname);
-
-        // 2. Push the 'Open' state on top. 
-        // Now 'Back' has a destination (the Home state we just made).
-        history.pushState({ modal: 'open' }, '', window.location.pathname);
 
         const checkExist = setInterval(() => {
             if (typeof window.openDirectMessage === 'function') {
