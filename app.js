@@ -4305,7 +4305,7 @@ window.addEventListener('popstate', (event) => {
     console.log("%c 🔙 popstate fired", "color: white; background: #8b5cf6; padding: 2px 6px;");
     console.log("%c 📌 state:", "color: #38bdf8;", state);
 
-    // 1. First, hide everything to be safe
+    // 1. First, hide everything to be safee
     allModals.forEach(m => m?.classList.add('hidden'));
     console.log("%c 🙈 All modals hidden", "color: #94a3b8;");
     document.body.style.overflow = '';
