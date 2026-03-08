@@ -1736,7 +1736,7 @@ const dmButtonHtml = (item.isFirebase && !isMe) ? `
  
 <div class="flex justify-between items-start mb-6"> 
   <div class="flex items-center gap-2">
-    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${identityClass}">
+    <span class="px-0 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${identityClass}">
 	${identityText}
     </span>
     <span class="text-xs text-slate-400 font-medium">${time}</span>
