@@ -2283,7 +2283,7 @@ window.renderChatList = function() {
 }).join('');
 };
 
-// Helper to get a unique but consistent icon/shape based on User ID
+// Helper to get a unique but consistent icon/shape based oonn User ID
 window.getStencilData = function(userId) {
     let hash = 0;
     for (let i = 0; i < userId.length; i++) {
