@@ -730,14 +730,10 @@ function handleAutoOpen() {
 
         const checkExist = setInterval(() => {
             if (typeof window.openDirectMessage === 'function') {
-				
-                window.openDirectMessage(null, targetId, targetHandle);
-				
-				
 				const cleanUrl = window.location.origin + window.location.pathname;
                 history.replaceState({ modal: 'open' }, '', cleanUrl);
 				// 2. Open the DM (this will pushState { modal: 'dm' } internally)
-                window.openDirectMessage(null, targetId, targetHandle);
+                window.openDirectMessage(null, targetId, targetHandle, true); 
                 console.log("%c 💬 openDirectMessage fired", "color: #10b981;");
                 console.log("%c 📌 history.state after open:", "color: #38bdf8;", history.state);
                 console.log("%c 📚 history.length after open:", "color: #38bdf8;", history.length);
@@ -1893,7 +1889,7 @@ window.viewStorage = function() {
     console.log("📂 Expand the object below for full details:", allData);
 };
 
-window.openDirectMessage = function(e, targetUserId, targetHandle) {
+window.openDirectMessage = function(e, targetUserId, targetHandle, fromNotification = false) {
 //	console.log("%c 🚀 STEP 1: openDirectMessage triggered!", "color: white; background: red; font-size: 16px; font-weight: bold;");
   //  console.log("📍 Target User:", targetUserId);
     if (e) {
@@ -1969,7 +1965,22 @@ window.openDirectMessage = function(e, targetUserId, targetHandle) {
     } else {
         window.renderMessages(roomId);
 		window.clearUnread(roomId);
+		
+		// 📱 Android fix: only when opened via notification
+        if (fromNotification) {
+            setTimeout(() => {
+                const target = container || dmModal;
+                if (target) {
+                    try {
+                        target.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, cancelable: true }));
+                    } catch {
+                        target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                    }
+                    console.log("%c 📱 Android tap simulated (notification auto-open)", "color: #f59e0b;");
+                }
+            }, 50);
     }
+	}
 };
 
 // 2. THE CLOSE FUNCTION
