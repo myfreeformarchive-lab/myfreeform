@@ -587,6 +587,9 @@ window.syncIncomingMessages = async function() {
       //  console.log("📥 Sync: No new messages found.");
         return;
     }
+	
+	let latestHandle = null;
+    let senderOfLatestHandle = null;
 
   //  console.log(`📩 Sync: Found ${data.length} messages. Processing...`);
 
@@ -595,6 +598,12 @@ window.syncIncomingMessages = async function() {
         
         // Use the raw roomId directly from the message payload
         const roomId = msg.roomId;
+		
+		// Capture handle from the relay row (author_handle) or payload
+        if (row.author_handle) {
+            latestHandle = row.author_handle;
+            senderOfLatestHandle = msg.senderId;
+        }
 
     //    console.log(`💾 Sync: Saving to local storage for room: ${roomId}`);
         window.saveToLocal(roomId, msg);
@@ -617,6 +626,9 @@ window.syncIncomingMessages = async function() {
         const title = document.getElementById('dmModalTitle');
 		const targetUserId = title.getAttribute('data-target-id');
         if (targetUserId) {
+			if (senderOfLatestHandle === targetUserId && latestHandle) {
+                title.innerText = `@${latestHandle.toLowerCase()}`;
+            }
             const currentRoomId = [MY_USER_ID, targetUserId].sort().join('--chat--');
 			console.log(`%c 🔄 Syncing Live Room: ${currentRoomId}`, "color: #10b981; font-weight: bold;");
             window.renderMessages(currentRoomId);
