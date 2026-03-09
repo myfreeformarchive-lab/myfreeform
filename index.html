@@ -154,36 +154,58 @@
 
     // ✅ ADD HERE
 <script>
-  (function() {
-    history.scrollRestoration = 'manual';
+(function() {
+  history.scrollRestoration = 'manual';
+  console.log('[Theme] Script executing at:', performance.now().toFixed(2) + 'ms');
+  console.log('[Theme] Document readyState:', document.readyState);
 
-    const themes = {
-      lavender:   '#9D60FF',
-      periwinkle: '#7C74FF',
-      ink:        '#1E1B4B',
-      tangerine:  '#FF6B35',
-      crimson:    '#E6274A',
-      emerald:    '#00C17C',
-      amber:      '#F59E0B',
-      sky:        '#0EA5E9',
-    };
+  const themes = {
+    lavender:   '#9D60FF',
+    periwinkle: '#7C74FF',
+    ink:        '#1E1B4B',
+    tangerine:  '#FF6B35',
+    crimson:    '#E6274A',
+    emerald:    '#00C17C',
+    amber:      '#F59E0B',
+    sky:        '#0EA5E9',
+  };
 
-    // 1. Get the saved theme name
-    const _theme = localStorage.getItem('selected_theme') || 'lavender';
-    
-    // 2. Get the actual hex color (using the corrected 'themes' object name)
-    const selectedColor = themes[_theme] || themes.lavender;
+  const _theme = localStorage.getItem('selected_theme') || 'lavender';
+  console.log('[Theme] Saved theme in localStorage:', localStorage.getItem('selected_theme'));
+  console.log('[Theme] Resolved theme key:', _theme);
 
-    // 3. Apply to CSS Variable
-    document.documentElement.style.setProperty('--brand-primary', selectedColor);
+  const selectedColor = themes[_theme] || themes.lavender;
+  console.log('[Theme] Applying color:', selectedColor);
 
-    // 4. Apply to Status Bar / Title Bar
-    const metaTag = document.querySelector('meta[name="theme-color"]');
-    if (metaTag) {
-      metaTag.setAttribute('content', selectedColor);
+  // Check what --brand-primary is BEFORE we set it
+  const before = getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim();
+  console.log('[Theme] --brand-primary BEFORE set:', before);
+
+  document.documentElement.style.setProperty('--brand-primary', selectedColor);
+
+  const after = getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim();
+  console.log('[Theme] --brand-primary AFTER set:', after);
+
+  const meta = document.querySelector('meta[name="theme-color"]');
+  console.log('[Theme] Meta theme-color tag found:', !!meta);
+  if (meta) meta.setAttribute('content', selectedColor);
+
+  // Watch for anything overwriting our variable after we set it
+  let frameCount = 0;
+  function watchForOverride() {
+    const current = getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim();
+    if (current !== selectedColor) {
+      console.warn('[Theme] ⚠️ --brand-primary was overwritten at frame', frameCount, '| new value:', current);
     }
-
-  })();
+    if (frameCount < 10) {
+      frameCount++;
+      requestAnimationFrame(watchForOverride);
+    } else {
+      console.log('[Theme] Watch complete — no overrides detected after', frameCount, 'frames');
+    }
+  }
+  requestAnimationFrame(watchForOverride);
+})();
 </script>
 
 </head>
