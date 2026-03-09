@@ -3885,7 +3885,7 @@ function getOrCreateUserId() {
   return id;
 }
 
-// 1. Show User ID in Modal
+// 1. Show User ID in Modall
 function setupProfile() {
     const userId = getOrCreateUserId();
     const displayEl = document.getElementById('displayUserId');
