@@ -3924,6 +3924,12 @@ function applyTheme(colorKey) {
     // We only need to set ONE variable now! 
     // CSS color-mix handles all the other shades (50, 100, 600, etc.)
     document.documentElement.style.setProperty('--brand-primary', primaryColor);
+	
+	// 2. ✅ ADD THIS: Update the Status Bar live
+    const metaTag = document.querySelector('meta[name="theme-color"]');
+    if (metaTag) {
+        metaTag.setAttribute('content', primaryColor);
+    }
     
     // Save preference
     localStorage.setItem('selected_theme', colorKey);
