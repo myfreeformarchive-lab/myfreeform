@@ -3921,20 +3921,29 @@ function applyTheme(colorKey) {
     const primaryColor = themes[colorKey];
     if (!primaryColor) return;
 
-    // We only need to set ONE variable now! 
-    // CSS color-mix handles all the other shades (50, 100, 600, etc.)
+    // 1. Update the CSS Variable
     document.documentElement.style.setProperty('--brand-primary', primaryColor);
-	
-	// 2. ✅ ADD THIS: Update the Status Bar live
-    const metaTag = document.querySelector('meta[name="theme-color"]');
-    if (metaTag) {
-        metaTag.setAttribute('content', primaryColor);
-    }
     
-    // Save preference
+    // 2. 🛡️ THE FIX: Remove old meta tag and inject a fresh one
+    // This stops the "color blending/overlap" bug
+    let metaTag = document.querySelector('meta[name="theme-color"]');
+    if (metaTag) {
+        metaTag.remove(); 
+    }
+    const newMeta = document.createElement('meta');
+    newMeta.name = "theme-color";
+    newMeta.content = primaryColor;
+    document.head.appendChild(newMeta);
+
+    // 3. 🛡️ THE BORDER KILLER: Sync the background of the root elements
+    // This ensures there is no "white" or "old color" gap behind the status bar
+    document.documentElement.style.backgroundColor = primaryColor;
+    document.body.style.backgroundColor = primaryColor;
+    
+    // 4. Save preference
     localStorage.setItem('selected_theme', colorKey);
     
-    // Optional: Visual feedback for the active button
+    // 5. Update UI
     updateThemeSelectionUI(colorKey);
 }
 
