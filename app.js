@@ -3397,6 +3397,8 @@ function openModal(post) {
         const time = getRelativeTime(c.createdAt);
         const isMyComment = c.authorId === MY_USER_ID;
         div.className = "comment-bubble flex flex-col items-start w-full relative group";
+		
+		const authorDisplay = c.authorHandle ? c.authorHandle : c.authorId;
         
         let deleteBtn = '';
         if (isMyComment) {
@@ -3404,14 +3406,16 @@ function openModal(post) {
         }
 
         div.innerHTML = `
-          <div class="bg-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-none max-w-[90%]">
-             <p class="text-[15px] text-gray-800 leading-snug break-words font-sans">${renderSmartText(c.text)}</p>
-          </div>
-          <div class="flex items-center mt-1 ml-1">
-            <span class="text-[10px] text-gray-400">${time}</span>
-            ${deleteBtn}
-          </div>
-        `;
+  <div class="bg-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-none max-w-[90%]">
+     <p class="text-[15px] text-gray-800 leading-snug break-words font-sans">${renderSmartText(c.text)}</p>
+  </div>
+  <div class="flex items-center gap-1.5 mt-1 ml-1">
+    <span class="text-[10px] font-medium text-gray-500">${authorDisplay}</span>
+    <span class="text-[10px] text-gray-300">·</span>
+    <span class="text-[10px] text-gray-400">${time}</span>
+    ${deleteBtn}
+  </div>
+`;
         if (isMyComment) {
           const btn = div.querySelector('.delete-comment-btn');
           if (btn) btn.onclick = () => deleteComment(realFirestoreId, doc.id);
