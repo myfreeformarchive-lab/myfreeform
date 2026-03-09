@@ -3942,7 +3942,7 @@ function applyTheme(colorKey) {
     updateThemeSelectionUI(colorKey);
 }
 
-/* let currentFaviconColor = null;
+let currentFaviconColor = null;
 
 function updateFavicon(primaryColor) {
 	if (primaryColor === currentFaviconColor) return;
@@ -3981,43 +3981,32 @@ function updateFavicon(primaryColor) {
 	
 	currentFaviconColor = primaryColor;
     console.log(`%c Favicon Updated: ${primaryColor}`, `color:${primaryColor};font-weight:bold;background:#222;padding:2px 5px;border-radius:3px;`);
-} */
-
-let currentFaviconColor = null;
-
-function updateFavicon(primaryColor) {
-    if (primaryColor === currentFaviconColor) return;
-
-    const size = 32, r = 7;
-    const canvas = document.createElement('canvas');
-    canvas.width = size; canvas.height = size;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = primaryColor;
-    ctx.beginPath();
-    ctx.moveTo(r,0); ctx.arcTo(size,0,size,size,r);
-    ctx.arcTo(size,size,0,size,r); ctx.arcTo(0,size,0,0,r);
-    ctx.arcTo(0,0,size,0,r); ctx.closePath(); ctx.fill();
-    const sc = 20/24, ox = 5, oy = 4;
-    ctx.strokeStyle = '#F5F0FF'; ctx.lineWidth = 2;
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.ellipse(ox+11*sc, oy+11*sc, 8.5*sc, 7*sc, 0, 0, Math.PI*2); ctx.stroke();
-    ctx.fillStyle = '#F5F0FF';
-    ctx.beginPath(); ctx.arc(ox+9*sc, oy+11*sc, 1, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(ox+15*sc, oy+11*sc, 1, 0, Math.PI*2); ctx.fill();
-
-    // ✅ Update in place — no remove, no re-append, no DOM thrash
-    let link = document.querySelector('link[rel="icon"]');
-    if (!link) {
-        link = document.createElement('link');
-        link.rel = 'icon';
-        link.type = 'image/png';
-        document.head.appendChild(link);
-    }
-    link.href = canvas.toDataURL('image/png');
-
-    currentFaviconColor = primaryColor;
 }
+
+// 🔍 LOCALSTORAGE SPY — remove once diagnosed
+(function() {
+    const _setItem = localStorage.setItem.bind(localStorage);
+    const _getItem = localStorage.getItem.bind(localStorage);
+
+    localStorage.setItem = function(key, value) {
+        if (key === 'selected_theme') {
+            console.log(`%c 💾 localStorage.setItem('${key}', '${value}')`, 'color: #F59E0B; font-weight: bold; background: #111; padding: 2px 6px;');
+            console.trace('^ set from here');
+        }
+        return _setItem(key, value);
+    };
+
+    localStorage.getItem = function(key) {
+        const value = _getItem(key);
+        if (key === 'selected_theme') {
+            console.log(`%c 📖 localStorage.getItem('${key}') → '${value}'`, 'color: #0EA5E9; font-weight: bold; background: #111; padding: 2px 6px;');
+            console.trace('^ read from here');
+        }
+        return value;
+    };
+
+    console.log('%c 👁️ localStorage spy active for selected_theme', 'color: #888; font-style: italic;');
+})();
 
 // 4. Build Theme Grid UI
 function renderThemeGrid() {
