@@ -1,35 +1,41 @@
-<!DOCTYPE html>
-<html lang="de">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="robots" content="noindex"> <title>Impressum - My Freeform</title>
+  <meta name="theme-color" id="pwa-theme-color" content="#9D60FF">
+  <meta name="robots" content="noindex"> 
+  <title>Impressum - My Freeform</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  
   <link rel="preload" href="fonts/inter-v20-latin-regular.woff2" as="font" type="font/woff2" crossorigin>
 
- <style>
-    :root {
-      --brand-primary: #9D60FF;
-    }
+  <style>
+    :root { --brand-primary: #9D60FF; }
     .text-brand-500 { color: var(--brand-primary); }
     body { font-family: 'Inter', sans-serif; }
   </style>
+
   <script>
     (function() {
-      const _themes = {
-        lavender:   '#9D60FF', // ✓ your main
-  periwinkle: '#7C74FF', // ✓ your secondary
-  ink:        '#1E1B4B', // near-black with purple soul — not generic black
-  tangerine:  '#FF6B35', // punchy orange, social-media native
-  crimson:    '#E6274A', // notification red, urgent and warm
-  emerald:    '#00C17C', // the green of live indicators and success states
-  amber:      '#F59E0B', // golden, warm, readable
-  sky:        '#0EA5E9', // the blue of links and mentions
+      const themes = {
+        lavender:   '#9D60FF',
+        periwinkle: '#7C74FF',
+        ink:        '#1E1B4B',
+        tangerine:  '#FF6B35',
+        crimson:    '#E6274A',
+        emerald:    '#00C17C',
+        amber:      '#F59E0B',
+        sky:        '#0EA5E9',
       };
       const _theme = localStorage.getItem('selected_theme') || 'lavender';
-      document.documentElement.style.setProperty('--brand-primary', _themes[_theme] || _themes.lavender);
+      const selectedColor = themes[_theme] || themes.lavender;
+
+      // Apply to CSS variable
+      document.documentElement.style.setProperty('--brand-primary', selectedColor);
+      
+      // Apply to Status Bar (The "Hue")
+      // We use document.querySelector in case the ID isn't rendered yet
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', selectedColor);
     })();
   </script>
   
