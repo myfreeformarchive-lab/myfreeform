@@ -3942,7 +3942,10 @@ function applyTheme(colorKey) {
     updateThemeSelectionUI(colorKey);
 }
 
+let currentFaviconColor = null;
+
 function updateFavicon(primaryColor) {
+	if (primaryColor === currentFaviconColor) return;
     // We keep your EXACT styling: 16x16, 2px padding, and 4px radius
     const svgString = `
         <svg 
@@ -3970,6 +3973,7 @@ function updateFavicon(primaryColor) {
     // Update the link tag
     if (link) {
         link.href = `data:image/svg+xml;base64,${encodedSvg}#${primaryColor.replace('#','')}`;
+		currentFaviconColor = primaryColor;
     } else {
         console.warn("Favicon link not found during live update.");
     }
