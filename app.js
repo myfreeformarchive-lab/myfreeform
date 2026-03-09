@@ -3968,15 +3968,19 @@ function updateFavicon(primaryColor) {
 
     // Convert to Base64 (Safer for Chrome/Windows)
     const encodedSvg = btoa(svgString);
-	const link = document.querySelector('link[type="image/svg+xml"]');
-
-    // Update the link tag
-    if (link) {
-        link.href = `data:image/svg+xml;base64,${encodedSvg}#${primaryColor.replace('#','')}`;
-		currentFaviconColor = primaryColor;
-    } else {
-        console.warn("Favicon link not found during live update.");
-    }
+	
+	const oldLink = document.querySelector('link[rel="icon"]');
+    if (oldLink) oldLink.remove();
+	
+	// ✅ CREATE and APPEND a fresh link element
+    const newLink = document.createElement('link');
+    newLink.rel = 'icon';
+    newLink.type = 'image/svg+xml';
+    newLink.href = `data:image/svg+xml;base64,${encodedSvg}`;
+    document.head.appendChild(newLink);
+	
+	currentFaviconColor = primaryColor;
+    console.log(`%c Favicon Updated: ${primaryColor}`, `color:${primaryColor};font-weight:bold;background:#222;padding:2px 5px;border-radius:3px;`);
 }
 
 // 4. Build Theme Grid UI
