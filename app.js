@@ -1211,19 +1211,16 @@ function applyFontPreference(font) {
 }
 
 function switchTab(tab) {
+	console.log(`[switchTab] called with tab="${tab}"`);
 	history.scrollRestoration = 'manual';
   if (currentTab === tab) return;
   
   currentTab = tab;  // ← lock immediately, prevents double fire
   
-  console.log(`[DEBUG] switchTab initiated to: ${tab}. Current counter: ${window.pendingPostUpdates}`);
-  
-  // 🕵️‍♂️ MOVE THE LOGS HERE (Before the 300ms waitf)
-  console.log(`[DEBUG] switchTab initiated to: ${tab}. Current counter: ${window.pendingPostUpdates}`);
-  
   if (activePostListeners && activePostListeners.size > 0) {
-      console.log(`[DEBUG] Immediate cleanup of ${activePostListeners.size} listeners...`);
+	  console.log(`[DEBUG] Immediate cleanup of ${activePostListeners.size} listeners...`);
       activePostListeners.forEach((unsubscribe, id) => {
+		  console.log(`[activePostListeners.forEach] calling unsubscribe for id="${id}"`);
           unsubscribe(); // This should now trigger your "State was: ......" logs immediately
       });
       activePostListeners.clear();
@@ -1237,19 +1234,30 @@ function switchTab(tab) {
 
   DOM.list.style.transition = 'transform 0.3s ease, opacity 0.3s ease'; // Restore transitions
   DOM.list.style.opacity = '0';
+  console.log(`[switchTab] hiding DOM.list (opacity → 0)`);
   DOM.list.style.transform = tab === 'public' ? 'translateX(0px)' : 'translateX(0px)';
 
   setTimeout(() => {
+	  console.log(`[switchTab > setTimeout] fired for tab="${tab}"`);
     localStorage.setItem('freeform_tab_pref', tab);
     currentLimit = BATCH_SIZE;
+	console.log(`[switchTab > setTimeout] calling updateTabClasses()`);
     updateTabClasses();
+	console.log(`[switchTab > setTimeout] calling loadFeed()`);
     loadFeed();
-    if (tab === 'public') setupInfiniteScroll();
+    if (tab === 'public') {
+            console.log(`[switchTab > setTimeout] calling setupInfiniteScroll()`);
+            setupInfiniteScroll();
+        }
     requestAnimationFrame(() => {
+		console.log(`[switchTab > requestAnimationFrame] restoring DOM.list visibility (opacity → 1)`);
       DOM.list.style.opacity = '1'; 
       DOM.list.style.transform = 'translateX(0)'; 
 	  window.scrollTo({ top: 0, behavior: 'instant' });
-      setTimeout(refreshSnap, 100); 
+      setTimeout(() => {
+                console.log(`[switchTab > requestAnimationFrame > setTimeout] calling refreshSnap()`);
+                refreshSnap();
+            }, 100); 
     });
 
   }, 300); 
