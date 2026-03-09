@@ -148,14 +148,14 @@
 
     // ✅ ADD HERE
 const themes = {
-  lavender:   '#9D60FF', // purple ✓
-  periwinkle: '#7C74FF', // blue-purple ✓
-  tangerine:  '#FF9D60', // warm orange
-  lime:       '#C2FF60', // yellow-green
-  salmon:     '#FF7B74', // soft red-pink
-  lemon:      '#F8FF74', // bright yellow
-  sky:        '#60C2FF', // light blue
-  rose:       '#FF60A0', // pink
+  lavender:   '#9D60FF', // ✓ your main
+  periwinkle: '#7C74FF', // ✓ your secondary
+  ink:        '#1E1B4B', // near-black with purple soul — not generic black
+  tangerine:  '#FF6B35', // punchy orange, social-media native
+  crimson:    '#E6274A', // notification red, urgent and warm
+  emerald:    '#00C17C', // the green of live indicators and success states
+  amber:      '#F59E0B', // golden, warm, readable
+  sky:        '#0EA5E9', // the blue of links and mentions
 };
     const _theme = localStorage.getItem('selected_theme') || 'lavender';
 document.documentElement.style.setProperty('--brand-primary', _themes[_theme] || _themes.lavender);
