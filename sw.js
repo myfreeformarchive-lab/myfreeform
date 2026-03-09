@@ -1,5 +1,5 @@
-const CACHE_NAME = 'site-cache-2026-3-3';
-const NUKE_VERSION = 'nuke-v1'; // ← bump this ONLY when you need to wipe users again
+const CACHE_NAME = 'site-cache-2026-3-4';
+const NUKE_VERSION = 'nuke-v2'; // ← bump this ONLY when you need to wipe users again
 const NUKE_FLAG_KEY = 'nuke-applied';
 
 self.addEventListener('install', event => {
@@ -33,6 +33,18 @@ self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET' || new URL(event.request.url).origin !== location.origin) {
         return;
     }
+	
+	// ✅ Never cache favicons — the page manages these dynamically via canvas
+    const path = new URL(event.request.url).pathname;
+    if (
+        path.includes('favicon') ||
+        path.match(/icon.*\.(png|svg|ico)$/i) ||
+        path.includes('apple-touch-icon')
+    ) {
+        event.respondWith(fetch(event.request).catch(() => new Response('', { status: 404 })));
+        return;
+    }
+	
     event.respondWith(
         caches.match(event.request).then(cachedResp => {
             if (cachedResp) {
