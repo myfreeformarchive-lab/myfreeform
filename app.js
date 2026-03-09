@@ -3406,8 +3406,8 @@ function openModal(post) {
         }
 
 div.innerHTML = `
+  <span class="text-[11px] font-semibold text-gray-400 mb-1 ml-1 block">${authorDisplay}</span>
   <div class="bg-gray-100 px-4 py-2.5 rounded-2xl rounded-tl-none max-w-[90%]">
-    <span class="text-[11px] font-semibold text-gray-500 mb-1 block">${authorDisplay}</span>
     <p class="text-[15px] text-gray-800 leading-snug break-words font-sans">${renderSmartText(c.text)}</p>
   </div>
   <div class="flex items-center gap-1.5 mt-1 ml-1">
