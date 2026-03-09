@@ -10,7 +10,7 @@
 
 :root {
   /* This is the master switch. Changing this via JS updates everything else. */
-  --brand-primary: #3f51b5; 
+  --brand-primary: #9D60FF;
 
   /* Logic to calculate shades based on the master switch */
   --brand-50:  color-mix(in srgb, var(--brand-primary), white 92%);
