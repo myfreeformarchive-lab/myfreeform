@@ -3965,7 +3965,7 @@ function updateFavicon(primaryColor) {
 
     // Convert to Base64 (Safer for Chrome/Windows)
     const encodedSvg = btoa(svgString);
-	const link = document.querySelector('link[type="image/svg+xml"]');const link = document.querySelector('link[type="image/svg+xml"]');
+	const link = document.querySelector('link[type="image/svg+xml"]');
 
     // Update the link tag
     if (link) {
