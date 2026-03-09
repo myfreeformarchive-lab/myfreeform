@@ -3986,18 +3986,7 @@ function updateFavicon(primaryColor) {
 let currentFaviconColor = null;
 
 function updateFavicon(primaryColor) {
-    console.group(`%c 🎨 updateFavicon("${primaryColor}")`, `color:${primaryColor};font-weight:bold;background:#111;padding:2px 6px;border-radius:3px;`);
-
-    if (primaryColor === currentFaviconColor) {
-        console.log('↩️ Skipped — same color as current:', currentFaviconColor);
-        console.groupEnd(); return;
-    }
-    console.log('Previous color was:', currentFaviconColor);
-
-    // Log what icon links exist RIGHT NOW before we touch anything
-    const existing = document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]');
-    console.log(`Found ${existing.length} icon link(s) before update:`);
-    existing.forEach((l, i) => console.log(`  [${i}]`, l.outerHTML));
+    if (primaryColor === currentFaviconColor) return;
 
     const size = 32, r = 7;
     const canvas = document.createElement('canvas');
@@ -4016,25 +4005,18 @@ function updateFavicon(primaryColor) {
     ctx.fillStyle = '#F5F0FF';
     ctx.beginPath(); ctx.arc(ox+9*sc, oy+11*sc, 1, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(ox+15*sc, oy+11*sc, 1, 0, Math.PI*2); ctx.fill();
-    const pngDataUrl = canvas.toDataURL('image/png');
-    console.log('Canvas PNG generated, length:', pngDataUrl.length);
 
-    document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]').forEach(l => {
-        console.log('Removing:', l.outerHTML);
-        l.remove();
-    });
-
-    const newLink = document.createElement('link');
-    newLink.rel = 'icon'; newLink.type = 'image/png'; newLink.href = pngDataUrl;
-    document.head.appendChild(newLink);
-    console.log('%c ✅ Injected new link:', 'color:#00C17C;font-weight:bold;', newLink.outerHTML.slice(0, 80) + '...');
-
-    // Verify it actually landed in the DOM
-    const check = document.querySelector('link[rel="icon"]');
-    console.log('DOM check after insert:', check ? '✅ found' : '❌ NOT FOUND', check?.type, check?.href?.slice(0, 40));
+    // ✅ Update in place — no remove, no re-append, no DOM thrash
+    let link = document.querySelector('link[rel="icon"]');
+    if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        link.type = 'image/png';
+        document.head.appendChild(link);
+    }
+    link.href = canvas.toDataURL('image/png');
 
     currentFaviconColor = primaryColor;
-    console.groupEnd();
 }
 
 // 4. Build Theme Grid UI
