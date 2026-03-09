@@ -3934,9 +3934,11 @@ function applyTheme(colorKey) {
 	updateFavicon(primaryColor);
     
     // Save preference
+	console.log(`%c 💾 Storage: Saved '${colorKey}' to localStorage`, "color: #888; font-style: italic;");
     localStorage.setItem('selected_theme', colorKey);
     
     // Optional: Visual feedback for the active button
+	console.log(`%c ✨ UI: Feedback updated for button [${colorKey}]`, "color: #00C17C; font-weight: bold;");
     updateThemeSelectionUI(colorKey);
 }
 
