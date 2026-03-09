@@ -91,7 +91,7 @@
   src: url('fonts/dancing-script-v29-latin-700.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
 }
 
-@theme {
+@theme inline {
   /* Fonts remain static as they don't change with the color theme */
   --font-sans: "Inter", ui-sans-serif, system-ui;
   --font-serif: "Playfair Display", ui-serif, Georgia;
