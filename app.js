@@ -3942,67 +3942,99 @@ function applyTheme(colorKey) {
     updateThemeSelectionUI(colorKey);
 }
 
+/* let currentFaviconColor = null;
+
+function updateFavicon(primaryColor) {
+	if (primaryColor === currentFaviconColor) return;
+    // We keep your EXACT styling: 16x16, 2px padding, and 4px radius
+    const svgString = `
+        <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="1 -2 24 24" 
+            fill="none" 
+            stroke="#F5F0FF" 
+            stroke-width="2" 
+            stroke-linecap="round" 
+            stroke-linejoin="round" 
+            style="width: 16px; height: 16px; background: ${primaryColor}; border-radius: 4px; padding: 2px;"
+        >
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-14h1.4c2 0 4 2 4 4v2"/>
+            <path d="M9 11l.01 0"/>
+            <path d="M15 11l.01 0"/>
+        </svg>
+    `.trim();
+	
+	console.log(`%c Favicon Updated: ${primaryColor}`, `color: ${primaryColor}; font-weight: bold; background: #222; padding: 2px 5px; border-radius: 3px;`);
+
+    // Convert to Base64 (Safer for Chrome/Windows)
+    const encodedSvg = btoa(svgString);
+	
+	const oldLink = document.querySelector('link[rel="icon"]');
+    if (oldLink) oldLink.remove();
+	
+	// ✅ CREATE and APPEND a fresh link element
+    const newLink = document.createElement('link');
+    newLink.rel = 'icon';
+    newLink.type = 'image/svg+xml';
+    newLink.href = `data:image/svg+xml;base64,${encodedSvg}`;
+    document.head.appendChild(newLink);
+	
+	currentFaviconColor = primaryColor;
+    console.log(`%c Favicon Updated: ${primaryColor}`, `color:${primaryColor};font-weight:bold;background:#222;padding:2px 5px;border-radius:3px;`);
+} */
+
 let currentFaviconColor = null;
 
 function updateFavicon(primaryColor) {
-    if (primaryColor === currentFaviconColor) return;
+    console.group(`%c 🎨 updateFavicon("${primaryColor}")`, `color:${primaryColor};font-weight:bold;background:#111;padding:2px 6px;border-radius:3px;`);
 
-    const size = 32;
+    if (primaryColor === currentFaviconColor) {
+        console.log('↩️ Skipped — same color as current:', currentFaviconColor);
+        console.groupEnd(); return;
+    }
+    console.log('Previous color was:', currentFaviconColor);
+
+    // Log what icon links exist RIGHT NOW before we touch anything
+    const existing = document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]');
+    console.log(`Found ${existing.length} icon link(s) before update:`);
+    existing.forEach((l, i) => console.log(`  [${i}]`, l.outerHTML));
+
+    const size = 32, r = 7;
     const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
+    canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
-
-    // Rounded rect background
-    const r = 7;
     ctx.fillStyle = primaryColor;
     ctx.beginPath();
-    ctx.moveTo(r, 0);
-    ctx.arcTo(size, 0, size, size, r);
-    ctx.arcTo(size, size, 0, size, r);
-    ctx.arcTo(0, size, 0, 0, r);
-    ctx.arcTo(0, 0, size, 0, r);
-    ctx.closePath();
-    ctx.fill();
-
-    // Draw chat bubble icon (scaled from 24px viewBox → 32px canvas, ~4px padding)
-    const scale = 20 / 24;
-    const ox = 5, oy = 4; // offset to center
-    ctx.strokeStyle = '#F5F0FF';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    // Main bubble path: M21 11.5a8.38 ... (simplified as ellipse + tail)
+    ctx.moveTo(r,0); ctx.arcTo(size,0,size,size,r);
+    ctx.arcTo(size,size,0,size,r); ctx.arcTo(0,size,0,0,r);
+    ctx.arcTo(0,0,size,0,r); ctx.closePath(); ctx.fill();
+    const sc = 20/24, ox = 5, oy = 4;
+    ctx.strokeStyle = '#F5F0FF'; ctx.lineWidth = 2;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     ctx.beginPath();
-    ctx.ellipse(ox + 11 * scale, oy + 11 * scale, 8.5 * scale, 7 * scale, 0, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Left dot
-    ctx.beginPath();
-    ctx.arc(ox + 9 * scale, oy + 11 * scale, 1, 0, Math.PI * 2);
+    ctx.ellipse(ox+11*sc, oy+11*sc, 8.5*sc, 7*sc, 0, 0, Math.PI*2); ctx.stroke();
     ctx.fillStyle = '#F5F0FF';
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(ox+9*sc, oy+11*sc, 1, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ox+15*sc, oy+11*sc, 1, 0, Math.PI*2); ctx.fill();
+    const pngDataUrl = canvas.toDataURL('image/png');
+    console.log('Canvas PNG generated, length:', pngDataUrl.length);
 
-    // Right dot
-    ctx.beginPath();
-    ctx.arc(ox + 15 * scale, oy + 11 * scale, 1, 0, Math.PI * 2);
-    ctx.fill();
+    document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]').forEach(l => {
+        console.log('Removing:', l.outerHTML);
+        l.remove();
+    });
 
-    // Push the new favicon
-    const dataUrl = canvas.toDataURL('image/png');
+    const newLink = document.createElement('link');
+    newLink.rel = 'icon'; newLink.type = 'image/png'; newLink.href = pngDataUrl;
+    document.head.appendChild(newLink);
+    console.log('%c ✅ Injected new link:', 'color:#00C17C;font-weight:bold;', newLink.outerHTML.slice(0, 80) + '...');
 
-    // Remove ALL existing icon links — browsers can hold multiple
-    document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]').forEach(l => l.remove());
-
-    const link = document.createElement('link');
-    link.rel = 'icon';
-    link.type = 'image/png';
-    link.href = dataUrl;
-    document.head.appendChild(link);
+    // Verify it actually landed in the DOM
+    const check = document.querySelector('link[rel="icon"]');
+    console.log('DOM check after insert:', check ? '✅ found' : '❌ NOT FOUND', check?.type, check?.href?.slice(0, 40));
 
     currentFaviconColor = primaryColor;
-    console.log(`%c 🎨 Favicon updated: ${primaryColor}`, `color:${primaryColor};font-weight:bold;background:#111;padding:2px 6px;border-radius:3px;`);
+    console.groupEnd();
 }
 
 // 4. Build Theme Grid UI
