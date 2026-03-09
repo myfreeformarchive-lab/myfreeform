@@ -3905,14 +3905,14 @@ function updateThemeSelectionUI(activeKey) {
 
 // 2. Theme Definitions (Using your Indigo as the base)
 const themes = {
-    indigo: '#3f51b5',
-    rose:   '#e11d48',
-    emerald:'#059669',
-    amber:  '#d97706',
-    violet: '#7c3aed',
-    slate:  '#475569',
-    sky:    '#0ea5e9',
-    orange: '#ea580c'
+  lavender: '#9D60FF', // already in
+  periwinkle: '#7C74FF', // already in
+  coral:    '#FF6B6B', // warm, friendly, universally inviting
+  berry:    '#BE185D', // deep pink-red, rich and warm without being aggressive
+  honey:    '#D4890A', // amber cleaned up — golden, cozy, trustworthy
+  mauve:    '#C4748C', // dusty rose, warm and soft, great for subtle shadows
+  teal:     '#0D9488', // the one cool tone but reads warm in context
+  clay:     '#C1440E', // terracotta-adjacent, earthy and human
 };
 
 // 3. Apply Theme Function
