@@ -2355,6 +2355,7 @@ window.deleteConversation = function(event, roomId) {
             
             // Perform Deletion
             localStorage.removeItem(roomId);
+			window.clearUnread(roomId);
 
             // Clear active view if it's the same room
             const container = document.getElementById('dmMessagesContainer');
