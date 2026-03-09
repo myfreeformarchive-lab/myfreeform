@@ -163,10 +163,17 @@
       sky:        '#0EA5E9',
     };
 	
-	const link = document.querySelector("link[rel*='icon']");
+	const link = document.querySelector('link[type="image/svg+xml"]');
     if (link) {
       // LOG: What color/file is the link giving us RIGHT NOW?
       console.log("%c 🚀 Initial Icon:", "color: #9D60FF; font-weight: bold;", link.getAttribute('href'));
+    }
+	
+	if (!link) {
+        console.error("%c ❌ Error: Favicon link tag not found in DOM yet!", "color: white; background: red; font-weight: bold; padding: 2px 5px;");
+        console.log("Check if your <link rel='icon' ...> is located AFTER this script tag in your index.html.");
+    } else {
+        console.log("%c 🚀 Initial Icon:", "color: #9D60FF; font-weight: bold;", link.getAttribute('href'));
     }
 
     // 1. Get the saved theme name
