@@ -162,6 +162,12 @@
       amber:      '#F59E0B',
       sky:        '#0EA5E9',
     };
+	
+	const link = document.querySelector("link[rel*='icon']");
+    if (link) {
+      // LOG: What color/file is the link giving us RIGHT NOW?
+      console.log("%c 🚀 Initial Icon:", "color: #9D60FF; font-weight: bold;", link.getAttribute('href'));
+    }
 
     // 1. Get the saved theme name
     const _theme = localStorage.getItem('selected_theme') || 'lavender';
@@ -185,9 +191,12 @@
     `.trim();
 
     const encodedSvg = btoa(svgString);
-    const link = document.querySelector("link[rel*='icon']");
     if (link) {
-        link.href = `data:image/svg+xml;base64,${encodedSvg}`;
+        // Apply the new color + the cache-busting fragment
+        link.href = `data:image/svg+xml;base64,${encodedSvg}#${selectedColor.replace('#','')}`;
+        
+        // LOG: Confirm the swap happened
+        console.log("%c 🔄 Updated Icon:", `color: ${selectedColor}; font-weight: bold;`, link.href);
     }
 
   })();
