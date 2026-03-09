@@ -3930,12 +3930,44 @@ function applyTheme(colorKey) {
     if (metaTag) {
         metaTag.setAttribute('content', primaryColor);
     }
+	
+	updateFavicon(primaryColor);
     
     // Save preference
     localStorage.setItem('selected_theme', colorKey);
     
     // Optional: Visual feedback for the active button
     updateThemeSelectionUI(colorKey);
+}
+
+function updateFavicon(primaryColor) {
+    // We keep your EXACT styling: 16x16, 2px padding, and 4px radius
+    const svgString = `
+        <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="1 -2 24 24" 
+            fill="none" 
+            stroke="#F5F0FF" 
+            stroke-width="2" 
+            stroke-linecap="round" 
+            stroke-linejoin="round" 
+            style="width: 16px; height: 16px; background: ${primaryColor}; border-radius: 4px; padding: 2px;"
+        >
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-14h1.4c2 0 4 2 4 4v2"/>
+            <path d="M9 11l.01 0"/>
+            <path d="M15 11l.01 0"/>
+        </svg>
+    `.trim();
+
+    // Convert to Base64 (Safer for Chrome/Windows)
+    const encodedSvg = btoa(svgString);
+    const faviconUrl = `data:image/svg+xml;base64,${encodedSvg}`;
+
+    // Update the link tag
+    const link = document.querySelector("link[rel*='icon']");
+    if (link) {
+        link.href = faviconUrl;
+    }
 }
 
 // 4. Build Theme Grid UI
