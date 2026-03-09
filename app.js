@@ -3903,16 +3903,16 @@ function updateThemeSelectionUI(activeKey) {
     });
 }
 
-// 2. Theme Definitions (Using your Indigo as the base)
+// 2. Theme Definitions (Using your Lavender as the base)
 const themes = {
-  lavender: '#9D60FF', // purple 
-  periwinkle: '#7C74FF', // blue 
-  coral:    '#FF6BD6', // 
-  berry:    '#FF8E5E', // 
-  honey:    '#F4D03F', // 
-  mauve:    '#2EE59D', // 
-  teal:     '#00D4FF', // 
-  clay:     '#D966FF', // 
+  lavender:   '#9D60FF', // purple ✓
+  periwinkle: '#7C74FF', // blue-purple ✓
+  tangerine:  '#FF9D60', // warm orange
+  lime:       '#C2FF60', // yellow-green
+  salmon:     '#FF7B74', // soft red-pink
+  lemon:      '#F8FF74', // bright yellow
+  sky:        '#60C2FF', // light blue
+  rose:       '#FF60A0', // pink
 };
 
 // 3. Apply Theme Function
@@ -3955,7 +3955,7 @@ function initProfileAndTheme() {
     setupProfile();
     renderThemeGrid();
     
-    const savedTheme = localStorage.getItem('selected_theme') || 'indigo';
+    const savedTheme = localStorage.getItem('selected_theme') || 'lavender';
     applyTheme(savedTheme);
 }
 
