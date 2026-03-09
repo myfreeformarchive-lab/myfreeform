@@ -3903,10 +3903,10 @@ function updateThemeSelectionUI(activeKey) {
     });
 }
 
-// 2. Theme Definitions (Using your Lavender as the base)
+// 2. Theme Definitions
 const themes = {
-  lavender:   '#9D60FF', // purple ✓
-  periwinkle: '#7C74FF', // blue-purple ✓
+  lavender:   '#9D60FF', // purple 
+  periwinkle: '#7C74FF', // blue-purple 
   tangerine:  '#FF9D60', // warm orange
   lime:       '#C2FF60', // yellow-green
   salmon:     '#FF7B74', // soft red-pink
