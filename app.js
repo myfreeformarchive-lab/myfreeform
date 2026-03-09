@@ -2713,11 +2713,11 @@ async function handleBruteForce() {
   }
 }
 
-function refreshSnap() {
-  const scroller = window; 
-  scroller.scrollBy(0, 1);
-  scroller.scrollBy(0, -1);
-}
+//function refreshSnap() // {
+ // const scroller = window; 
+ // scroller.scrollBy(0, 1);
+ // scroller.scrollBy(0, -1);
+//}
 
 // ==========================================
 // ENHANCED SHARE MENU LOGIC (with Priority)
