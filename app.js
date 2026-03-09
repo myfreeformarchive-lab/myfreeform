@@ -3958,15 +3958,16 @@ function updateFavicon(primaryColor) {
             <path d="M15 11l.01 0"/>
         </svg>
     `.trim();
+	
+	console.log(`%c Favicon Updated: ${primaryColor}`, `color: ${primaryColor}; font-weight: bold; background: #222; padding: 2px 5px; border-radius: 3px;`);
 
     // Convert to Base64 (Safer for Chrome/Windows)
     const encodedSvg = btoa(svgString);
-    const faviconUrl = `data:image/svg+xml;base64,${encodedSvg}`;
 
     // Update the link tag
     const link = document.querySelector("link[rel*='icon']");
     if (link) {
-        link.href = faviconUrl;
+        link.href = `data:image/svg+xml;base64,${encodedSvg}#${primaryColor.replace('#','')}`;
     }
 }
 
