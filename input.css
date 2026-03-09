@@ -9,7 +9,7 @@
 @tailwind utilities;
 
 :root {
-  /* This is the master switch. Changing this via JS updates everything else. */
+  /* This is the master switch. Changing this via JS updates everything elsee. */
   --brand-primary: #9D60FF;
 
   /* Logic to calculate shades based on the master switch */
