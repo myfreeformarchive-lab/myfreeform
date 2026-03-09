@@ -91,7 +91,7 @@
   <link rel="preload" href="fonts/inter-v20-latin-regular.woff2" as="font" type="font/woff2" crossorigin>
   
      <!-- Favicon and app icons -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg"> 
+ <!-- <link rel="icon" type="image/svg+xml" href="favicon.svg"> -->
   <link rel="icon" type="image/png" sizes="16x16" href="icon_2-16.png">
   <link rel="icon" type="image/png" sizes="32x32" href="icon_2-32.png">
   <link rel="icon" type="image/png" sizes="48x48" href="icon-48_2.png">
@@ -148,64 +148,48 @@
   })();
 </script>
   
-  <script>
+<script>
   (function() {
     history.scrollRestoration = 'manual';
-
     const themes = {
-      lavender:   '#9D60FF',
-      periwinkle: '#7C74FF',
-      ink:        '#1E1B4B',
-      tangerine:  '#FF6B35',
-      crimson:    '#E6274A',
-      emerald:    '#00C17C',
-      amber:      '#F59E0B',
-      sky:        '#0EA5E9',
+      lavender: '#9D60FF', periwinkle: '#7C74FF', ink: '#1E1B4B',
+      tangerine: '#FF6B35', crimson: '#E6274A', emerald: '#00C17C',
+      amber: '#F59E0B', sky: '#0EA5E9',
     };
-	
-	const link = document.querySelector('link[type="image/svg+xml"]');
-    if (link) {
-      // LOG: What color/file is the link giving us RIGHT NOW?
-      console.log("%c 🚀 Initial Icon:", "color: #9D60FF; font-weight: bold;", link.getAttribute('href'));
-    }
-	
-	if (!link) {
-        console.error("%c ❌ Error: Favicon link tag not found in DOM yet!", "color: white; background: red; font-weight: bold; padding: 2px 5px;");
-        console.log("Check if your <link rel='icon' ...> is located AFTER this script tag in your index.html.");
-    } else {
-        console.log("%c 🚀 Initial Icon:", "color: #9D60FF; font-weight: bold;", link.getAttribute('href'));
-    }
 
-    // 1. Get the saved theme name
     const _theme = localStorage.getItem('selected_theme') || 'lavender';
-    // 2. Get the actual hex color (using the corrected 'themes' object name)
-    const selectedColor = themes[_theme] || themes.lavender;
+    const color = themes[_theme] || themes.lavender;
 
-    // 3. Apply to CSS Variable
-    document.documentElement.style.setProperty('--brand-primary', selectedColor);
+    // Apply CSS var + status bar
+    document.documentElement.style.setProperty('--brand-primary', color);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', color);
 
-    // 4. Apply to Status Bar / Title Bar
-    const metaTag = document.querySelector('meta[name="theme-color"]');
-    if (metaTag) {
-      metaTag.setAttribute('content', selectedColor);
-    }
-	const svgString = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="1 -2 24 24" fill="none" stroke="#F5F0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; background: ${selectedColor}; border-radius: 4px; padding: 2px;">
-            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-14h1.4c2 0 4 2 4 4v2"/>
-            <path d="M9 11l.01 0"/>
-            <path d="M15 11l.01 0"/>
-        </svg>
-    `.trim();
+    // ✅ Canvas favicon — works on page load AND live updates
+    const size = 32, r = 7;
+    const canvas = document.createElement('canvas');
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(r,0); ctx.arcTo(size,0,size,size,r);
+    ctx.arcTo(size,size,0,size,r); ctx.arcTo(0,size,0,0,r);
+    ctx.arcTo(0,0,size,0,r); ctx.closePath(); ctx.fill();
+    const sc = 20/24, ox = 5, oy = 4;
+    ctx.strokeStyle = '#F5F0FF'; ctx.lineWidth = 2;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.ellipse(ox+11*sc, oy+11*sc, 8.5*sc, 7*sc, 0, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.fillStyle = '#F5F0FF';
+    ctx.beginPath(); ctx.arc(ox+9*sc, oy+11*sc, 1, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ox+15*sc, oy+11*sc, 1, 0, Math.PI*2); ctx.fill();
 
-    const encodedSvg = btoa(svgString);
-    if (link) {
-        // Apply the new color + the cache-busting fragment
-        link.href = `data:image/svg+xml;base64,${encodedSvg}#${selectedColor.replace('#','')}`;
-        
-        // LOG: Confirm the swap happened
-        console.log("%c 🔄 Updated Icon:", `color: ${selectedColor}; font-weight: bold;`, link.href);
-    }
-
+    document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"]').forEach(l => l.remove());
+    const lnk = document.createElement('link');
+    lnk.rel = 'icon'; lnk.type = 'image/png';
+    lnk.href = canvas.toDataURL('image/png');
+    document.head.appendChild(lnk);
   })();
 </script>
 
