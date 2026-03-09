@@ -1689,7 +1689,7 @@ function createPostNode(item) {
   el.id = `post-${item.id}`;
   el.setAttribute('data-id', item.id);
   const cursorClass = item.isFirebase ? "" : "cursor-pointer";
-  el.className = `feed-item block w-full bg-white px-4 py-3 mb-4 pb-6 border-b border-slate-100 lg:border-b-[1px] lg:border-slate-300 relative transition-colors ${cursorClass}`;
+  el.className = `feed-item block w-full bg-white px-4 py-3 mb-4 pb-6 border-b border-slate-100 lg:border-b-[1px] lg:border-slate-200 relative transition-colors ${cursorClass}`;
 
   const time = getRelativeTime(item.createdAt);
   const fontClass = item.font || 'font-sans'; 
@@ -2508,7 +2508,7 @@ function renderListItems(items) {
 	  
 	  if (currentTab === 'private') {
     DOM.list.innerHTML = `
-      <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]"
+      <div class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-200 rounded-xl mx-auto max-w-[95%]"
            style="scroll-snap-align: start; scroll-margin-top: calc(112px + 24px); min-height: calc(100vh - 418px);">
         <div class="mb-4 text-slate-300">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
@@ -2598,7 +2598,7 @@ function showPublicPlaceholder(type) {
   let html = '';
   if (type === 'empty') {
     html = `
-      <div id="public-placeholder" class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-300 rounded-xl mx-auto max-w-[95%]" style="min-height: calc(100vh - 418px);">
+      <div id="public-placeholder" class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-200 rounded-xl mx-auto max-w-[95%]" style="min-height: calc(100vh - 418px);">
         <div class="mb-4 text-slate-300 animate-pulse">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
             <path d="M10.39 6.23L7 9s.5 4 4 5c1 0 3-1 3-1l3.5-3.5S14 6 10.39 6.23z" />
