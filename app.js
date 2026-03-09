@@ -1522,6 +1522,7 @@ setTimeout(() => {
   writeCache({ posts: newItems, html: DOM.list.innerHTML });
   console.log(`[subscribePublicFeed] 💾 cache written with ${newItems.length} posts`);
 }
+    console.log(`[subscribePublicFeed] 🙈 hiding loadTrigger — isAppending: ${isAppending}, silent: ${silent}`);
     DOM.loadTrigger.style.visibility = 'hidden';
     const listenStartTime = Date.now();
     const myPostsQuery = query(collection(db, "globalPosts"), where("authorId", "==", MY_USER_ID));
