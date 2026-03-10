@@ -3930,83 +3930,12 @@ function applyTheme(colorKey) {
     if (metaTag) {
         metaTag.setAttribute('content', primaryColor);
     }
-	
-	updateFavicon(primaryColor);
     
     // Save preference
-	console.log(`%c 💾 Storage: Saved '${colorKey}' to localStorage`, "color: #888; font-style: italic;");
     localStorage.setItem('selected_theme', colorKey);
-    
     // Optional: Visual feedback for the active button
-	console.log(`%c ✨ UI: Feedback updated for button [${colorKey}]`, "color: #00C17C; font-weight: bold;");
     updateThemeSelectionUI(colorKey);
 }
-
-let currentFaviconColor = null;
-
-function updateFavicon(primaryColor) {
-	if (primaryColor === currentFaviconColor) return;
-    // We keep your EXACT styling: 16x16, 2px padding, and 4px radius
-    const svgString = `
-        <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            viewBox="1 -2 24 24" 
-            fill="none" 
-            stroke="#F5F0FF" 
-            stroke-width="2" 
-            stroke-linecap="round" 
-            stroke-linejoin="round" 
-            style="width: 16px; height: 16px; background: ${primaryColor}; border-radius: 4px; padding: 2px;"
-        >
-            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-14h1.4c2 0 4 2 4 4v2"/>
-            <path d="M9 11l.01 0"/>
-            <path d="M15 11l.01 0"/>
-        </svg>
-    `.trim();
-	
-	console.log(`%c Favicon Updated: ${primaryColor}`, `color: ${primaryColor}; font-weight: bold; background: #222; padding: 2px 5px; border-radius: 3px;`);
-
-    // Convert to Base64 (Safer for Chrome/Windows)
-    const encodedSvg = btoa(svgString);
-	
-	const oldLink = document.querySelector('link[rel="icon"]');
-    if (oldLink) oldLink.remove();
-	
-	// ✅ CREATE and APPEND a fresh link element
-    const newLink = document.createElement('link');
-    newLink.rel = 'icon';
-    newLink.type = 'image/svg+xml';
-    newLink.href = `data:image/svg+xml;base64,${encodedSvg}`;
-    document.head.appendChild(newLink);
-	
-	currentFaviconColor = primaryColor;
-    console.log(`%c Favicon Updated: ${primaryColor}`, `color:${primaryColor};font-weight:bold;background:#222;padding:2px 5px;border-radius:3px;`);
-}
-
-// 🔍 LOCALSTORAGE SPY — remove once diagnosed
-(function() {
-    const _setItem = localStorage.setItem.bind(localStorage);
-    const _getItem = localStorage.getItem.bind(localStorage);
-
-    localStorage.setItem = function(key, value) {
-        if (key === 'selected_theme') {
-            console.log(`%c 💾 localStorage.setItem('${key}', '${value}')`, 'color: #F59E0B; font-weight: bold; background: #111; padding: 2px 6px;');
-            console.trace('^ set from here');
-        }
-        return _setItem(key, value);
-    };
-
-    localStorage.getItem = function(key) {
-        const value = _getItem(key);
-        if (key === 'selected_theme') {
-            console.log(`%c 📖 localStorage.getItem('${key}') → '${value}'`, 'color: #0EA5E9; font-weight: bold; background: #111; padding: 2px 6px;');
-            console.trace('^ read from here');
-        }
-        return value;
-    };
-
-    console.log('%c 👁️ localStorage spy active for selected_theme', 'color: #888; font-style: italic;');
-})();
 
 // 4. Build Theme Grid UI
 function renderThemeGrid() {
