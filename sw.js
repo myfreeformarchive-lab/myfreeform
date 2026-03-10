@@ -73,10 +73,8 @@ self.addEventListener('fetch', event => {
 // --- PUSH NOTIFICATION HANDLER ---
 self.addEventListener('push', (event) => {
     let data = { 
-        title: 'New Message', 
-        body: 'You have a new message.', 
-        senderId: 'Someone',
-        sound: '/sounds/notification.mp3' // Default fallback
+        title: 'New Notification', 
+        body: 'You have a new notification.'
     };
     
     if (event.data) {
@@ -87,23 +85,16 @@ self.addEventListener('push', (event) => {
         }
     }
 
-    const senderId = data.senderId || 'Someone';
-
     const options = {
         body: data.body,
         icon: data.icon || '/logo.png', 
         badge: data.badge || '/badge.png',
         vibrate: [100, 50, 100],
-        // 🛑 CRITICAL FIXES START HERE
-        sound: data.sound || '/sounds/notification.mp3', 
-        tag: data.tag || 'new-dm',
+        tag: data.tag || 'new-notification',
         renotify: data.renotify || true,
-        // 🛑 CRITICAL FIXES END HEREE
-        actions: data.actions || [{ action: 'open', title: 'Open Message' }],
+        actions: data.actions || [],
         data: {
-            // 🛑 THE FIX: Use the URL that the Edge Function already created
-            // If it fails for some reason, fallback to just the ID
-            url: data.data?.url || `/?open=chat&user=${senderId}`
+            url: data.data?.url || null
         }
     };
 
@@ -115,23 +106,31 @@ self.addEventListener('push', (event) => {
 // --- CLICK HANDLER ---
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
-    // Get the relative URL from the notification data
-    const path = event.notification.data.url;
-    // Construct the full URL based on where the service worker is running
-    const targetUrl = new URL(path, self.location.origin).href;
 
+    const path = event.notification.data?.url;
+
+    // If no URL (likes/comments have none for now), just focus the app
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // Try to find an existing tab and navigate it
+            if (!path) {
+                // Just focus existing tab if open
+                for (const client of windowClients) {
+                    if (new URL(client.url).origin === self.location.origin) {
+                        return client.focus();
+                    }
+                }
+                if (clients.openWindow) return clients.openWindow('/');
+                return;
+            }
+
+            // Message notification — navigate to chat
+            const targetUrl = new URL(path, self.location.origin).href;
             for (const client of windowClients) {
                 if (new URL(client.url).origin === self.location.origin) {
                     return client.navigate(targetUrl).then(c => c.focus());
                 }
             }
-            // If no tab is open, open a new one
-            if (clients.openWindow) {
-                return clients.openWindow(targetUrl);
-            }
+            if (clients.openWindow) return clients.openWindow(targetUrl);
         })
     );
 });
