@@ -3905,14 +3905,17 @@ function updateThemeSelectionUI(activeKey) {
 
 // 2. Theme Definitions
 const themes = {
-  lavender:   '#9D60FF', // ✓ your main
-  periwinkle: '#7C74FF', // ✓ your secondary
-  ink:        '#1E1B4B', // near-black with purple soul — not generic black
-  tangerine:  '#FF6B35', // punchy orange, social-media native
-  crimson:    '#E6274A', // notification red, urgent and warm
-  emerald:    '#00C17C', // the green of live indicators and success states
-  amber:      '#F59E0B', // golden, warm, readable
-  sky:        '#0EA5E9', // the blue of links and mentions
+  // ── BRAND (locked) ──────────────────
+  lavender:   '#9D60FF',  // brand
+  frost:      '#F5F0FF',  // brand light  
+  void:       '#0D0A1A',  // brand dark
+
+  // ── ANALOGOUS (same family, just quieter) ─
+  dusk:       '#7C6AE8',  // purple leaning blue  — cooler
+  bloom:      '#B96FD8',  // purple leaning pink  — warmer
+  slate:      '#4A3F6B',  // dark muted purple    — grounded
+  mist:       '#C8B8F0',  // light muted purple   — airy
+  mauve:      '#8B6E9A',  // grey-purple          — most silent
 };
 
 // 3. Apply Theme Function
