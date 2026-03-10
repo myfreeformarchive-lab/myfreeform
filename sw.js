@@ -86,17 +86,17 @@ self.addEventListener('push', (event) => {
     }
 
     const options = {
-        body: data.body, 
-		icon: data.icon || '/icon_2-512.png',
-        badge: data.badge || '/badge-96.png',
-        vibrate: [100, 50, 100],
-        tag: data.tag || 'new-notification',
-        renotify: data.renotify || true,
-        actions: data.actions || [],
-        data: {
-            url: data.data?.url || null
-        }
-    };
+    body: data.body, 
+    icon: data.icon || 'https://myfreeform.page/icon_2-512.png',
+    badge: data.badge || 'https://myfreeform.page/badge-96.png',
+    vibrate: [100, 50, 100],
+    tag: data.tag || 'new-notification',
+    renotify: data.renotify || true,
+    actions: data.actions || [],
+    data: {
+        url: data.data?.url || null
+    }
+};
 
     event.waitUntil(
         self.registration.showNotification(data.title, options)
