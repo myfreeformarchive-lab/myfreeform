@@ -30,45 +30,27 @@
     body { font-family: 'Inter', sans-serif; }
   </style>
 
-  <script>
-    (function() {
-      const themes = {
-        lavender:   '#9D60FF',
-        periwinkle: '#7C74FF',
-        ink:        '#1E1B4B',
-        tangerine:  '#FF6B35',
-        crimson:    '#E6274A',
-        emerald:    '#00C17C',
-        amber:      '#F59E0B',
-        sky:        '#0EA5E9',
-      };
-      const _theme = localStorage.getItem('selected_theme') || 'lavender';
-      const selectedColor = themes[_theme] || themes.lavender;
+<script>
+  (function() {
+    const themes = {
+      lavender:   '#9D60FF',
+      periwinkle: '#7C74FF',
+      ink:        '#1E1B4B',
+      tangerine:  '#FF6B35',
+      crimson:    '#E6274A',
+      emerald:    '#00C17C',
+      amber:      '#F59E0B',
+      sky:        '#0EA5E9',
+    };
+    const _theme = localStorage.getItem('selected_theme') || 'lavender';
+    const selectedColor = themes[_theme] || themes.lavender;
 
-      // Apply to CSS variable
-      document.documentElement.style.setProperty('--brand-primary', selectedColor);
-      
-      // Apply to Status Bar (The "Hue")
-      // We use document.querySelector in case the ID isn't rendered yet
-      const meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute('content', selectedColor);
-	  
-	  const svgString = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="1 -2 24 24" fill="none" stroke="#F5F0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; background: ${selectedColor}; border-radius: 4px; padding: 2px;">
-            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-14h1.4c2 0 4 2 4 4v2"/>
-            <path d="M9 11l.01 0"/>
-            <path d="M15 11l.01 0"/>
-        </svg>
-    `.trim();
+    document.documentElement.style.setProperty('--brand-primary', selectedColor);
 
-    const encodedSvg = btoa(svgString);
-    const link = document.querySelector("link[rel*='icon']");
-    if (link) {
-        link.href = `data:image/svg+xml;base64,${encodedSvg}`;
-    }
-	  
-    })();
-  </script>
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', selectedColor);
+  })();
+</script>
   
 </head>
 
