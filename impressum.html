@@ -33,17 +33,14 @@
 <script>
   (function() {
     const themes = {
-  // ── BRAND (locked) ──────────────────
   lavender:   '#9D60FF',  // brand
-  frost:      '#F5F0FF',  // brand light  
-  void:       '#0D0A1A',  // brand dark
-
-  // ── ANALOGOUS (same family, just quieter) ─
-  dusk:       '#7C6AE8',  // purple leaning blue  — cooler
-  bloom:      '#B96FD8',  // purple leaning pink  — warmer
-  slate:      '#4A3F6B',  // dark muted purple    — grounded
-  mist:       '#C8B8F0',  // light muted purple   — airy
-  mauve:      '#8B6E9A',  // grey-purple          — most silent
+  bright:     '#D4BCFF',  // soft pastel — the "light" 
+  deep:       '#2D1B69',  // rich dark   — the "dark"
+  dusk:       '#7C6AE8',  // purple leaning blue
+  bloom:      '#B96FD8',  // purple leaning pink
+  slate:      '#4A3F6B',  // muted, grounded
+  mist:       '#C8B8F0',  // airy, quiet
+  mauve:      '#8B6E9A',  // most silent
 };
     const _theme = localStorage.getItem('selected_theme') || 'lavender';
     const selectedColor = themes[_theme] || themes.lavender;
