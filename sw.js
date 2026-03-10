@@ -85,7 +85,7 @@ self.addEventListener('push', (event) => {
         }
     }
 
-    const options = {
+  const options = {
     body: data.body, 
     icon: data.icon || 'https://myfreeform.page/icon_2-512.png',
     badge: data.badge || 'https://myfreeform.page/badge-96.png',
@@ -93,6 +93,7 @@ self.addEventListener('push', (event) => {
     tag: data.tag || 'new-notification',
     renotify: data.renotify || true,
     actions: data.actions || [],
+    color: data.color || '#9D60FF',
     data: {
         url: data.data?.url || null
     }
