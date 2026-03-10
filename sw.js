@@ -86,8 +86,7 @@ self.addEventListener('push', (event) => {
     }
 
     const options = {
-        body: data.body,
-        icon: data.icon || '/logo.png', 
+        body: data.body, 
         badge: data.badge || '/badge.png',
         vibrate: [100, 50, 100],
         tag: data.tag || 'new-notification',
