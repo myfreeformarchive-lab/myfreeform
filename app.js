@@ -356,9 +356,7 @@ window.getThoughtBubbleSVG = getThoughtBubbleSVG;
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
 	
-	signInAnonymously(auth);
-	_supabase.auth.signInAnonymously();
-    
+	signInAnonymously(auth);    
 	onAuthStateChanged(auth, (user) => {
 		console.log('🔐 onAuthStateChanged fired');
   if (user && !feedLoaded) {
@@ -367,6 +365,11 @@ document.addEventListener('DOMContentLoaded', () => {
     loadFeed();
   }
 });
+
+const { data: { session } } = await _supabase.auth.getSession();
+if (!session) {
+  _supabase.auth.signInAnonymously(); // Supabase — only if no existing session
+}
 
 _supabase.auth.onAuthStateChange((event, session) => {
   console.log('🔐 Supabase auth state:', event, session?.user?.id);
