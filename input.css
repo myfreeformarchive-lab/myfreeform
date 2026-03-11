@@ -400,6 +400,10 @@ main.max-w-xl.mx-auto {
   to { opacity: 1; }
 }
 
+#public-placeholder {
+  animation: fadeIn 0.4s ease;
+}
+
 /* Trigger fade for modal overlay when visible */
 #commentModal:not(.hidden) #closeModalOverlay,
 #profileModal:not(.hidden) #profileOverlay,
