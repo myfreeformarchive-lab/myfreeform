@@ -2628,51 +2628,15 @@ function showPublicPlaceholder(type) {
       </div>`;
   } else if (type === 'scanning') {
     html = `
-      <div id="public-placeholder" style="min-height: calc(100vh - 418px);">
-        <div class="text-center py-4 mb-2">
-          <p class="text-slate-400 opacity-50 font-medium italic text-sm">Scanning the horizon...</p>
+      <div id="public-placeholder" class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-200 rounded-xl mx-auto max-w-[95%]" style="min-height: calc(100vh - 418px);">
+        <div class="mb-4 text-slate-300 animate-pulse">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
+          </svg>
         </div>
-
-        <div class="feed-item block w-full bg-white px-4 py-3 mb-4 pb-6 border-b border-slate-100 animate-pulse">
-          <div class="flex justify-between items-start mb-6">
-            <div class="flex items-center gap-2">
-              <div class="h-4 bg-slate-100 rounded w-16"></div>
-              <div class="h-3 bg-slate-50 rounded w-12"></div>
-            </div>
-          </div>
-          <div class="space-y-3">
-            <div class="h-4 bg-slate-100 rounded w-3/4"></div>
-            <div class="h-4 bg-slate-100 rounded w-1/2"></div>
-          </div>
-          <div class="mt-6 pt-5 flex items-center justify-between">
-            <div class="flex items-center gap-5">
-              <div class="h-8 bg-slate-100 rounded w-10"></div>
-              <div class="h-8 bg-slate-100 rounded w-10"></div>
-            </div>
-            <div class="h-8 bg-slate-100 rounded w-6"></div>
-          </div>
-        </div>
-
-        <div class="feed-item block w-full bg-white px-4 py-3 mb-4 pb-6 border-b border-slate-100 animate-pulse">
-          <div class="flex justify-between items-start mb-6">
-            <div class="flex items-center gap-2">
-              <div class="h-4 bg-slate-100 rounded w-16"></div>
-              <div class="h-3 bg-slate-50 rounded w-12"></div>
-            </div>
-          </div>
-          <div class="space-y-3">
-            <div class="h-4 bg-slate-100 rounded w-full"></div>
-            <div class="h-4 bg-slate-100 rounded w-1/3"></div>
-          </div>
-          <div class="mt-6 pt-5 flex items-center justify-between">
-            <div class="flex items-center gap-5">
-              <div class="h-8 bg-slate-100 rounded w-10"></div>
-              <div class="h-8 bg-slate-100 rounded w-10"></div>
-            </div>
-            <div class="h-8 bg-slate-100 rounded w-6"></div>
-          </div>
-        </div>
-
+        <p class="text-slate-500 font-medium tracking-tight">Scanning the horizon...</p>
+        <p class="text-slate-400 text-xs mt-2">Searching for something worth reading.</p>
       </div>`;
 
     setTimeout(() => {
