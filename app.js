@@ -252,7 +252,7 @@ import {
   writeBatch, getDocs, increment, setDoc, getDoc, runTransaction, where, Timestamp
 } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
 import { 
-  getAuth, signInAnonymously 
+  getAuth, signInAnonymously, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
 
 import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.2.4/+esm';
@@ -326,6 +326,8 @@ let isRefilling = false;
 
 let totalGlobalPosts = 0;
 
+const auth = getAuth(app);
+
 const supabaseUrl = 'https://ipgtvatyzwhkifnsstux.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwZ3R2YXR5endoa2lmbnNzdHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NDcyMzIsImV4cCI6MjA4NjIyMzIzMn0.OH7Dru0KKKdewj1nsWofvI73cT6tKIZbTVMPJA2oPvI'; 
 // Use _supabase (with an underscore) to avoid clashing with the library name
@@ -356,7 +358,14 @@ window.getThoughtBubbleSVG = getThoughtBubbleSVG;
 // 2. INITIALIZATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+	
 	signInAnonymously(auth);
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      loadFeed();
+    }
+  });
+	
 	_t('DOMContentLoaded fired');
   runMigration();
   setRandomPlaceholder();
@@ -374,8 +383,6 @@ document.addEventListener('DOMContentLoaded', () => {
   updateTabClasses(); 
   
   applyFontPreference(selectedFont);
-
-  loadFeed(); 
   updateMeter();
   setupInfiniteScroll();
 
