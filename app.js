@@ -2609,66 +2609,8 @@ function renderListItems(items) {
   
   refreshSnap();
 }
-
+/*
 function showPublicPlaceholder(type) {
-  const existing = document.getElementById('public-placeholder');
-  
-  const emptyHTML = `
-    <div id="public-placeholder" class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-200 rounded-xl mx-auto max-w-[95%]" style="min-height: calc(100vh - 418px);">
-      <div class="mb-4 text-slate-300 animate-pulse">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M10.39 6.23L7 9s.5 4 4 5c1 0 3-1 3-1l3.5-3.5S14 6 10.39 6.23z" />
-          <path d="M7 9c3 3 7 1.5 7 1.5" />
-          <path d="M19 15.5c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5c0-2.5 2-4.5 4.5-4.5s-4.5-2-4.5-4.5z" opacity="0.5" />
-          <path d="M2 12h4m10 0h6" stroke-dasharray="4 4" />
-        </svg>
-      </div>
-      <p class="text-slate-500 font-medium tracking-tight">It's quiet here.</p>
-      <p class="text-slate-400 text-xs mt-2">Waiting for a whisper to break the silence.</p>
-    </div>`;
-
-  const scanningHTML = `
-    <div id="public-placeholder" class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-200 rounded-xl mx-auto max-w-[95%]" style="min-height: calc(100vh - 418px);">
-      <div class="mb-4 text-slate-300 animate-pulse">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="m21 21-4.35-4.35"/>
-        </svg>
-      </div>
-      <p class="text-slate-500 font-medium tracking-tight">Scanning the horizon...</p>
-      <p class="text-slate-400 text-xs mt-2">Searching for something worth reading.</p>
-    </div>`;
-
-  if (type === 'scanning') {
-    DOM.list.innerHTML = scanningHTML;
-    setTimeout(() => {
-      const stillScanning = document.getElementById('public-placeholder');
-      if (stillScanning && stillScanning.innerText.includes('Scanning')) {
-        console.error("🚨 STUCK DETECTED: Forcing internal reload.");
-        window.location.reload();
-      }
-    }, 4000);
-  } else if (type === 'empty') {
-    if (existing) {
-      // Fade out scanning, then fade in empty
-      existing.style.transition = 'opacity 0.3s ease';
-      existing.style.opacity = '0';
-      setTimeout(() => {
-        DOM.list.innerHTML = emptyHTML;
-        const newPlaceholder = document.getElementById('public-placeholder');
-        newPlaceholder.style.opacity = '0';
-        newPlaceholder.style.transition = 'opacity 0.3s ease';
-        requestAnimationFrame(() => {
-          newPlaceholder.style.opacity = '1';
-        });
-      }, 300);
-    } else {
-      DOM.list.innerHTML = emptyHTML;
-    }
-  }
-}
-
-/*function showPublicPlaceholder(type) {
   let html = '';
   if (type === 'empty') {
     html = `
@@ -2708,6 +2650,57 @@ function showPublicPlaceholder(type) {
   DOM.list.innerHTML = html;
 }
 */
+
+function showPublicPlaceholder(type) {
+  const container = document.getElementById('public-placeholder');
+  
+  const content = {
+    empty: {
+      icon: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M10.39 6.23L7 9s.5 4 4 5c1 0 3-1 3-1l3.5-3.5S14 6 10.39 6.23z" /><path d="M7 9c3 3 7 1.5 7 1.5" /><path d="M19 15.5c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5c0-2.5 2-4.5 4.5-4.5s-4.5-2-4.5-4.5z" opacity="0.5" /><path d="M2 12h4m10 0h6" stroke-dasharray="4 4" /></svg>`,
+      title: "It's quiet here.",
+      sub: "Waiting for a whisper to break the silence."
+    },
+    scanning: {
+      icon: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`,
+      title: "Scanning the horizon...",
+      sub: "Searching for something worth reading."
+    }
+  }[type];
+
+  const renderHTML = (data) => `
+    <div class="mb-4 text-slate-300 animate-pulse">${data.icon}</div>
+    <p class="text-slate-500 font-medium tracking-tight">${data.title}</p>
+    <p class="text-slate-400 text-xs mt-2">${data.sub}</p>
+  `;
+
+  if (container) {
+    // Smooth Transition: Fade out -> Swap -> Fade in
+    container.classList.add('ph-fade-out');
+    
+    setTimeout(() => {
+      container.innerHTML = renderHTML(content);
+      container.classList.remove('ph-fade-out');
+    }, 200); // Wait for fade out to finish
+  } else {
+    // Initial creation
+    DOM.list.innerHTML = `
+      <div id="public-placeholder" class="flex flex-col items-center justify-center w-full text-center px-6 border-2 border-dashed border-slate-100 lg:border-slate-200 rounded-xl mx-auto max-w-[95%]" style="min-height: calc(100vh - 418px);">
+        ${renderHTML(content)}
+      </div>`;
+  }
+
+  // Safety Reload Logic
+  if (type === 'scanning') {
+    setTimeout(() => {
+      const el = document.getElementById('public-placeholder');
+      if (el && el.innerText.includes('Scanning')) {
+        console.error("🚨 STUCK DETECTED: Forcing internal reload.");
+        window.location.reload(); 
+      }
+    }, 4000);
+  }
+}
+
 async function handleBruteForce() {
 	const placeholder = document.getElementById('public-placeholder');
   // 1. Double check we aren't already fetching
