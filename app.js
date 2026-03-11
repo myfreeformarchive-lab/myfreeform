@@ -251,6 +251,9 @@ import {
   query, orderBy, limit, serverTimestamp, onSnapshot,
   writeBatch, getDocs, increment, setDoc, getDoc, runTransaction, where, Timestamp
 } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
+import { 
+  getAuth, signInAnonymously 
+} from "https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js";
 
 import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.2.4/+esm';
 
@@ -260,12 +263,12 @@ const firebaseConfig = {
   projectId: "myfreeformarchive-8a786",
   storageBucket: "myfreeformarchive-8a786.appspot.com",
   messagingSenderId: "16237442482",
-  appId: "1:16237442482:web:424f8f2e344a58e7f6a0ab",
-  measurementId: "G-P8EG1477ME"
+  appId: "1:16237442482:web:424f8f2e344a58e7f6a0ab"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 // ==========================================
 // 1. STATE & DOM
@@ -353,6 +356,7 @@ window.getThoughtBubbleSVG = getThoughtBubbleSVG;
 // 2. INITIALIZATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+	signInAnonymously(auth);
 	_t('DOMContentLoaded fired');
   runMigration();
   setRandomPlaceholder();
@@ -2908,6 +2912,7 @@ async function handlePost() {
 		authorHandle: currentHandle,
         uniqueTag: uniqueTag,
 		serialId: serialId,
+		userId: auth.currentUser?.uid,
         createdAt: serverTimestamp()
       });
       firebaseId = docRef.id;
@@ -2988,6 +2993,7 @@ async function publishDraft(post) {
 		  authorHandle: currentHandle,
           uniqueTag: idData.tag,
 		  serialId: idData.num,
+		  userId: auth.currentUser?.uid,
           createdAt: serverTimestamp()
         });
 		
@@ -3521,6 +3527,7 @@ async function postComment() {
       text: text,
       authorId: MY_USER_ID, 
 	  authorHandle: currentHandle,
+	  userId: auth.currentUser?.uid,
       createdAt: serverTimestamp()
     });
 
