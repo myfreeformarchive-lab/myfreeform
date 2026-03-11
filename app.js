@@ -359,8 +359,10 @@ document.addEventListener('DOMContentLoaded', () => {
 	signInAnonymously(auth);
     
 	onAuthStateChanged(auth, (user) => {
+		console.log('🔐 onAuthStateChanged fired');
   if (user && !feedLoaded) {
     feedLoaded = true;
+	console.log('🍔 loadFeed triggered from onAuthStateChanged');
     loadFeed();
   }
 });
