@@ -354,7 +354,7 @@ window.getThoughtBubbleSVG = getThoughtBubbleSVG;
 // ==========================================
 // 2. INITIALIZATION
 // ==========================================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
 	
 	signInAnonymously(auth);    
 	onAuthStateChanged(auth, (user) => {
