@@ -1342,7 +1342,9 @@ async function loadFeed() {
     console.log(`[loadFeed] ✅ WARM CACHE — showing: ${toShow.length}, remainder: ${remainder.length}`);
     visiblePosts = toShow;
     toShow.forEach(p => processedIds.add(p.id));
-   // DOM.list.innerHTML = '';
+    if (DOM.list.querySelectorAll('.feed-item').length > 0) {
+  DOM.list.innerHTML = ''; // only clear if something is already there
+}
     renderListItems(visiblePosts);
     // Feature: Randomized Drip Delay
         const dripDelay = Math.random() * (4500 - 1800) + 1800;
