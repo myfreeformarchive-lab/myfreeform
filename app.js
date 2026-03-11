@@ -1343,7 +1343,8 @@ async function loadFeed() {
     visiblePosts = toShow;
     toShow.forEach(p => processedIds.add(p.id));
     
-	renderListItems(visiblePosts, true);
+	DOM.list.innerHTML = '';
+    renderListItems(visiblePosts);
 	
     // Feature: Randomized Drip Delay
         const dripDelay = Math.random() * (4500 - 1800) + 1800;
@@ -2502,7 +2503,7 @@ function showHeartAnimation(container) {
   });
 }
 
-function renderListItems(items, forceAnimate = false) {
+function renderListItems(items) {
 	
 	console.log('🎨 renderListItems called', new Error().stack);
 	
@@ -2564,10 +2565,6 @@ function renderListItems(items, forceAnimate = false) {
   }
   const existingCount = DOM.list.querySelectorAll('.feed-item').length;
   const isFreshRender = existingCount === 0;
-  
-  if (forceAnimate) {
-    DOM.list.innerHTML = ''; // clear happens inside, same synchronous block
-  }
   
   items.forEach((item, index) => {
 	
