@@ -716,20 +716,13 @@ window.enableNotifications = async function() {
             applicationServerKey: convertedKey
         });
         // We use the MY_USER_ID that was set by getOrCreateUserId() at the start
-        const { data: { user } } = await _supabase.auth.getUser();
-
-if (!user) {
-  console.error("Supabase auth not ready");
-  return;
-}
-
-const { error } = await _supabase
-    .from('user_push_tokens') 
-    .upsert({ 
-        user_id: MY_USER_ID, 
-        token: JSON.stringify(subscription),
-        supabase_uid: user.id
-    });
+        const { error } = await _supabase
+            .from('user_push_tokens') 
+            .upsert({ 
+                user_id: MY_USER_ID, 
+                token: JSON.stringify(subscription),
+                supabase_uid: (await _supabase.auth.getUser()).data.user?.id				// Database needs this as a string or json
+            });
         if (error) throw error;
     //    console.log("🔔 Notifications Linked for user:", MY_USER_ID);
     } catch (err) {
