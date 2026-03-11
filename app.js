@@ -329,6 +329,7 @@ const supabaseUrl = 'https://ipgtvatyzwhkifnsstux.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwZ3R2YXR5endoa2lmbnNzdHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NDcyMzIsImV4cCI6MjA4NjIyMzIzMn0.OH7Dru0KKKdewj1nsWofvI73cT6tKIZbTVMPJA2oPvI'; 
 // Use _supabase (with an underscore) to avoid clashing with the library name
 const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
+_supabase.auth.signInAnonymously();
 
 window._supabase = window._supabase || (typeof _supabase !== 'undefined' ? _supabase : null);
 
@@ -715,12 +716,20 @@ window.enableNotifications = async function() {
             applicationServerKey: convertedKey
         });
         // We use the MY_USER_ID that was set by getOrCreateUserId() at the start
-        const { error } = await _supabase
-            .from('user_push_tokens') 
-            .upsert({ 
-                user_id: MY_USER_ID, 
-                token: JSON.stringify(subscription) // Database needs this as a string or json
-            });
+        const { data: { user } } = await _supabase.auth.getUser();
+
+if (!user) {
+  console.error("Supabase auth not ready");
+  return;
+}
+
+const { error } = await _supabase
+    .from('user_push_tokens') 
+    .upsert({ 
+        user_id: MY_USER_ID, 
+        token: JSON.stringify(subscription),
+        supabase_uid: user.id
+    });
         if (error) throw error;
     //    console.log("🔔 Notifications Linked for user:", MY_USER_ID);
     } catch (err) {
@@ -2103,7 +2112,8 @@ window.sendMessage = async function() {
                 room_id: roomId,
                 receiver_id: targetUserId,
 				author_handle: myHandle,
-                payload: messageData
+                payload: messageData,
+				supabase_uid: (await _supabase.auth.getUser()).data.user?.id
             }]);
 
         if (error) throw error;
@@ -2903,7 +2913,8 @@ async function handlePost() {
           id: firebaseId,      // The same ID Firebase just created
           like_count: 0,       // Initialize likes
           comment_count: 0,
-          author_id: MY_USER_ID	  // Initialize comments
+          author_id: MY_USER_ID,
+          supabase_uid: (await _supabase.auth.getUser()).data.user?.id		  // Initialize comments
       }).then(({ error }) => {
           if (error) console.error("Supabase Insert Error:", error.message);
       });
@@ -2984,7 +2995,8 @@ async function publishDraft(post) {
           id: docRef.id,       // Use the new Firebase ID
           like_count: 0,
           comment_count: 0,
-		  author_id: MY_USER_ID
+		  author_id: MY_USER_ID,
+		  supabase_uid: (await _supabase.auth.getUser()).data.user?.id
       }).then(({ error }) => {
           if (error) console.error("Supabase Insert Error:", error.message);
       });
