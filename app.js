@@ -1360,7 +1360,7 @@ async function loadFeed() {
 } else {
   console.log(`[loadFeed] 💾 cache kept — not enough posts to rotate`);
 }
-    rotateAndRefillCache(toShow);
+    rotateAndRefillCache(remainder);
     subscribePublicFeed({ silent: true, token: myToken });
   } else {
     DOM.loadTrigger.style.visibility = 'visible';
