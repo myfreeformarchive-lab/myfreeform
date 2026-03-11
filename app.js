@@ -1246,6 +1246,7 @@ function switchTab(tab) {
 
   DOM.list.style.transition = 'transform 0.3s ease, opacity 0.3s ease'; // Restore transitions
   DOM.list.style.opacity = '0';
+  DOM.list.innerHTML = '';
   console.log(`[switchTab] hiding DOM.list (opacity → 0)`);
   DOM.list.style.transform = tab === 'public' ? 'translateX(0px)' : 'translateX(0px)';
 
