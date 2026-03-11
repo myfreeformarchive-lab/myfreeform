@@ -543,7 +543,7 @@
 </div>
 </div>
 
-<script>
+<!--<script>
   (function() {
     try {
       const skeletons = document.getElementById('feedSkeletons');
@@ -571,10 +571,7 @@
             return;
           }
           const feedList = document.getElementById('feedList');
-          if (feedList) {
-  feedList.innerHTML = cached.html;
-  window.feedPreloaded = true; // 👈 add this
-}
+          if (feedList) feedList.innerHTML = cached.html;
         };
       };
       req.onerror = function() {
@@ -582,7 +579,7 @@
       };
     } catch(e) {}
   })();
-</script>
+</script>-->
 
 <!-- INFINITE SCROLL TRIGGER: Invisible element at bottom to trigger loading more postsss -->
 <div id="loadTrigger" class="h-20 flex items-center justify-center text-slate-400 text-sm transition-opacity duration-300" style="visibility: hidden; opacity: 0;">
