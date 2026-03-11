@@ -142,7 +142,7 @@ textarea, input {
 }
 
 /* Hide scrollbars globally on all elements for a sleek look */
-html, body, #feedList, textarea {
+html, body, #feedList, textarea, #appShell {
   scrollbar-width: none !important;         /* Firefox */
   -ms-overflow-style: none !important;      /* IE/Edge */
 }
@@ -150,13 +150,10 @@ html, body, #feedList, textarea {
 html::-webkit-scrollbar, 
 body::-webkit-scrollbar, 
 #feedList::-webkit-scrollbar, 
-textarea::-webkit-scrollbar {
-  display: none !important; /* WebKit browsers (Chrome, Safarii) */
-}
-
-/* Hide scrollbar for Chrome, Safari and Opera */
+textarea::-webkit-scrollbar,
+#appShell::-webkit-scrollbar,
 #dmMessagesContainer::-webkit-scrollbar {
-    display: none;
+  display: none !important; /* WebKit browsers (Chrome, Safarii) */
 }
 
 /* Hide scrollbar for IE, Edge and Firefox */
