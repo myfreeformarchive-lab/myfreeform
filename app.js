@@ -1352,8 +1352,12 @@ async function loadFeed() {
             if (currentTab !== 'public') return; // Final check before starting drip
             startDripFeed();
         }, dripDelay);
-    writeCache({ posts: remainder, html: DOM.list.innerHTML });
-    console.log(`[loadFeed] 💾 cache rotated — wrote ${remainder.length} posts`);
+    if (remainder.length > 0) {
+  writeCache({ posts: remainder, html: DOM.list.innerHTML });
+  console.log(`[loadFeed] 💾 cache rotated — wrote ${remainder.length} posts`);
+} else {
+  console.log(`[loadFeed] 💾 cache kept — not enough posts to rotate`);
+}
     rotateAndRefillCache(remainder);
     subscribePublicFeed({ silent: true, token: myToken });
   } else {
