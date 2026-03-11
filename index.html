@@ -571,7 +571,10 @@
             return;
           }
           const feedList = document.getElementById('feedList');
-          if (feedList) feedList.innerHTML = cached.html;
+          if (feedList) {
+  feedList.innerHTML = cached.html;
+  window.feedPreloaded = true; // 👈 add this
+}
         };
       };
       req.onerror = function() {
