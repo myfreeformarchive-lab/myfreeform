@@ -1342,10 +1342,14 @@ async function loadFeed() {
     console.log(`[loadFeed] ✅ WARM CACHE — showing: ${toShow.length}, remainder: ${remainder.length}`);
     visiblePosts = toShow;
     toShow.forEach(p => processedIds.add(p.id));
-    requestAnimationFrame(() => {
-  DOM.list.innerHTML = '';
-  renderListItems(visiblePosts);
+    
+	DOM.list.style.opacity = '0';
+DOM.list.innerHTML = '';
+renderListItems(visiblePosts);
+requestAnimationFrame(() => {
+  DOM.list.style.opacity = '1';
 });
+	
     // Feature: Randomized Drip Delay
         const dripDelay = Math.random() * (4500 - 1800) + 1800;
         console.log(`[loadFeed] ⏳ Drip starts in ${(dripDelay/1000).toFixed(1)}s`);
