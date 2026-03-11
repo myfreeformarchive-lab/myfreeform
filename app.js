@@ -837,7 +837,7 @@ const Variable = getRandomDelay(20, 40);
 console.log(`Next drip in: ${Variable / 1000} seconds`);
 dripTimeout = setTimeout(drip, Variable);
   }
-  drip();
+  dripTimeout = setTimeout(drip, 3000);
 }
 
 function updateUISurgically(id, data) {
