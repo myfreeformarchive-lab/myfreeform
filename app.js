@@ -321,10 +321,9 @@ let processedIds = new Set();
 let dripTimeout = null;
 let activePostListeners = new Map();
 let isAppending = false;
-
 let isRefilling = false;
-
 let totalGlobalPosts = 0;
+let feedLoaded = false;
 
 const supabaseUrl = 'https://ipgtvatyzwhkifnsstux.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwZ3R2YXR5endoa2lmbnNzdHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NDcyMzIsImV4cCI6MjA4NjIyMzIzMn0.OH7Dru0KKKdewj1nsWofvI73cT6tKIZbTVMPJA2oPvI'; 
@@ -358,11 +357,13 @@ window.getThoughtBubbleSVG = getThoughtBubbleSVG;
 document.addEventListener('DOMContentLoaded', () => {
 	
 	signInAnonymously(auth);
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      loadFeed();
-    }
-  });
+    
+	onAuthStateChanged(auth, (user) => {
+  if (user && !feedLoaded) {
+    feedLoaded = true;
+    loadFeed();
+  }
+});
 	
 	_t('DOMContentLoaded fired');
   runMigration();
