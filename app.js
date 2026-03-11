@@ -367,6 +367,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loadFeed();
   }
 });
+
+_supabase.auth.onAuthStateChange((event, session) => {
+  console.log('🔐 Supabase auth state:', event, session?.user?.id);
+});
 	
 	_t('DOMContentLoaded fired');
   runMigration();
