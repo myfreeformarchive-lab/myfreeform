@@ -1206,7 +1206,7 @@ function injectSinglePost(item, position = 'top') {
 }
 
 // ==========================================
-// 3. CORE FUNCTIONS (Feed & Tabs)
+// 3. CORE FUNCTIONS (Feed & Tabss)
 // ==========================================
 
 function applyFontPreference(font) {
