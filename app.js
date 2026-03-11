@@ -329,7 +329,6 @@ const supabaseUrl = 'https://ipgtvatyzwhkifnsstux.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwZ3R2YXR5endoa2lmbnNzdHV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2NDcyMzIsImV4cCI6MjA4NjIyMzIzMn0.OH7Dru0KKKdewj1nsWofvI73cT6tKIZbTVMPJA2oPvI'; 
 // Use _supabase (with an underscore) to avoid clashing with the library name
 const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
-_supabase.auth.signInAnonymously();
 
 window._supabase = window._supabase || (typeof _supabase !== 'undefined' ? _supabase : null);
 
@@ -358,6 +357,7 @@ window.getThoughtBubbleSVG = getThoughtBubbleSVG;
 document.addEventListener('DOMContentLoaded', () => {
 	
 	signInAnonymously(auth);
+	_supabase.auth.signInAnonymously();
     
 	onAuthStateChanged(auth, (user) => {
 		console.log('🔐 onAuthStateChanged fired');
