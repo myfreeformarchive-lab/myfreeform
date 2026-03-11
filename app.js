@@ -1466,6 +1466,8 @@ async function subscribePublicFeed({ silent = false, token = null } = {}) {
     publicUnsubscribe = null;
   }
   if (!isAppending && !silent) {
+	  console.log(`👀 [subscribePublicFeed] clearing feed — isAppending:${isAppending} silent:${silent} tab:${currentTab}`);
+  console.trace();
     visiblePosts = [];
     postBuffer = [];
     processedIds.clear();
