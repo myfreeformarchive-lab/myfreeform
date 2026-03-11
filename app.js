@@ -1343,8 +1343,12 @@ async function loadFeed() {
     visiblePosts = toShow;
     toShow.forEach(p => processedIds.add(p.id));
     
-	DOM.list.innerHTML = '';
-    renderListItems(visiblePosts);
+	if (window.feedPreloaded) {
+  window.feedPreloaded = false; // reset for next time
+} else {
+  DOM.list.innerHTML = '';
+  renderListItems(visiblePosts);
+}
 	
     // Feature: Randomized Drip Delay
         const dripDelay = Math.random() * (4500 - 1800) + 1800;
