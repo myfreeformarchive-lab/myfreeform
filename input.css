@@ -852,3 +852,11 @@ main.max-w-xl.mx-auto {
 .feed-item-enter-2 {
   animation: slideInFromTop2 0.7s ease forwards;
 }
+
+#public-placeholder {
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-out;
+}
+.ph-fade-out {
+  opacity: 0;
+  transform: scale(0.98);
+}
