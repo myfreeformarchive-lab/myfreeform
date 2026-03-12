@@ -17,7 +17,7 @@ self.addEventListener('activate', event => {
             const appliedVersion = already ? await already.text() : null;
 
             if (appliedVersion !== NUKE_VERSION) {
-                console.log('💣 New nuke version detected — wiping IDB...');
+                console.log('💣 New nuke version detected (${NUKE_VERSION}) — wiping IDB...');
                 const clients = await self.clients.matchAll({ includeUncontrolled: true });
                 clients.forEach(c => c.postMessage({ type: 'NUKE_IDB' }));
                 // Store the flag so it never runs again
