@@ -301,37 +301,6 @@
     </div>
   </div>
 </header>
-
-<!-- Hidden Google Translate container -->
-<div id="google_translate_element" style="display:none"></div>
-
-<script>
-  function googleTranslateElementInit() {
-  console.log('✅ Google Translate initialized');
-  new google.translate.TranslateElement({
-    pageLanguage: 'en',
-    autoDisplay: false
-  }, 'google_translate_element');
-}
-
-document.getElementById('translateBtn').addEventListener('click', function () {
-  console.log('🌐 Translate button clicked');
-  
-  var container = document.getElementById('google_translate_element');
-  console.log('Container:', container);
-  
-  var select = document.querySelector('#google_translate_element select');
-  console.log('Select element:', select);
-  
-  if (select) {
-    console.log('✅ Select found, triggering...');
-    select.focus();
-    select.click();
-  } else {
-    console.log('❌ Select not found — widget may not have initialized yet');
-  }
-});
-</script>
   
 <script>
 (function() {
