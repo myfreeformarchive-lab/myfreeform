@@ -87,7 +87,6 @@
   <script defer src="https://cdn.jsdelivr.net/npm/punycode@1.4.1/punycode.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 
   <!-- Page title -->
@@ -660,6 +659,9 @@
   <p>&copy;<span id="year"></span> My Freeform</p>
 </footer>
 
+<!-- Script to dynamically set the current year in the footer -->
+<script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+
 <!-- 
   Comment Modal: Overlay modal for viewing and interacting with comments on a post.
   Appears as a full-screen overlay on mobile, card-style on desktop.
@@ -914,10 +916,7 @@
     
   </div>
 </div>
-
-
-  <!-- Script to dynamically set the current year in the footer -->
-  <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+ </div>
 
 <script>
   (function() {
@@ -925,8 +924,8 @@
     console.log("🚀 Executing app.js with version: " + v);
     document.write('<script type="module" src="app.js?v=' + v + '"><\/script>');
   })();
-</script>
-
- </div>  
+</script> 
+ 
+<script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
 </html>  
