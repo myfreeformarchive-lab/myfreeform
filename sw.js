@@ -11,21 +11,19 @@ self.addEventListener('activate', event => {
         caches.keys().then(keys =>
             Promise.all(keys.map(k => (k !== CACHE_NAME) ? caches.delete(k) : Promise.resolve()))
         ).then(async () => {
+            // Check if this nuke has already been applied
             const cache = await caches.open('nuke-flags');
             const already = await cache.match(NUKE_FLAG_KEY);
             const appliedVersion = already ? await already.text() : null;
+
             if (appliedVersion !== NUKE_VERSION) {
-                const dbs = await indexedDB.databases();
-                if (dbs.length > 0) {
-                    console.log(`💣 New nuke version detected (${NUKE_VERSION}) — wiping IDB...`);
-                    const clients = await self.clients.matchAll({ includeUncontrolled: true });
-                    clients.forEach(c => c.postMessage({ type: 'NUKE_IDB' }));
-                } else {
-                    console.log(`ℹ️ Nuke skipped (${NUKE_VERSION}) — IDB already empty`);
-                }
+                console.log('💣 New nuke version detected — wiping IDB...');
+                const clients = await self.clients.matchAll({ includeUncontrolled: true });
+                clients.forEach(c => c.postMessage({ type: 'NUKE_IDB' }));
+                // Store the flag so it never runs again
                 await cache.put(NUKE_FLAG_KEY, new Response(NUKE_VERSION));
             } else {
-                console.log(`✅ Nuke already applied (${NUKE_VERSION}) — skipping`);
+                console.log('✅ Nuke already applied — skipping');
             }
         }).then(() => self.clients.claim())
     );
