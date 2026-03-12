@@ -49,8 +49,7 @@
     https://*.firebaseio.com 
     https://*.gstatic.com
     https://cdn.jsdelivr.net
-    https://cdnjs.cloudflare.com
-	https://freeform-translate.myfreeformarchive.workers.dev;
+    https://cdnjs.cloudflare.com;
   img-src 'self' data:;
 ">
   <!-- Open Graph meta tags for social media sharing -->
@@ -873,7 +872,7 @@
     document.write('<script type="module" src="app.js?v=' + v + '"><\/script>');
   })();
 </script> 
-
+<!--
 <script>
 (function() {
   const WORKER_URL = 'https://freeform-translate.myfreeformarchive.workers.dev';
@@ -965,15 +964,15 @@
   }
 
   // Globe button click — cycle through or show picker
-  const btn = document.getElementById('translateBtn');
-
-  // Hide globe entirely if browser is already English
-  if (browserLang === 'EN' || !supportedLangs.includes(browserLang)) {
-    if (btn) btn.style.display = 'none';
-  }
-
-  btn?.addEventListener('click', function() {
-    currentLang = currentLang === 'EN' ? browserLang : 'EN';
+  document.getElementById('translateBtn')?.addEventListener('click', function() {
+    if (currentLang === 'EN') {
+      // Default to browser language or show ES as fallback
+      const target = (browserLang && browserLang !== 'EN' && supportedLangs.includes(browserLang))
+        ? browserLang : 'ES';
+      currentLang = target;
+    } else {
+      currentLang = 'EN';
+    }
     localStorage.setItem(STORAGE_KEY, currentLang);
     translate(currentLang);
   });
@@ -984,6 +983,6 @@
   }
 })();
 </script>
-
+-->
 </body>
 </html>  
