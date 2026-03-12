@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" id="pwa-theme-color" content="#F5F0FF">
+  <meta name="robots" content="noindex">
+  <title>Datenschutz - My Freeform</title>
+
+  <!-- Favicon and app icons -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" sizes="16x16" href="icon_2-16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icon_2-32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="icon-48_2.png">
+  <link rel="apple-touch-icon" href="icon_2-180.png">
+  <meta name="theme-color" id="status-bar" content="#F5F0FF">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preload" href="fonts/inter-v20-latin-regular.woff2" as="font" type="font/woff2" crossorigin>
+
+  <style>
+    :root { --brand-primary: #9D60FF; }
+    .text-brand-500 { color: var(--brand-primary); }
+    .hover\:text-brand-500:hover { color: var(--brand-primary); }
+    body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+    html, body { height: 100%; margin: 0; padding: 0; }
+    #appShell { height: 100%; overflow-y: auto; }
+  </style>
+
+  <script>
+    (function() {
+      const themes = {
+        lavender: '#9D60FF',
+        bright:   '#D4BCFF',
+        deep:     '#2D1B69',
+        dusk:     '#7C6AE8',
+        bloom:    '#B96FD8',
+        slate:    '#4A3F6B',
+        mist:     '#C8B8F0',
+        mauve:    '#8B6E9A',
+      };
+      const _theme = localStorage.getItem('selected_theme') || 'lavender';
+      const selectedColor = themes[_theme] || themes.lavender;
+      document.documentElement.style.setProperty('--brand-primary', selectedColor);
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', selectedColor);
+    })();
+  </script>
+</head>
+
+<body class="bg-white text-slate-900 pb-24 lg:pb-0 lg:pl-20">
+  <div id="appShell">
+
+    <header class="fixed top-0 left-0 lg:left-20 right-0 bg-white/80 backdrop-blur-md border-b border-slate-100 z-50">
+      <div class="max-w-xl mx-auto px-4 h-14 flex items-center justify-between">
+        <a href="index.html" class="text-xl font-bold tracking-tight no-underline" style="color: var(--brand-primary);">Freeform</a>
+        <span class="text-xs font-mono text-slate-400">LEGAL // DATENSCHUTZ</span>
+      </div>
+    </header>
+
+    <main class="max-w-xl mx-auto w-full px-4">
+      <div class="h-20"></div>
+
+      <section class="prose prose-slate max-w-none">
+        <h1 class="text-2xl font-bold mb-6">Datenschutzerklärung</h1>
+
+        <div class="space-y-8 text-sm leading-relaxed text-slate-700">
+
+          <!-- 1. Verantwortlicher -->
+          <div>
+            <h2 class="font-bold text-slate-900 uppercase tracking-wider text-xs mb-2">1. Verantwortlicher</h2>
+            <p>
+              Verantwortlicher im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:<br><br>
+              Andreas Schwarzkopf<br>
+              Kiesstraße 4<br>
+              89520 Heidenheim an der Brenz<br><br>
+              Telefon: 01573 7014846<br>
+              E-Mail: <a href="mailto:myfreeformarchive@gmail.com" class="hover:text-brand-500 underline decoration-slate-200">myfreeformarchive@gmail.com</a>
+            </p>
+          </div>
+
+          <!-- 2. Erhebung und Speicherung personenbezogener Daten -->
+          <div>
+            <h2 class="font-bold text-slate-900 uppercase tracking-wider text-xs mb-2">2. Erhebung und Speicherung personenbezogener Daten</h2>
+            <p>
+              Beim Besuch unserer Website werden durch den Browser automatisch Informationen an den Server unserer Website gesendet. Diese Informationen werden temporär in einem sog. Logfile gespeichert. Folgende Informationen werden dabei ohne Ihr Zutun erfasst und bis zur automatisierten Löschung gespeichert:
+            </p>
+            <ul class="list-disc pl-5 mt-2 space-y-1 text-slate-600">
+              <li>IP-Adresse des anfragenden Rechners</li>
+              <li>Datum und Uhrzeit des Zugriffs</li>
+              <li>Name und URL der abgerufenen Datei</li>
+              <li>Website, von der aus der Zugriff erfolgt (Referrer-URL)</li>
+              <li>Verwendeter Browser und ggf. das Betriebssystem Ihres Rechners</li>
+            </ul>
+            <p class="mt-2">
+              Die genannten Daten werden durch uns zu folgenden Zwecken verarbeitet: Gewährleistung eines reibungslosen Verbindungsaufbaus der Website, Gewährleistung einer komfortablen Nutzung unserer Website sowie zur Auswertung der Systemsicherheit und -stabilität. Die Rechtsgrundlage für die Datenverarbeitung ist Art. 6 Abs. 1 S. 1 lit. f DSGVO.
+            </p>
+          </div>
+
+          <!-- 3. Registrierung und Nutzerkonto -->
+          <div>
+            <h2 class="font-bold text-slate-900 uppercase tracking-wider text-xs mb-2">3. Registrierung und Nutzerkonto</h2>
+            <p>
+              Wenn Sie sich in der App registrieren, erheben wir die von Ihnen eingegebenen Daten (z. B. Benutzername, E-Mail-Adresse). Diese Daten werden ausschließlich für die Bereitstellung des Dienstes genutzt und nicht ohne Ihre Einwilligung an Dritte weitergegeben. Rechtsgrundlage ist Art. 6 Abs. 1 S. 1 lit. b DSGVO (Vertragserfüllung).
+            </p>
+          </div>
+
+          <!-- 4. Lokale Datenspeicherung -->
+          <div>
+            <h2 class="font-bold text-slate-900 uppercase tracking-wider text-xs mb-2">4. Lokale Datenspeicherung (LocalStorage / IndexedDB)</h2>
+            <p>
+              Die App nutzt den lokalen Speicher Ihres Geräts (LocalStorage, IndexedDB) zur Speicherung von Einstellungen und Inhalten. Diese Daten verbleiben ausschließlich auf Ihrem Gerät und werden nicht an unsere Server übertragen. Sie können diese Daten jederzeit über die Einstellungen Ihres Browsers löschen.
+            </p>
+          </div>
+
+          <!-- 5. Nutzung von Firebase / Supabase -->
+          <div>
+            <h2 class="font-bold text-slate-900 uppercase tracking-wider text-xs mb-2">5. Backend-Dienste</h2>
+            <p>
+              Für den Betrieb der App können wir Drittanbieter-Dienste (z. B. Datenbankdienste) einsetzen. Dabei werden nur die für den jeweiligen Dienst notwendigen Daten verarbeitet. Weitere Informationen entnehmen Sie bitte den Datenschutzhinweisen der jeweiligen Anbieter. Rechtsgrundlage ist Art. 6 Abs. 1 S. 1 lit. b und f DSGVO.
+            </p>
+          </div>
+
+          <!-- 6. Ihre Rechte -->
+          <div>
+            <h2 class="font-bold text-slate-900 uppercase tracking-wider text-xs mb-2">6. Ihre Rechte als betroffene Person</h2>
+            <p>Sie haben das Recht:</p>
+            <ul class="list-disc pl-5 mt-2 space-y-1 text-slate-600">
+              <li>gemäß Art. 15 DSGVO Auskunft über Ihre von uns verarbeiteten personenbezogenen Daten zu verlangen</li>
+              <li>gemäß Art. 16 DSGVO unverzüglich die Berichtigung unrichtiger oder Vervollständigung Ihrer bei uns gespeicherten Daten zu verlangen</li>
+              <li>gemäß Art. 17 DSGVO die Löschung Ihrer bei uns gespeicherten Daten zu verlangen</li>
+              <li>gemäß Art. 18 DSGVO die Einschränkung der Verarbeitung Ihrer Daten zu verlangen</li>
+              <li>gemäß Art. 20 DSGVO Ihre Daten in einem strukturierten, gängigen und maschinenlesbaren Format zu erhalten</li>
+              <li>gemäß Art. 21 DSGVO Widerspruch gegen die Verarbeitung Ihrer Daten einzulegen</li>
+            </ul>
+            <p class="mt-2">
+              Zur Geltendmachung Ihrer Rechte wenden Sie sich bitte an: <a href="mailto:myfreeformarchive@gmail.com" class="hover:text-brand-500 underline decoration-slate-200">myfreeformarchive@gmail.com</a>
+            </p>
+          </div>
+
+          <!-- 7. Beschwerderecht -->
+          <div>
+            <h2 class="font-bold text-slate-900 uppercase tracking-wider text-xs mb-2">7. Beschwerderecht bei der Aufsichtsbehörde</h2>
+            <p>
+              Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde über die Verarbeitung Ihrer personenbezogenen Daten durch uns zu beschweren. Die zuständige Aufsichtsbehörde für Baden-Württemberg ist der Landesbeauftragte für den Datenschutz und die Informationsfreiheit Baden-Württemberg:<br><br>
+              <a href="https://www.baden-wuerttemberg.datenschutz.de" target="_blank" rel="noopener noreferrer" class="hover:text-brand-500 underline decoration-slate-200">www.baden-wuerttemberg.datenschutz.de</a>
+            </p>
+          </div>
+
+          <hr class="border-slate-100">
+
+          <!-- Hinweis -->
+          <div class="text-xs text-slate-500 space-y-4">
+            <p><strong>Aktualität und Änderung dieser Datenschutzerklärung:</strong> Diese Datenschutzerklärung ist aktuell gültig. Durch die Weiterentwicklung unserer App oder aufgrund geänderter gesetzlicher bzw. behördlicher Vorgaben kann es notwendig werden, diese Datenschutzerklärung zu ändern. Die jeweils aktuelle Datenschutzerklärung kann jederzeit auf der Website abgerufen werden.</p>
+          </div>
+
+        </div>
+      </section>
+
+      <div class="mt-12">
+        <a href="index.html" class="font-medium text-sm hover:underline" style="color: var(--brand-primary);">
+          &larr; Zurück zur App
+        </a>
+      </div>
+    </main>
+
+    <footer class="max-w-xl mx-auto px-4 py-12 text-center text-slate-400 text-xs">
+      <p>&copy; <span id="year"></span> My Freeform &mdash; <a href="impressum.html" class="hover:underline">Impressum</a></p>
+    </footer>
+
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
