@@ -301,15 +301,17 @@
     <h1 id="logoHome" class="text-xl font-bold text-brand-500 tracking-tight cursor-pointer">Freeform</h1>
     <div class="flex items-center gap-3">
       <div class="text-xs text-slate-600 font-mono truncate" id="storageInfo">&nbsp;</div>
-      <!-- Translate button -->
-      <button id="translateBtn" onclick="document.getElementById('google_translate_element').querySelector('select').size=1;document.getElementById('google_translate_element').style.display='block'" class="text-slate-400 hover:text-brand-500 transition-colors cursor-pointer" title="Translate">
+      <!-- Globe button -->
+      <button id="translateBtn" class="text-slate-400 hover:text-brand-500 transition-colors cursor-pointer" title="Translate">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       </button>
     </div>
   </div>
 </header>
 
+<!-- Hidden Google Translate container -->
 <div id="google_translate_element" style="display:none"></div>
+
 <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 <script>
   function googleTranslateElementInit() {
@@ -318,6 +320,14 @@
       autoDisplay: false
     }, 'google_translate_element');
   }
+
+  document.getElementById('translateBtn').addEventListener('click', function () {
+    var select = document.querySelector('#google_translate_element select');
+    if (select) {
+      select.focus();
+      select.click();
+    }
+  });
 </script>
   
 <script>
