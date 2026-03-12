@@ -29,7 +29,7 @@
   <!-- Allows scripts from self, unsafe-eval/inline (for dynamic content), and trusted CDNs -->
   <!-- Allows fonts from Google Fonts, styles from Tailwind and Google Fonts -->
   <!-- Allows connections to Firebase and Google APIs -->
-  <meta http-equiv="Content-Security-Policy" content="
+ <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
   script-src 'self' 'unsafe-eval' 'unsafe-inline' 
     https://cdn.jsdelivr.net 
@@ -38,10 +38,15 @@
     https://*.gstatic.com
     https://cdn.tailwindcss.com 
     https://*.googleapis.com 
-    https://apis.google.com;
-  font-src 'self'; 
+    https://apis.google.com
+    https://translate.google.com
+    https://*.translate.goog;
+  font-src 'self'
+    https://fonts.gstatic.com
+    https://*.translate.goog; 
   style-src 'self' 'unsafe-inline' 
-    https://cdn.tailwindcss.com;
+    https://cdn.tailwindcss.com
+    https://*.translate.goog;
   connect-src 'self' 
     wss://ipgtvatyzwhkifnsstux.supabase.co 
     https://ipgtvatyzwhkifnsstux.supabase.co 
@@ -49,8 +54,13 @@
     https://*.firebaseio.com 
     https://*.gstatic.com
     https://cdn.jsdelivr.net
-    https://cdnjs.cloudflare.com;
-  img-src 'self' data:;
+    https://cdnjs.cloudflare.com
+    https://translate.googleapis.com
+    https://*.translate.goog;
+  img-src 'self' data:
+    https://www.gstatic.com
+    https://*.translate.goog;
+  frame-src https://translate.google.com;
 ">
   <!-- Open Graph meta tags for social media sharing -->
   <meta property="og:type" content="website" />
