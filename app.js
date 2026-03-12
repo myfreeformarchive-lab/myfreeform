@@ -4006,9 +4006,14 @@ async function resetAppCompletely() {
         }
 
         const dbs = await indexedDB.databases();
-        for (const db of dbs) {
-          indexedDB.deleteDatabase(db.name);
-        }
+for (const db of dbs) {
+  await new Promise(resolve => {
+    const req = indexedDB.deleteDatabase(db.name);
+    req.onsuccess = () => { console.log(`🗑️ Deleted IDB: ${db.name}`); resolve(); };
+    req.onerror = () => { console.warn(`⚠️ Failed to delete IDB: ${db.name}`); resolve(); };
+    req.onblocked = () => { console.warn(`⏳ IDB blocked: ${db.name}`); resolve(); };
+  });
+}
 
         if ('caches' in window) {
           const cacheNames = await caches.keys();
