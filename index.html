@@ -593,31 +593,34 @@
 -->
 
   <!-- Footer: Contains legal info, disclaimer, and copyright -->
-  <footer class="max-w-xl mx-auto px-4 pt-8 pb-24 text-center text-slate-500 text-xs relative lg:pb-8">
-    
-    <div class="flex items-center justify-center gap-3 mb-4">
-      <div class="group inline-block relative cursor-help outline-none" tabindex="0">
-        <span class="text-brand-500 underline decoration-dotted decoration-brand-300 underline-offset-4">Info</span>
-        <div class="invisible group-hover:visible group-focus-within:visible opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200 absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 bg-white text-slate-600 text-left p-4 rounded-lg shadow-xl border border-slate-200 z-50 pointer-events-none group-hover:pointer-events-auto">
-          <p class="font-bold text-slate-800 mb-2">Local by Default:</p>
-          <ul class="list-disc pl-4 space-y-1">
-            <li><strong>Private by Default</strong> – Stays on device unless Public Mode is enabled.</li>
-            <li><strong>Optional Sharing</strong> – Enable Public Mode to go live and share with everyone.</li>
-            <li><strong>5MB Limit</strong> – Uses browser local storage.</li>
-          </ul>
-          <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-8 border-transparent border-t-white"></div>
-        </div>
+<footer class="max-w-xl mx-auto px-4 pt-8 pb-24 text-center text-slate-500 text-xs relative lg:pb-8">
+  
+  <div class="flex items-center justify-center gap-3 mb-4">
+    <a href="impressum.html" class="hover:text-brand-500 transition-colors">Impressum</a>
+
+    <span class="text-slate-300">•</span>
+
+    <a href="datenschutz.html" class="hover:text-brand-500 transition-colors">Datenschutz</a>
+
+    <span class="text-slate-300">•</span>
+
+    <div class="group inline-block relative cursor-help outline-none" tabindex="0">
+      <span class="text-brand-500 underline decoration-dotted decoration-brand-300 underline-offset-4">Info</span>
+      
+      <div class="invisible group-hover:visible group-focus-within:visible opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-all duration-200 absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-64 bg-white text-slate-600 text-left p-4 rounded-lg shadow-xl border border-slate-200 z-50 pointer-events-none group-hover:pointer-events-auto">
+        <p class="font-bold text-slate-800 mb-2">Local by Default:</p>
+        <ul class="list-disc pl-4 space-y-1">
+          <li><strong>Private by Default</strong> – Stays on device unless Public Mode is enabled.</li>
+          <li><strong>Optional Sharing</strong> – Enable Public Mode to go live and share with everyone.</li>
+          <li><strong>5MB Limit</strong> – Uses browser local storage.</li>
+        </ul>
+        <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-8 border-transparent border-t-white"></div>
       </div>
-
-      <span class="text-slate-300">•</span>
-
-      <a href="impressum.html" class="hover:text-brand-500 transition-colors">Impressum</a>
-	  <span class="text-slate-300">•</span>
-      <a href="datenschutz.html" class="hover:text-brand-500 transition-colors">Datenschutz</a>
     </div>
+  </div>
 
-    <p>&copy;<span id="year"></span> My Freeform</p>
-  </footer>
+  <p>&copy;<span id="year"></span> My Freeform</p>
+</footer>
 
 <!-- 
   Comment Modal: Overlay modal for viewing and interacting with comments on a post.
