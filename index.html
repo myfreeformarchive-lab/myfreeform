@@ -965,15 +965,15 @@
   }
 
   // Globe button click — cycle through or show picker
-  document.getElementById('translateBtn')?.addEventListener('click', function() {
-    if (currentLang === 'EN') {
-      // Default to browser language or show ES as fallback
-      const target = (browserLang && browserLang !== 'EN' && supportedLangs.includes(browserLang))
-        ? browserLang : 'ES';
-      currentLang = target;
-    } else {
-      currentLang = 'EN';
-    }
+  const btn = document.getElementById('translateBtn');
+
+  // Hide globe entirely if browser is already English
+  if (browserLang === 'EN' || !supportedLangs.includes(browserLang)) {
+    if (btn) btn.style.display = 'none';
+  }
+
+  btn?.addEventListener('click', function() {
+    currentLang = currentLang === 'EN' ? browserLang : 'EN';
     localStorage.setItem(STORAGE_KEY, currentLang);
     translate(currentLang);
   });
