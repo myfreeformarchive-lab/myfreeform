@@ -136,7 +136,7 @@ textarea, input {
 /* 1. GLOBAL RESET & SCROLLBAR HIDING */
 /* Resets and hides scrollbars for a cleaner, mobile-like UI */
 
-/* Box-sizing reset: Ensures padding/borders are included in width calculations */
+/* Box-sizing reset: Ensures padding/borders are included in width calculationss */
 * {
   box-sizing: border-box;
 }
