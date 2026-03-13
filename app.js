@@ -374,6 +374,14 @@ if (!session) {
 _supabase.auth.onAuthStateChange((event, session) => {
   console.log('🔐 Supabase auth state:', event, session?.user?.id);
 });
+
+const localeReady = getOrCreateUserLocale(); // runs first, sets freeform_language
+
+  if (localeReady) {
+    Translator.init(); // runs second, reads freeform_language ✅
+  } else {
+    console.error('❌ Locale not ready — Translator init skipped.');
+  }
 	
 	_t('DOMContentLoaded fired');
   runMigration();
@@ -3909,14 +3917,11 @@ var Translator = (function() {
   if (storedLang) {
     currentLang = storedLang;
   } else {
-    // Get the locale (e.g. "en-us" or "pt-br")
-    const locale = localStorage.getItem('freeform_locale') || 'en-us';
-    const baseCode = locale.slice(0, 2).toUpperCase();
-    
-    // If it's English, we stay in 'EN' (no translation needed)
-    // Otherwise, check if we support it
-    currentLang = (baseCode === 'EN' || !supportedLangs.includes(baseCode)) 
-                  ? 'EN' 
+    const language = localStorage.getItem('freeform_language') || 'en'; // 👈 updated
+    const baseCode = language.toUpperCase();
+
+    currentLang = (baseCode === 'EN' || !supportedLangs.includes(baseCode))
+                  ? 'EN'
                   : baseCode;
   }
   console.log(`🌐 Translator initialized — target: ${currentLang}`);
@@ -3974,27 +3979,25 @@ var Translator = (function() {
 })();
 console.log("📦 Translator module is now fully defined and ready.");
 
-function getOrCreateUserId() {
-  console.log("🛠️ Checking for Translator... Status:", typeof Translator);
+function getOrCreateUserLocale() {
+  const locale = navigator.language || 'en-US';
+  const parts = locale.split('-');
+  const language = parts[0].toLowerCase();           // e.g. "en"
+  const region = parts.length > 1 ? parts[1].toUpperCase() : null; // e.g. "US"
 
+  localStorage.setItem('freeform_language', language);
+  if (region) localStorage.setItem('freeform_region', region);
+
+  console.log(`🌐 Language: ${language}, 📍 Region: ${region ?? 'none'}`);
+  return { language, region };
+}
+
+function getOrCreateUserId() {
   let id = localStorage.getItem('freeform_user_id');
   if (!id) {
     id = Math.random().toString(36).substring(2, 6) + '-' + Math.random().toString(36).substring(2, 6);
     localStorage.setItem('freeform_user_id', id);
-    const locale = navigator.language || 'en-US';
-    localStorage.setItem('freeform_locale', locale.toLowerCase());
-    console.log(`🌐 Locale saved: ${locale}`);
   }
-
-  // Safe check: Only init if Translator is actually defined
-  if (typeof Translator !== 'undefined') {
-    console.log("✅ Translator found! Initializing now...");
-    Translator.init();
-  } else {
-    console.error("❌ ERROR: getOrCreateUserId ran but Translator is still undefined.");
-    console.log("Fix: Move the Translator code block ABOVE this function in your script.");
-  }
-  
   return id;
 }
 
