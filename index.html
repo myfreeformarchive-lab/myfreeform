@@ -280,13 +280,7 @@
 <header class="fixed top-0 left-0 lg:left-20 right-0 bg-white/80 backdrop-blur-md border-0 border-slate-200 z-50">
   <div class="max-w-xl mx-auto px-4 h-14 flex items-center justify-between">
     <h1 id="logoHome" class="text-xl font-bold text-brand-500 tracking-tight cursor-pointer">Freeform</h1>
-    <div class="flex items-center gap-3">
-      <div class="text-xs text-slate-600 font-mono truncate" id="storageInfo">&nbsp;</div>
-      <!-- Globe button -->
-      <button id="translateBtn" class="text-slate-400 hover:text-brand-500 transition-colors cursor-pointer" title="Translate">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-      </button>
-    </div>
+    <div class="text-xs text-slate-600 font-mono truncate" id="storageInfo">&nbsp;</div>
   </div>
 </header>
   
@@ -873,117 +867,6 @@
     document.write('<script type="module" src="app.js?v=' + v + '"><\/script>');
   })();
 </script> 
-
-<script>
-(function() {
-  const WORKER_URL = 'https://freeform-translate.myfreeformarchive.workers.dev';
-  const STORAGE_KEY = 'freeform_lang';
-  let currentLang = localStorage.getItem(STORAGE_KEY) || 'EN';
-  let originalTexts = new Map();
-  let isTranslating = false;
-
-  // Detect browser language on first visit
-  const browserLang = navigator.language?.slice(0, 2).toUpperCase();
-  const supportedLangs = ['DE','ES','FR','IT','PT','NL','PL','RU','JA','ZH'];
-  if (!localStorage.getItem(STORAGE_KEY) && browserLang && browserLang !== 'EN' && supportedLangs.includes(browserLang)) {
-    currentLang = browserLang;
-    localStorage.setItem(STORAGE_KEY, currentLang);
-  }
-
-  // Get all translatable text nodes
-  function getTextNodes() {
-    const walker = document.createTreeWalker(
-      document.body,
-      NodeFilter.SHOW_TEXT,
-      {
-        acceptNode(node) {
-          const parent = node.parentElement;
-          if (!parent) return NodeFilter.FILTER_REJECT;
-          const tag = parent.tagName;
-          if (['SCRIPT','STYLE','NOSCRIPT'].includes(tag)) return NodeFilter.FILTER_REJECT;
-          if (parent.closest('#google_translate_element')) return NodeFilter.FILTER_REJECT;
-          if (!node.textContent.trim()) return NodeFilter.FILTER_REJECT;
-          return NodeFilter.FILTER_ACCEPT;
-        }
-      }
-    );
-    const nodes = [];
-    let node;
-    while ((node = walker.nextNode())) nodes.push(node);
-    return nodes;
-  }
-
-  async function translate(targetLang) {
-    if (isTranslating) return;
-    isTranslating = true;
-
-    const btn = document.getElementById('translateBtn');
-    if (btn) btn.style.opacity = '0.4';
-
-    const nodes = getTextNodes();
-
-    // Save originals
-    if (originalTexts.size === 0) {
-      nodes.forEach((node, i) => originalTexts.set(i, node.textContent));
-    }
-
-    // Restore English first
-    if (targetLang === 'EN') {
-      nodes.forEach((node, i) => {
-        if (originalTexts.has(i)) node.textContent = originalTexts.get(i);
-      });
-      isTranslating = false;
-      if (btn) btn.style.opacity = '1';
-      return;
-    }
-
-    // Batch into chunks of 50
-    const CHUNK = 50;
-    for (let i = 0; i < nodes.length; i += CHUNK) {
-      const chunk = nodes.slice(i, i + CHUNK);
-      const texts = chunk.map(n => n.textContent.trim());
-
-      try {
-        const res = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ texts, targetLang })
-        });
-        const data = await res.json();
-        if (data.translations) {
-          data.translations.forEach((t, j) => {
-            chunk[j].textContent = t;
-          });
-        }
-      } catch (err) {
-        console.error('Translation error:', err);
-      }
-    }
-
-    isTranslating = false;
-    if (btn) btn.style.opacity = '1';
-  }
-
-  // Globe button click — cycle through or show picker
-  const btn = document.getElementById('translateBtn');
-
-  // Hide globe entirely if browser is already English
-  if (browserLang === 'EN' || !supportedLangs.includes(browserLang)) {
-    if (btn) btn.style.display = 'none';
-  }
-
-  btn?.addEventListener('click', function() {
-    currentLang = currentLang === 'EN' ? browserLang : 'EN';
-    localStorage.setItem(STORAGE_KEY, currentLang);
-    translate(currentLang);
-  });
-
-  // Auto translate on load if needed
-  if (currentLang !== 'EN') {
-    document.addEventListener('DOMContentLoaded', () => translate(currentLang));
-  }
-})();
-</script>
 
 </body>
 </html>  
