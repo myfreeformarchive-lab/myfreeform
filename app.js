@@ -3891,7 +3891,7 @@ function loadUsername() {
 loadUsername();
 
 // ─── TRANSLATION MODULE ───────────────────────────────────────────────
-const Translator = (function() {
+var Translator = (function() {
   const WORKER_URL = 'https://freeform-translate.myfreeformarchive.workers.dev';
   const STORAGE_KEY = 'freeform_lang';
   const supportedLangs = [
