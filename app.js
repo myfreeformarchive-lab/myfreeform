@@ -3669,6 +3669,76 @@ function closeDialog() {
 window.showDialog = showDialog;
 window.closeDialog = closeDialog;
 
+
+// ─── TRANSLATION MODULE ───────────────────────────────────────────────
+const Translator = (function() {
+  const WORKER_URL = 'https://freeform-translate.myfreeformarchive.workers.dev';
+  const STORAGE_KEY = 'freeform_lang';
+  const supportedLangs = ['DE','ES','FR','IT','PT','NL','PL','RU','JA','ZH'];
+  
+  let currentLang = null; // lazy — not set until first use
+  let cache = {};
+
+  // Called once, after getOrCreateUserId() has run
+  function init() {
+    const locale = localStorage.getItem('freeform_locale') || navigator.language || 'en';
+    const browserLang = locale.slice(0, 2).toUpperCase();
+    const isEnglish = browserLang === 'EN' || !supportedLangs.includes(browserLang);
+    currentLang = localStorage.getItem(STORAGE_KEY) || (isEnglish ? 'EN' : browserLang);
+    console.log(`🌐 Translator initialized — lang: ${currentLang}`);
+  }
+
+  async function translateText(text) {
+    if (!text?.trim()) return text;
+    if (currentLang === 'EN') return text;
+    if (cache[text]) return cache[text];
+    try {
+      const res = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts: [text], targetLang: currentLang })
+      });
+      const data = await res.json();
+      const translated = data.translations?.[0] ?? text;
+      cache[text] = translated;
+      return translated;
+    } catch (err) {
+      console.error('Translation error:', err);
+      return text;
+    }
+  }
+
+  async function translateBatch(texts) {
+    if (currentLang === 'EN') return texts;
+    const uncached = texts.filter(t => !cache[t]);
+    if (uncached.length > 0) {
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texts: uncached, targetLang: currentLang })
+        });
+        const data = await res.json();
+        uncached.forEach((t, i) => {
+          cache[t] = data.translations?.[i] ?? t;
+        });
+      } catch (err) {
+        console.error('Translation batch error:', err);
+      }
+    }
+    return texts.map(t => cache[t] ?? t);
+  }
+
+  function setLang(lang) {
+    currentLang = supportedLangs.includes(lang) ? lang : 'EN';
+    localStorage.setItem(STORAGE_KEY, currentLang);
+  }
+
+  function getLang() { return currentLang; }
+
+  return { init, translateText, translateBatch, setLang, getLang };
+})();
+
 // ==========================================
 // SPAM GUARD (TRAFFIC LIGHT SYSTEM)
 // ==========================================
@@ -4196,75 +4266,6 @@ function runMigration() {
   localStorage.setItem('freeform_v2', JSON.stringify(newStore));
   localStorage.setItem('freeform_migrated_v3', 'true');
 }
-
-// ─── TRANSLATION MODULE ───────────────────────────────────────────────
-const Translator = (function() {
-  const WORKER_URL = 'https://freeform-translate.myfreeformarchive.workers.dev';
-  const STORAGE_KEY = 'freeform_lang';
-  const supportedLangs = ['DE','ES','FR','IT','PT','NL','PL','RU','JA','ZH'];
-  
-  let currentLang = null; // lazy — not set until first use
-  let cache = {};
-
-  // Called once, after getOrCreateUserId() has run
-  function init() {
-    const locale = localStorage.getItem('freeform_locale') || navigator.language || 'en';
-    const browserLang = locale.slice(0, 2).toUpperCase();
-    const isEnglish = browserLang === 'EN' || !supportedLangs.includes(browserLang);
-    currentLang = localStorage.getItem(STORAGE_KEY) || (isEnglish ? 'EN' : browserLang);
-    console.log(`🌐 Translator initialized — lang: ${currentLang}`);
-  }
-
-  async function translateText(text) {
-    if (!text?.trim()) return text;
-    if (currentLang === 'EN') return text;
-    if (cache[text]) return cache[text];
-    try {
-      const res = await fetch(WORKER_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texts: [text], targetLang: currentLang })
-      });
-      const data = await res.json();
-      const translated = data.translations?.[0] ?? text;
-      cache[text] = translated;
-      return translated;
-    } catch (err) {
-      console.error('Translation error:', err);
-      return text;
-    }
-  }
-
-  async function translateBatch(texts) {
-    if (currentLang === 'EN') return texts;
-    const uncached = texts.filter(t => !cache[t]);
-    if (uncached.length > 0) {
-      try {
-        const res = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ texts: uncached, targetLang: currentLang })
-        });
-        const data = await res.json();
-        uncached.forEach((t, i) => {
-          cache[t] = data.translations?.[i] ?? t;
-        });
-      } catch (err) {
-        console.error('Translation batch error:', err);
-      }
-    }
-    return texts.map(t => cache[t] ?? t);
-  }
-
-  function setLang(lang) {
-    currentLang = supportedLangs.includes(lang) ? lang : 'EN';
-    localStorage.setItem(STORAGE_KEY, currentLang);
-  }
-
-  function getLang() { return currentLang; }
-
-  return { init, translateText, translateBatch, setLang, getLang };
-})();
 
 /**
  * BACKGROUND/RESUME KEYBOARD SUPPRESSION
