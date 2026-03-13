@@ -1823,7 +1823,7 @@ const dmButtonHtml = (item.isFirebase && !isMe) ? `
   </div>
 </div>
 
-<p class="post-body text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] relative z-10 ${fontClass} break-keep break-words">${renderSmartText(item.content)}</p>
+<p class="post-body text-slate-800 whitespace-pre-wrap leading-relaxed text-[15px] relative z-10 ${fontClass} break-keep break-words">${renderSmartText(item._translatedContent || item.content)}</p>
 
 ${footerHtml}
 `;
@@ -2581,6 +2581,17 @@ function renderListItems(items) {
 		
     return; 
   }
+  
+  // ── TRANSLATE BEFORE RENDER ──────────────────────────────
+  const rawTexts = items.map(item => item.content || item.text || '');
+  const translatedTexts = await Translator.translateBatch(rawTexts);
+  // Merge translated content back into items (non-destructive copy)
+  const translatedItems = items.map((item, i) => ({
+    ...item,
+    _translatedContent: translatedTexts[i]
+  }));
+  // ─────────────────────────────────────────────────────────
+  
   const existingCount = DOM.list.querySelectorAll('.feed-item').length;
   const isFreshRender = existingCount === 0;
   
@@ -3884,11 +3895,12 @@ function getOrCreateUserId() {
   if (!id) {
     id = Math.random().toString(36).substring(2, 6) + '-' + Math.random().toString(36).substring(2, 6);
     localStorage.setItem('freeform_user_id', id);
-    // Store full locale on first visit e.g. "es-CO", "de-DE"
     const locale = navigator.language || 'en-US';
     localStorage.setItem('freeform_locale', locale.toLowerCase());
     console.log(`🌐 Locale saved: ${locale}`);
   }
+  // Always init Translator after ID is guaranteed to exist
+  Translator.init();
   return id;
 }
 
@@ -4413,14 +4425,18 @@ const Translator = (function() {
   const WORKER_URL = 'https://freeform-translate.myfreeformarchive.workers.dev';
   const STORAGE_KEY = 'freeform_lang';
   const supportedLangs = ['DE','ES','FR','IT','PT','NL','PL','RU','JA','ZH'];
-
-  // Derive target language from stored locale e.g. "es-co" → "ES"
-  const locale = localStorage.getItem('freeform_locale') || navigator.language || 'en';
-  const browserLang = locale.slice(0, 2).toUpperCase();
-  const isEnglish = browserLang === 'EN' || !supportedLangs.includes(browserLang);
-
-  let currentLang = localStorage.getItem(STORAGE_KEY) || (isEnglish ? 'EN' : browserLang);
+  
+  let currentLang = null; // lazy — not set until first use
   let cache = {};
+
+  // Called once, after getOrCreateUserId() has run
+  function init() {
+    const locale = localStorage.getItem('freeform_locale') || navigator.language || 'en';
+    const browserLang = locale.slice(0, 2).toUpperCase();
+    const isEnglish = browserLang === 'EN' || !supportedLangs.includes(browserLang);
+    currentLang = localStorage.getItem(STORAGE_KEY) || (isEnglish ? 'EN' : browserLang);
+    console.log(`🌐 Translator initialized — lang: ${currentLang}`);
+  }
 
   async function translateText(text) {
     if (!text?.trim()) return text;
@@ -4463,7 +4479,6 @@ const Translator = (function() {
     return texts.map(t => cache[t] ?? t);
   }
 
-  // For future profile language setting
   function setLang(lang) {
     currentLang = supportedLangs.includes(lang) ? lang : 'EN';
     localStorage.setItem(STORAGE_KEY, currentLang);
@@ -4471,15 +4486,5 @@ const Translator = (function() {
 
   function getLang() { return currentLang; }
 
-  return { translateText, translateBatch, setLang, getLang };
+  return { init, translateText, translateBatch, setLang, getLang };
 })();
-/*
-3. Then usage anywhere in your app is just:
-javascript// Single post body before rendering
-const body = await Translator.translateText(post.content);
-postElement.textContent = body;
-
-// Batch — e.g. rendering a feed of posts
-const bodies = await Translator.translateBatch(posts.map(p => p.content));
-posts.forEach((post, i) => renderPost(post, bodies[i]));
-*/
