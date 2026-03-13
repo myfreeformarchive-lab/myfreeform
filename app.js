@@ -2525,8 +2525,6 @@ function showHeartAnimation(container) {
 
 function renderListItems(items) {
 	
-	console.log('🎨 renderListItems called', new Error().stack);
-	
 	if (feedSafetyTimeout) {
     clearTimeout(feedSafetyTimeout);
     feedSafetyTimeout = null;
