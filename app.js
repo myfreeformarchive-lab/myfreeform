@@ -2523,7 +2523,7 @@ function showHeartAnimation(container) {
   });
 }
 
-function renderListItems(items) {
+async function renderListItems(items) {
 	
 	if (feedSafetyTimeout) {
     clearTimeout(feedSafetyTimeout);
@@ -2583,8 +2583,8 @@ function renderListItems(items) {
   }
   
   // ── TRANSLATE BEFORE RENDER ──────────────────────────────
-  const rawTexts = items.map(item => item.content || item.text || '');
-  const translatedTexts = await Translator.translateBatch(rawTexts);
+  const postTexts = items.map(item => item.content || item.text || '');
+  const translatedTexts = await Translator.translateBatch(postTexts);
   // Merge translated content back into items (non-destructive copy)
   const translatedItems = items.map((item, i) => ({
     ...item,
