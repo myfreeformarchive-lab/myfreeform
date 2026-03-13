@@ -3884,6 +3884,10 @@ function getOrCreateUserId() {
   if (!id) {
     id = Math.random().toString(36).substring(2, 6) + '-' + Math.random().toString(36).substring(2, 6);
     localStorage.setItem('freeform_user_id', id);
+    // Store full locale on first visit e.g. "es-CO", "de-DE"
+    const locale = navigator.language || 'en-US';
+    localStorage.setItem('freeform_locale', locale.toLowerCase());
+    console.log(`🌐 Locale saved: ${locale}`);
   }
   return id;
 }
@@ -4403,3 +4407,79 @@ window.Ledger = Ledger;
 // publicUnsubscribe, commentsUnsubscribe, activePostListeners
 // runMigration, loadFeed, updateMeter, switchTab, postComment, handlePost, 
 // handleSwipeGesture for desktop vs mobile logging
+
+// ─── TRANSLATION MODULE ───────────────────────────────────────────────
+const Translator = (function() {
+  const WORKER_URL = 'https://freeform-translate.myfreeformarchive.workers.dev';
+  const STORAGE_KEY = 'freeform_lang';
+  const supportedLangs = ['DE','ES','FR','IT','PT','NL','PL','RU','JA','ZH'];
+
+  // Derive target language from stored locale e.g. "es-co" → "ES"
+  const locale = localStorage.getItem('freeform_locale') || navigator.language || 'en';
+  const browserLang = locale.slice(0, 2).toUpperCase();
+  const isEnglish = browserLang === 'EN' || !supportedLangs.includes(browserLang);
+
+  let currentLang = localStorage.getItem(STORAGE_KEY) || (isEnglish ? 'EN' : browserLang);
+  let cache = {};
+
+  async function translateText(text) {
+    if (!text?.trim()) return text;
+    if (currentLang === 'EN') return text;
+    if (cache[text]) return cache[text];
+    try {
+      const res = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts: [text], targetLang: currentLang })
+      });
+      const data = await res.json();
+      const translated = data.translations?.[0] ?? text;
+      cache[text] = translated;
+      return translated;
+    } catch (err) {
+      console.error('Translation error:', err);
+      return text;
+    }
+  }
+
+  async function translateBatch(texts) {
+    if (currentLang === 'EN') return texts;
+    const uncached = texts.filter(t => !cache[t]);
+    if (uncached.length > 0) {
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texts: uncached, targetLang: currentLang })
+        });
+        const data = await res.json();
+        uncached.forEach((t, i) => {
+          cache[t] = data.translations?.[i] ?? t;
+        });
+      } catch (err) {
+        console.error('Translation batch error:', err);
+      }
+    }
+    return texts.map(t => cache[t] ?? t);
+  }
+
+  // For future profile language setting
+  function setLang(lang) {
+    currentLang = supportedLangs.includes(lang) ? lang : 'EN';
+    localStorage.setItem(STORAGE_KEY, currentLang);
+  }
+
+  function getLang() { return currentLang; }
+
+  return { translateText, translateBatch, setLang, getLang };
+})();
+/*
+3. Then usage anywhere in your app is just:
+javascript// Single post body before rendering
+const body = await Translator.translateText(post.content);
+postElement.textContent = body;
+
+// Batch — e.g. rendering a feed of posts
+const bodies = await Translator.translateBatch(posts.map(p => p.content));
+posts.forEach((post, i) => renderPost(post, bodies[i]));
+*/
