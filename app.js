@@ -3749,6 +3749,17 @@ document.getElementById('inputTrigger')?.addEventListener('click', () => openInp
 document.getElementById('closeInputModalBtn')?.addEventListener('click', () => closeInputModal());
 document.getElementById('inputModalOverlay')?.addEventListener('click', () => closeInputModal());
 
+document.getElementById('inputModal')?.addEventListener('mousedown', (e) => {
+  // Allow close button and overlay to work normally
+  if (e.target.closest('#closeInputModalBtn') || e.target === document.getElementById('inputModalOverlay')) {
+    return;
+  }
+  // For everything else inside the modal, prevent blur
+  e.preventDefault();
+  // Re-focus the textarea immediately
+  DOM.input.focus();
+});
+
   DOM.modalOverlay.addEventListener('click', () => closeModal());
 
 DOM.closeBtn?.addEventListener('click', () => closeModal()); 
