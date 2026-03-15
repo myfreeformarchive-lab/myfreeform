@@ -3667,15 +3667,15 @@ DOM.input.addEventListener('input', () => {
   const counter = document.getElementById('postCharCounter');
   if (!counter) return;
   counter.textContent = `${len}/512`;
-  if (len >= 490) {
-    counter.classList.add('text-amber-500');
-    counter.classList.remove('text-slate-300');
-  } else if (len >= 512) {
+  if (len === 512) {
     counter.classList.add('text-red-500');
-    counter.classList.remove('text-amber-500');
+    counter.classList.remove('text-amber-500', 'text-slate-300');
+  } else if (len >= 490) {
+    counter.classList.add('text-amber-500');
+    counter.classList.remove('text-red-500', 'text-slate-300');
   } else {
-    counter.classList.remove('text-amber-500', 'text-red-500');
     counter.classList.add('text-slate-300');
+    counter.classList.remove('text-amber-500', 'text-red-500');
   }
 });
 
