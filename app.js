@@ -2214,7 +2214,7 @@ function openInputModal() {
 
   DOM.inputModal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
-  setTimeout(() => DOM.input.focus(), 200);
+  setTimeout(() => DOM.input.focus(), 150);
 }
 
 // Closes the compose sheet and restores scroll.
@@ -3760,6 +3760,17 @@ document.getElementById('inputModal')?.addEventListener('mousedown', (e) => {
   DOM.input.focus();
 });
 
+// Keep keyboard open when toggling Public/Private inside input modal
+document.querySelector('#inputModal label')?.addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  const checkbox = document.getElementById('publicToggle');
+  if (checkbox) {
+    checkbox.checked = !checkbox.checked;
+    checkbox.dispatchEvent(new Event('change'));
+  }
+  DOM.input.focus();
+});
+
   DOM.modalOverlay.addEventListener('click', () => closeModal());
 
 DOM.closeBtn?.addEventListener('click', () => closeModal()); 
@@ -4002,19 +4013,20 @@ document.addEventListener('click', (e) => {
  */
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
-    // 1. The app is being minimized or the user switched tabs
-    // We "Hard Kill" the focus right now so the browser has nothing 
-    // to restore when the user comes back.
+    // Kill focus on both inputs when app is minimized
     if (!DOM.modal.classList.contains('hidden')) {
       DOM.commentInput.blur();
       DOM.commentInput.disabled = true;
     }
+    if (!DOM.inputModal.classList.contains('hidden')) {
+      DOM.input.blur();
+      DOM.input.disabled = true;
+    }
   } else {
-    // 2. The user has returned to the app
-    // We wait a tiny bit for the "resume" logic to finish, then 
-    // make the input usable again WITHOUT focusing it.
+    // Re-enable both inputs on resume WITHOUT focusing
     setTimeout(() => {
       DOM.commentInput.disabled = false;
+      DOM.input.disabled = false;
     }, 300);
   }
 });
