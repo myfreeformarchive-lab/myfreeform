@@ -397,9 +397,8 @@ main.max-w-xl.mx-auto {
 #chatModal:not(.hidden) #chatOverlay,
 #dmModal:not(.hidden) #dmOverlay,
 #inputModal:not(.hidden) #inputModalOverlay {
-  animation: fadeIn 0.3s ease-out forwards;
+  animation: fadeIn 0.7s ease-out forwards;
 }
-
 /* Slide Up: Bottom-to-top entrance for modal content */
 @keyframes slideUp {
   from { transform: translateY(100%); opacity: 0; } /* Starts below viewport */
@@ -412,7 +411,7 @@ main.max-w-xl.mx-auto {
 #chatModal:not(.hidden) > div:last-child,
 #dmModal:not(.hidden) > div:last-child,
 #inputModal:not(.hidden) > div:last-child {
-  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* 4. Comment Bubbles: Animation for comment appearances */
