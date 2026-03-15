@@ -3676,7 +3676,6 @@ const localeReady = getOrCreateUserLocale(); // runs first, sets freeform_langua
   const savedToggleState = localStorage.getItem('freeform_toggle_pref');
   DOM.toggle.checked = (savedToggleState === 'true');
   updateToggleUI(); 
-  _t('calling updateTabClasses for first time');
   updateTabClasses(); 
   
   applyFontPreference(selectedFont);
