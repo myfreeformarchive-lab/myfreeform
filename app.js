@@ -2214,7 +2214,7 @@ function openInputModal() {
 
   DOM.inputModal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
-  setTimeout(() => DOM.input.focus(), 500);
+  setTimeout(() => DOM.input.focus(), 400);
 }
 
 // Closes the compose sheet and restores scroll.
