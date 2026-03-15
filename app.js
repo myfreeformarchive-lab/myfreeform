@@ -1656,7 +1656,7 @@ function createPostNode(item) {
     </div>
   `;
 
-  const footerHtml = `<div class="mt-6 pt-5 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
+  const footerHtml = `<div class="mt-3 pt-3 flex items-center justify-between">${actionArea}${shareComponent}</div>`;
 
   // --- DM button (only on other people's global posts) ---
   const dmButtonHtml = (item.isFirebase && !isMe) ? `
@@ -1674,7 +1674,7 @@ function createPostNode(item) {
   el.innerHTML = `
     <div class="animation-container absolute inset-0 flex items-center justify-center pointer-events-none z-30"></div>
 
-    <div class="flex justify-between items-start mb-6">
+    <div class="flex justify-between items-start mb-3">
       <div class="flex items-center gap-2">
         <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${identityClass}">
           ${identityText}
