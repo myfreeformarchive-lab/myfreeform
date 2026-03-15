@@ -1350,7 +1350,7 @@ async function handlePost() {
 
     DOM.input.value = "";
     setRandomPlaceholder();
-	closeInputModal();
+	hideUIModal(document.getElementById('inputModal'));
 
   } catch (error) {
     showToast("Error posting", "error");
@@ -3719,9 +3719,18 @@ document.addEventListener('click', (e) => {
   }
 });
 
-document.getElementById('inputTrigger')?.addEventListener('click', () => openInputModal());
-document.getElementById('closeInputModalBtn')?.addEventListener('click', () => closeInputModal());
-document.getElementById('inputModalOverlay')?.addEventListener('click', () => closeInputModal());
+	document.getElementById('inputTrigger')?.addEventListener('click', () => {
+  showUIModal(document.getElementById('inputModal'));
+  setTimeout(() => DOM.input.focus(), 100);
+});
+
+document.getElementById('closeInputModalBtn')?.addEventListener('click', () => {
+  hideUIModal(document.getElementById('inputModal'));
+});
+
+document.getElementById('inputModalOverlay')?.addEventListener('click', () => {
+  hideUIModal(document.getElementById('inputModal'));
+});
 
   DOM.modalOverlay.addEventListener('click', () => closeModal());
 
@@ -3988,24 +3997,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
- document.getElementById('inputSection')?.addEventListener('click', (e) => {
-    const input = document.getElementById('postInput');
-    
-    // 1. Only run if the user specifically tapped the textarea
-    if (e.target.id === 'postInput') {
-        // 2. Only force focus if it's NOT already the active element
-        // This stops the 'sticky keyboard' bug when trying to back out.
-        if (document.activeElement !== input) {
-            console.log("Directing focus to textarea.");
-            input.focus();
-        }
-    } else {
-        // If they click the background/toggle, let the event pass through
-        // This ensures the toggle and buttons still work.
-        console.log("Clicked background or button.");
-    }
-});
-
     // 3 & 4. Tabs
     document.getElementById('tabPublic')?.addEventListener('click', () => switchTab('public'));
     document.getElementById('tabPrivate')?.addEventListener('click', () => switchTab('private'));
@@ -4054,23 +4045,3 @@ document.addEventListener('click', (e) => {
         window.sendMessage();
     }
 });
-
-// Opens the compose sheet — unlike other modals, keeps input enabled
-// so the keyboard opens immediately when the modal appears.
-function openInputModal() {
-  if (window.history.state?.modal !== 'open') {
-    history.pushState({ modal: 'open' }, '');
-  }
-  DOM.inputModal.classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-  setTimeout(() => DOM.input.focus(), 100);
-}
-
-// Closes the compose sheet and restores scroll.
-function closeInputModal() {
-  if (window.history.state?.modal === 'open') {
-    window.history.back();
-  }
-  DOM.inputModal.classList.add('hidden');
-  document.body.style.overflow = '';
-}
