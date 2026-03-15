@@ -724,10 +724,10 @@ async function renderListItems(items) {
           <p class="text-slate-700 font-medium tracking-tight">Awaiting inspiration.</p>
           <p class="text-slate-600 text-xs mt-2">
             The best ideas are the ones you
-            <span onclick="document.getElementById('postInput').scrollIntoView({ behavior: 'smooth', block: 'center' })"
-                class="underline cursor-pointer text-slate-600 hover:text-slate-800 transition-colors">
-              write down
-            </span>
+            <span onclick="openInputModal()"
+  class="underline cursor-pointer text-slate-600 hover:text-slate-800 transition-colors">
+  write down
+</span>
           </p>
         </div>`;
     } else {
@@ -2216,6 +2216,7 @@ function openInputModal() {
   document.body.style.overflow = 'hidden';
   setTimeout(() => DOM.input.focus(), 150);
 }
+window.openInputModal = openInputModal;
 
 // Closes the compose sheet and restores scroll.
 function closeInputModal() {
