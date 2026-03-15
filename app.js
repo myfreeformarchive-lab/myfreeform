@@ -68,7 +68,8 @@ const DOM = {
   usernameInput: document.getElementById('usernameInput'),
   profileHeader: document.getElementById('profileHeaderTitle'),
   saveCheck: document.getElementById('saveCheck'),
-  charCounter: document.getElementById('charCounter')
+  charCounter: document.getElementById('charCounter'),
+  inputModal: document.getElementById('inputModal')
 };
 
 let currentTab = localStorage.getItem('freeform_tab_pref') || 'private'; 
@@ -1349,6 +1350,7 @@ async function handlePost() {
 
     DOM.input.value = "";
     setRandomPlaceholder();
+	hideUIModal(document.getElementById('inputModal'));
 
   } catch (error) {
     showToast("Error posting", "error");
@@ -1862,6 +1864,11 @@ function refreshSnap() {
 function applyFontPreference(font) {
   DOM.input.classList.remove('font-sans', 'font-serif', 'font-mono', 'font-hand');
   DOM.input.classList.add(font);
+
+  // Update font picker trigger to show selected font style
+  const label = document.getElementById('fontPickerLabel');
+  if (label) label.className = `${font} text-xs font-bold`;
+
   DOM.fontBtns.forEach(btn => {
     if (btn.getAttribute('data-font') === font) {
       btn.classList.add('ring-2', 'ring-brand-500', 'ring-offset-1');
@@ -2208,16 +2215,14 @@ window.addEventListener('popstate', (event) => {
   const state = event.state;
 
   // Hide all modals first
-  [dmModal, chatModal, profileModal, commentModal].forEach(m => m?.classList.add('hidden'));
+  [dmModal, chatModal, profileModal, commentModal, DOM.inputModal].forEach(m => m?.classList.add('hidden'));
   document.body.style.overflow = '';
 
   if (state?.modal === 'open') {
-    // Back button landed on chat list state — reopen it
     chatModal?.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
     renderChatList();
   } else {
-    // No modal state — run caret/focus cleanup so keyboard and swipes work correctly
     document.activeElement?.blur();
     window.getSelection()?.removeAllRanges();
     if (DOM.input) {
@@ -3693,13 +3698,39 @@ const localeReady = getOrCreateUserLocale(); // runs first, sets freeform_langua
   DOM.tabPublic.addEventListener('click', () => switchTab('public'));
 
   DOM.fontBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const font = btn.getAttribute('data-font');
-      selectedFont = font;
-      localStorage.setItem('freeform_font_pref', font);
-      applyFontPreference(font); 
-    });
+  btn.addEventListener('click', () => {
+    const font = btn.getAttribute('data-font');
+    selectedFont = font;
+    localStorage.setItem('freeform_font_pref', font);
+    applyFontPreference(font);
+    // Close popup after selection
+    document.getElementById('fontPickerPopup')?.classList.add('hidden');
   });
+});
+
+document.getElementById('fontPickerTrigger')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('fontPickerPopup')?.classList.toggle('hidden');
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#fontPickerContainer')) {
+    document.getElementById('fontPickerPopup')?.classList.add('hidden');
+  }
+});
+
+	document.getElementById('inputTrigger')?.addEventListener('click', () => {
+  showUIModal(document.getElementById('inputModal'));
+  setTimeout(() => DOM.input.focus(), 100);
+});
+
+document.getElementById('closeInputModalBtn')?.addEventListener('click', () => {
+  hideUIModal(document.getElementById('inputModal'));
+});
+
+document.getElementById('inputModalOverlay')?.addEventListener('click', () => {
+  hideUIModal(document.getElementById('inputModal'));
+});
 
   DOM.modalOverlay.addEventListener('click', () => closeModal());
 
@@ -3994,6 +4025,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 6 & 7. Exit Modal
     document.getElementById('exitModalBack')?.addEventListener('click', () => closeExitModal());
     document.getElementById('confirm-exit-btn')?.addEventListener('click', () => closeExitModal());
+	
 });
 
 // 1. Get references to the new elements
