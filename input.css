@@ -395,7 +395,8 @@ main.max-w-xl.mx-auto {
 #commentModal:not(.hidden) #closeModalOverlay,
 #profileModal:not(.hidden) #profileOverlay,
 #chatModal:not(.hidden) #chatOverlay,
-#dmModal:not(.hidden) #dmOverlay { /* Added */
+#dmModal:not(.hidden) #dmOverlay,
+#inputModal:not(.hidden) #inputModalOverlay {
   animation: fadeIn 0.3s ease-out forwards;
 }
 
@@ -409,7 +410,8 @@ main.max-w-xl.mx-auto {
 #commentModal:not(.hidden) #modalCard,
 #profileModal:not(.hidden) > div:last-child,
 #chatModal:not(.hidden) > div:last-child,
-#dmModal:not(.hidden) > div:last-child { /* Added */
+#dmModal:not(.hidden) > div:last-child,
+#inputModal:not(.hidden) > div:last-child {
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
