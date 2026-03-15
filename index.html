@@ -305,10 +305,23 @@
   <!-- Spacer to account for the fixed header height -->
   <div class="h-14"></div>
     
-	<!-- DUMMY TRIGGER -->
+	<!-- Input TRIGGER -->
 <section id="inputTrigger" class="bg-white px-0 py-0 border-b border-slate-100 lg:border-slate-200 mb-3 cursor-text">
   <p id="inputTriggerPlaceholder" class="text-slate-400 text-[15px] font-sans leading-relaxed px-4 py-0 mt-6 mb-6">What's on your mind?</p>
 </section>
+
+<script>
+  (function() {
+    const phrases = [
+      "What's on your mind?", "Share your ideas...", "What's the vibe today?",
+      "Capture a thought...", "Everything starts with a note...",
+      "Unfinished thoughts welcome...", "Notes for your future self..."
+    ];
+    const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+    document.getElementById('inputTriggerPlaceholder').textContent = phrase;
+    window.__selectedPhrase = phrase; // save it so setRandomPlaceholder can reuse it
+  })();
+</script>
 
 <!-- 
   The tabs section allows switching between public/global feed and private archive.
