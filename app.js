@@ -2207,9 +2207,14 @@ function openInputModal() {
   if (window.history.state?.modal !== 'open') {
     history.pushState({ modal: 'open' }, '');
   }
+  
+  // Carry over whatever the dummy trigger is showing
+  const triggerText = document.getElementById('inputTriggerPlaceholder')?.textContent;
+  if (triggerText) DOM.input.placeholder = triggerText;
+
   DOM.inputModal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
-  setTimeout(() => DOM.input.focus(), 300);
+  setTimeout(() => DOM.input.focus(), 350);
 }
 
 // Closes the compose sheet and restores scroll.
@@ -3511,9 +3516,7 @@ function setRandomPlaceholder() {
     "Capture a thought...", "Everything starts with a note...",
     "Unfinished thoughts welcome...", "Notes for your future self..."
   ];
-  const phrase = window.__selectedPhrase || phrases[Math.floor(Math.random() * phrases.length)];
-  window.__selectedPhrase = null; // clear after first use so next post gets a new random one
-  
+  const phrase = phrases[Math.floor(Math.random() * phrases.length)];
   DOM.input.placeholder = phrase;
   const trigger = document.getElementById('inputTriggerPlaceholder');
   if (trigger) trigger.textContent = phrase;
