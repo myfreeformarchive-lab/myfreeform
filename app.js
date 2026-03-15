@@ -1595,8 +1595,8 @@ function createPostNode(item) {
   const hasHandle = handle && handle.trim() !== '';
   const identityText = hasHandle ? `@${handle.toLowerCase()}` : (item.isFirebase ? 'Global' : 'Local');
   const identityClass = (item.isFirebase || hasHandle)
-    ? 'bg-brand-50 text-brand-600 lg:bg-brand-200'
-    : 'bg-slate-100 text-slate-500 lg:bg-slate-200';
+    ? 'text-brand-600'
+    : 'text-slate-500';
 
   // --- Like & comment state ---
   const hasCommentsAccess = item.isFirebase || item.firebaseId;
@@ -1676,7 +1676,7 @@ function createPostNode(item) {
 
     <div class="flex justify-between items-start mb-3">
       <div class="flex items-center gap-2">
-        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${identityClass}">
+        <span class="px-0 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${identityClass}">
           ${identityText}
         </span>
         <span class="text-xs text-slate-400 font-medium">${time}</span>
