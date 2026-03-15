@@ -3506,13 +3506,17 @@ function initProfileAndTheme() {
 }
 
 function setRandomPlaceholder() {
-  if (window.__placeholderSet) return; // 👈 skip if already set
   const phrases = [
     "What's on your mind?", "Share your ideas...", "What's the vibe today?",
-    "Capture a thought...", "Everything starts with a note...", 
+    "Capture a thought...", "Everything starts with a note...",
     "Unfinished thoughts welcome...", "Notes for your future self..."
   ];
-  DOM.input.placeholder = phrases[Math.floor(Math.random() * phrases.length)];
+  const phrase = window.__selectedPhrase || phrases[Math.floor(Math.random() * phrases.length)];
+  window.__selectedPhrase = null; // clear after first use so next post gets a new random one
+  
+  DOM.input.placeholder = phrase;
+  const trigger = document.getElementById('inputTriggerPlaceholder');
+  if (trigger) trigger.textContent = phrase;
 }
 
 async function resetAppCompletely() {
