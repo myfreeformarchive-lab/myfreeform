@@ -3766,7 +3766,7 @@ document.querySelector('#inputModal label')?.addEventListener('mousedown', (e) =
   const checkbox = document.getElementById('publicToggle');
   if (checkbox) {
     checkbox.checked = !checkbox.checked;
-    checkbox.dispatchEvent(new Event('change'));
+    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
   }
   DOM.input.focus();
 });
