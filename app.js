@@ -3657,7 +3657,7 @@ _supabase.auth.onAuthStateChange((event, session) => {
 const localeReady = getOrCreateUserLocale(); // runs first, sets freeform_language
 
   if (localeReady) {
-    Translator.init(); // runs second, reads freeform_language ✅
+    Translator.init();
   } else {
     console.error('❌ Locale not ready — Translator init skipped.');
   }
