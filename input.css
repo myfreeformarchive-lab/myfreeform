@@ -304,6 +304,19 @@ section.group {
   transition: transform 0.3s ease; /* Allows JS to translateY(-100%) to hide */
 }
 
+#inputTrigger {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  padding-top: 56px;
+  margin-top: 0 !important;
+  scroll-margin-top: 0px;
+  position: relative;
+  z-index: 10;
+  min-height: auto;
+  background: white;
+  transition: transform 0.3s ease;
+}
+
 /* Tabs Container: Becomes fixed below header when scrolling/active */
 /* Updated: Added fixed positioning logic for "float solid" behavior */
 
