@@ -285,25 +285,6 @@ nav {
   }
 }
 
-/* Section Group: Styles for main content sections (e.g., input area, feed) */
-section.group {
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-  
-  /* FIX: Reduced padding/margin for tighter hide behind header */
-  padding-top: 56px; /* Matches header height exactly */
-  margin-top: 0 !important; /* Removed negative margin to prevent overlap issues */
-  
-  scroll-margin-top: 0px;
-  
-  position: relative;
-  z-index: 10;
-  min-height: auto;
-  background: white;
-  /* FIX: Add transition for smooth hide/show on tab switch */
-  transition: transform 0.3s ease; /* Allows JS to translateY(-100%) to hide */
-}
-
 #inputTrigger {
   scroll-snap-align: start;
   scroll-snap-stop: always;
