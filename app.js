@@ -3760,11 +3760,6 @@ document.getElementById('inputModal')?.addEventListener('mousedown', (e) => {
   DOM.input.focus();
 });
 
-// Keep keyboard open when toggling Public/Private inside input modal
-document.querySelector('#inputModal label')?.addEventListener('click', () => {
-  setTimeout(() => DOM.input.focus(), 10);
-});
-
   DOM.modalOverlay.addEventListener('click', () => closeModal());
 
 DOM.closeBtn?.addEventListener('click', () => closeModal()); 
