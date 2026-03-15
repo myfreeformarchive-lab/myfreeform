@@ -1584,7 +1584,7 @@ function createPostNode(item) {
   el.id = `post-${item.id}`;
   el.setAttribute('data-id', item.id);
   const cursorClass = item.isFirebase ? "" : "cursor-pointer";
-  el.className = `feed-item block w-full bg-white px-4 py-3 mb-4 pb-6 border-b border-slate-100 lg:border-b-[1px] lg:border-slate-200 relative transition-colors ${cursorClass}`;
+  el.className = `feed-item block w-full bg-white px-4 py-3 mb-3 pb-6 border-b border-slate-100 lg:border-b-[1px] lg:border-slate-200 relative transition-colors ${cursorClass}`;
 
   // --- Identity & metadata ---
   const time = getRelativeTime(item.createdAt);
