@@ -761,7 +761,12 @@
     <div class="p-4 flex flex-col flex-1">
       <textarea id="postInput" rows="4"
         class="w-full bg-transparent border-none focus:ring-0 outline-none text-[15px] placeholder-slate-400 text-slate-700 resize-none p-0 leading-relaxed font-sans transition-all duration-200 flex-1 min-h-0"
-        placeholder=""></textarea>
+        placeholder="" maxlength="512"></textarea>
+		
+		<!-- Character counter -->
+<div class="flex justify-end mb-2">
+  <span id="postCharCounter" class="text-[10px] font-mono text-slate-300">0/512</span>
+</div>
 
       <!-- Bottom bar: font picker + toggle + post -->
       <div class="flex items-center justify-between border-t border-slate-100 lg:border-slate-200">
