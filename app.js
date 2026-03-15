@@ -1350,7 +1350,7 @@ async function handlePost() {
 
     DOM.input.value = "";
     setRandomPlaceholder();
-	hideUIModal(document.getElementById('inputModal'));
+	closeInputModal();
 
   } catch (error) {
     showToast("Error posting", "error");
@@ -2200,6 +2200,26 @@ window.onclick = function(event) {
   const modal = document.getElementById('link-exit-modal');
   if (event.target === modal) window.closeExitModal();
 };
+
+// Opens the compose sheet — unlike other modals, keeps input enabled
+// so the keyboard opens immediately when the modal appears.
+function openInputModal() {
+  if (window.history.state?.modal !== 'open') {
+    history.pushState({ modal: 'open' }, '');
+  }
+  DOM.inputModal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => DOM.input.focus(), 100);
+}
+
+// Closes the compose sheet and restores scroll.
+function closeInputModal() {
+  if (window.history.state?.modal === 'open') {
+    window.history.back();
+  }
+  DOM.inputModal.classList.add('hidden');
+  document.body.style.overflow = '';
+}
 
 // Handles the browser back button for all modals.
 // Strategy: always hide everything first, then selectively re-open
@@ -3719,18 +3739,9 @@ document.addEventListener('click', (e) => {
   }
 });
 
-	document.getElementById('inputTrigger')?.addEventListener('click', () => {
-  showUIModal(document.getElementById('inputModal'));
-  setTimeout(() => DOM.input.focus(), 100);
-});
-
-document.getElementById('closeInputModalBtn')?.addEventListener('click', () => {
-  hideUIModal(document.getElementById('inputModal'));
-});
-
-document.getElementById('inputModalOverlay')?.addEventListener('click', () => {
-  hideUIModal(document.getElementById('inputModal'));
-});
+document.getElementById('inputTrigger')?.addEventListener('click', () => openInputModal());
+document.getElementById('closeInputModalBtn')?.addEventListener('click', () => closeInputModal());
+document.getElementById('inputModalOverlay')?.addEventListener('click', () => closeInputModal());
 
   DOM.modalOverlay.addEventListener('click', () => closeModal());
 
