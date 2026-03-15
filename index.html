@@ -317,9 +317,7 @@
       "Capture a thought...", "Everything starts with a note...",
       "Unfinished thoughts welcome...", "Notes for your future self..."
     ];
-    const phrase = phrases[Math.floor(Math.random() * phrases.length)];
-    document.getElementById('inputTriggerPlaceholder').textContent = phrase;
-    window.__selectedPhrase = phrase; // save it so setRandomPlaceholder can reuse it
+    document.getElementById('inputTriggerPlaceholder').textContent = phrases[Math.floor(Math.random() * phrases.length)];
   })();
 </script>
 
