@@ -3695,7 +3695,6 @@ const localeReady = getOrCreateUserLocale(); // runs first, sets freeform_langua
   }
   
   runMigration();
-  setRandomPlaceholder();
   loadUsername();
   initProfileAndTheme();
   window.updateUnreadBadge();
