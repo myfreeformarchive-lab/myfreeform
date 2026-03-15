@@ -3761,14 +3761,8 @@ document.getElementById('inputModal')?.addEventListener('mousedown', (e) => {
 });
 
 // Keep keyboard open when toggling Public/Private inside input modal
-document.querySelector('#inputModal label')?.addEventListener('mousedown', (e) => {
-  e.preventDefault();
-  const checkbox = document.getElementById('publicToggle');
-  if (checkbox) {
-    checkbox.checked = !checkbox.checked;
-    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-  }
-  DOM.input.focus();
+document.querySelector('#inputModal label')?.addEventListener('click', () => {
+  setTimeout(() => DOM.input.focus(), 10);
 });
 
   DOM.modalOverlay.addEventListener('click', () => closeModal());
