@@ -3679,6 +3679,22 @@ DOM.input.addEventListener('input', () => {
   }
 });
 
+// visual viewport Input Modal keyboard and bottom s ection move simutianiasly 
+const sheet = document.getElementById('inputModalSheet');
+
+function onViewportResize() {
+  const keyboardHeight = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
+  sheet.style.transform = `translateY(-${Math.max(0, keyboardHeight)}px)`;
+}
+
+function onViewportScroll() {
+  sheet.style.transform = `translateY(-${Math.max(0, window.visualViewport.offsetTop)}px)`;
+}
+
+window.visualViewport.addEventListener('resize', onViewportResize);
+window.visualViewport.addEventListener('scroll', onViewportScroll);
+sheet.style.transform = '';
+
 // ==========================================
 // 12. INITIALIZATION
 // ==========================================
