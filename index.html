@@ -125,7 +125,7 @@
   (function() {
     const v = new Date().getFullYear() + "-" + (new Date().getMonth() + 1) + "-" + EMERGENCY;
     console.log("📦 Preloading app.js with version: " + v);
-    document.write('<link rel="modulepreload" href="app.js?v=' + v + '" fetchpriority="high">');
+    document.write('<link rel="modulepreload" href="app.js?v=' + v + '"fetchpriority="high">');
   })();
 </script>
   
