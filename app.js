@@ -2204,7 +2204,7 @@ window.onclick = function(event) {
 
 // Opens the compose sheet — unlike other modals, keeps input enabled
 // so the keyboard opens immediately when the modal appears.
-function openInputModal() {
+window.openInputModal = function() {
   if (window.history.state?.modal !== 'open') {
     history.pushState({ modal: 'open' }, '');
   }
@@ -2250,7 +2250,6 @@ function openInputModal() {
   document.addEventListener('touchmove', window._preventScroll, { passive: false });
   sheet.style.transform = '';
 }
-window.openInputModal = openInputModal;
 
 // Closes the compose sheet and restores scroll.
 function closeInputModal() {
