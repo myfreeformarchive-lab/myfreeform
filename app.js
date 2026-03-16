@@ -2226,6 +2226,12 @@ function closeInputModal() {
   }
   DOM.inputModal.classList.add('hidden');
   document.body.style.overflow = '';
+
+  window.visualViewport.removeEventListener('resize', onViewportResize);
+  window.visualViewport.removeEventListener('scroll', onViewportScroll);
+  document.removeEventListener('touchmove', preventScroll);
+  sheet.style.height = '100dvh';
+  sheet.style.transform = '';
 }
 
 // Handles the browser back button for all modals.
@@ -3680,19 +3686,34 @@ DOM.input.addEventListener('input', () => {
 });
 
 // visual viewport Input Modal keyboard and bottom s ection move simutianiasly 
-const sheet = document.getElementById('inputModal');
+const sheet = document.getElementById('keyboard_adjuster');
+const overlay = document.getElementById('inputModalOverlay');
 
 function onViewportResize() {
   const keyboardHeight = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
-  sheet.style.transform = `translateY(-${Math.max(0, keyboardHeight)}px)`;
+  sheet.style.height = `calc(100dvh - ${Math.max(0, keyboardHeight)}px)`;
+  
+  if (keyboardHeight > 0) {
+    sheet.style.opacity = '0';
+    overlay.style.background = 'white';
+    setTimeout(() => { sheet.style.opacity = '1'; }, 50);
+  } else {
+    overlay.style.background = '';
+  }
 }
 
 function onViewportScroll() {
-  sheet.style.transform = `translateY(-${Math.max(0, window.visualViewport.offsetTop)}px)`;
+  sheet.style.height = `calc(100dvh - ${Math.max(0, window.visualViewport.offsetTop)}px)`;
+}
+
+function preventScroll(e) {
+  e.preventDefault();
 }
 
 window.visualViewport.addEventListener('resize', onViewportResize);
 window.visualViewport.addEventListener('scroll', onViewportScroll);
+document.addEventListener('touchmove', preventScroll, { passive: false });
+
 sheet.style.transform = '';
 
 // ==========================================
