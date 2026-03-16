@@ -2208,7 +2208,6 @@ function openInputModal() {
   if (window.history.state?.modal !== 'open') {
     history.pushState({ modal: 'open' }, '');
   }
-
   const triggerText = document.getElementById('inputTriggerPlaceholder')?.textContent;
   if (triggerText) DOM.input.placeholder = triggerText;
   DOM.inputModal.classList.remove('hidden');
@@ -2220,10 +2219,9 @@ function openInputModal() {
   const header = document.getElementById('modalHeader');
   const textarea = document.getElementById('postInput');
 
-  function onViewportResize() {
+  window._onViewportResize = function() {
     const keyboardHeight = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
     sheet.style.height = `calc(100dvh - ${Math.max(0, keyboardHeight)}px)`;
-
     if (keyboardHeight > 0) {
       sheet.style.opacity = '0';
       overlay.style.background = 'white';
@@ -2239,19 +2237,17 @@ function openInputModal() {
       header.style.opacity = '1';
       textarea.style.opacity = '1';
     }
-  }
+  };
 
-  function onViewportScroll() {
+  window._onViewportScroll = function() {
     sheet.style.height = `calc(100dvh - ${Math.max(0, window.visualViewport.offsetTop)}px)`;
-  }
+  };
 
-  function preventScroll(e) {
-    e.preventDefault();
-  }
+  window._preventScroll = function(e) { e.preventDefault(); };
 
-  window.visualViewport.addEventListener('resize', onViewportResize);
-  window.visualViewport.addEventListener('scroll', onViewportScroll);
-  document.addEventListener('touchmove', preventScroll, { passive: false });
+  window.visualViewport.addEventListener('resize', window._onViewportResize);
+  window.visualViewport.addEventListener('scroll', window._onViewportScroll);
+  document.addEventListener('touchmove', window._preventScroll, { passive: false });
   sheet.style.transform = '';
 }
 window.openInputModal = openInputModal;
@@ -2264,9 +2260,11 @@ function closeInputModal() {
   DOM.inputModal.classList.add('hidden');
   document.body.style.overflow = '';
 
-  window.visualViewport.removeEventListener('resize', onViewportResize);
-  window.visualViewport.removeEventListener('scroll', onViewportScroll);
-  document.removeEventListener('touchmove', preventScroll);
+  window.visualViewport.removeEventListener('resize', window._onViewportResize);
+  window.visualViewport.removeEventListener('scroll', window._onViewportScroll);
+  document.removeEventListener('touchmove', window._preventScroll);
+  
+  const sheet = document.getElementById('keyboard_adjuster');
   sheet.style.height = '100dvh';
   sheet.style.transform = '';
 }
