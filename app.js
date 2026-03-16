@@ -3680,7 +3680,7 @@ DOM.input.addEventListener('input', () => {
 });
 
 // visual viewport Input Modal keyboard and bottom s ection move simutianiasly 
-const sheet = document.getElementById('inputModalSheet');
+const sheet = document.getElementById('inputModal');
 
 function onViewportResize() {
   const keyboardHeight = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
