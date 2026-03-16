@@ -2208,14 +2208,51 @@ function openInputModal() {
   if (window.history.state?.modal !== 'open') {
     history.pushState({ modal: 'open' }, '');
   }
-  
-  // Carry over whatever the dummy trigger is showing
+
   const triggerText = document.getElementById('inputTriggerPlaceholder')?.textContent;
   if (triggerText) DOM.input.placeholder = triggerText;
-
   DOM.inputModal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   setTimeout(() => DOM.input.focus(), 150);
+
+  const sheet = document.getElementById('keyboard_adjuster');
+  const overlay = document.getElementById('inputModalOverlay');
+  const header = document.getElementById('modalHeader');
+  const textarea = document.getElementById('postInput');
+
+  function onViewportResize() {
+    const keyboardHeight = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
+    sheet.style.height = `calc(100dvh - ${Math.max(0, keyboardHeight)}px)`;
+
+    if (keyboardHeight > 0) {
+      sheet.style.opacity = '0';
+      overlay.style.background = 'white';
+      header.style.opacity = '0';
+      textarea.style.opacity = '0';
+      setTimeout(() => {
+        sheet.style.opacity = '1';
+        header.style.opacity = '1';
+        textarea.style.opacity = '1';
+      }, 50);
+    } else {
+      overlay.style.background = '';
+      header.style.opacity = '1';
+      textarea.style.opacity = '1';
+    }
+  }
+
+  function onViewportScroll() {
+    sheet.style.height = `calc(100dvh - ${Math.max(0, window.visualViewport.offsetTop)}px)`;
+  }
+
+  function preventScroll(e) {
+    e.preventDefault();
+  }
+
+  window.visualViewport.addEventListener('resize', onViewportResize);
+  window.visualViewport.addEventListener('scroll', onViewportScroll);
+  document.addEventListener('touchmove', preventScroll, { passive: false });
+  sheet.style.transform = '';
 }
 window.openInputModal = openInputModal;
 
@@ -3684,37 +3721,6 @@ DOM.input.addEventListener('input', () => {
     counter.classList.remove('text-amber-500', 'text-red-500');
   }
 });
-
-// visual viewport Input Modal keyboard and bottom s ection move simutianiasly 
-const sheet = document.getElementById('keyboard_adjuster');
-const overlay = document.getElementById('inputModalOverlay');
-
-function onViewportResize() {
-  const keyboardHeight = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
-  sheet.style.height = `calc(100dvh - ${Math.max(0, keyboardHeight)}px)`;
-  
-  if (keyboardHeight > 0) {
-    sheet.style.opacity = '0';
-    overlay.style.background = 'white';
-    setTimeout(() => { sheet.style.opacity = '1'; }, 50);
-  } else {
-    overlay.style.background = '';
-  }
-}
-
-function onViewportScroll() {
-  sheet.style.height = `calc(100dvh - ${Math.max(0, window.visualViewport.offsetTop)}px)`;
-}
-
-function preventScroll(e) {
-  e.preventDefault();
-}
-
-window.visualViewport.addEventListener('resize', onViewportResize);
-window.visualViewport.addEventListener('scroll', onViewportScroll);
-document.addEventListener('touchmove', preventScroll, { passive: false });
-
-sheet.style.transform = '';
 
 // ==========================================
 // 12. INITIALIZATION
