@@ -1,0 +1,21 @@
+{
+  "name": "philosophy_archive",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "supabase": "^2.76.12",
+    "tailwindcss": "^4.1.18"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.95.3",
+    "firebase": "^12.9.0"
+  }
+}

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" id="pwa-theme-color" content="#F5F0FF">
+  <meta name="robots" content="noindex">
+  <title>Follow Us – My Freeform</title>
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" sizes="16x16" href="icon_2-16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icon_2-32.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="icon_2-48.png">
+  <link rel="apple-touch-icon" href="icon_2-180.png">
+  <meta name="theme-color" id="status-bar" content="#F5F0FF">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preload" href="fonts/inter-v20-latin-regular.woff2" as="font" type="font/woff2" crossorigin>
+
+  <style>
+    :root { --brand-primary: #9D60FF; }
+    .text-brand-500 { color: var(--brand-primary); }
+    .bg-brand-500 { background-color: var(--brand-primary); }
+    .border-brand-500 { border-color: var(--brand-primary); }
+    .hover\:bg-brand-500:hover { background-color: var(--brand-primary); }
+    .hover\:text-brand-500:hover { color: var(--brand-primary); }
+    .ring-brand { box-shadow: 0 0 0 1px var(--brand-primary); }
+    body { font-family: 'Inter', sans-serif; }
+
+    .link-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #f1f5f9;
+      text-decoration: none;
+      color: #334155;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    .link-row:hover {
+      border-color: var(--brand-primary);
+      background: #faf7ff;
+      color: var(--brand-primary);
+    }
+    .link-row .icon-wrap {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: #f8f5ff;
+      transition: background 0.15s;
+    }
+    .link-row:hover .icon-wrap {
+      background: #ede8ff;
+    }
+    .link-row .arrow {
+      margin-left: auto;
+      color: #cbd5e1;
+      transition: color 0.15s, transform 0.15s;
+    }
+    .link-row:hover .arrow {
+      color: var(--brand-primary);
+      transform: translateX(2px);
+    }
+
+    .project-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--brand-primary);
+    }
+  </style>
+
+  <script>
+    (function() {
+      const themes = {
+        lavender: '#9D60FF', bright: '#D4BCFF', deep: '#2D1B69',
+        dusk: '#7C6AE8', bloom: '#B96FD8', slate: '#4A3F6B',
+        mist: '#C8B8F0', mauve: '#8B6E9A',
+      };
+      const _theme = localStorage.getItem('selected_theme') || 'lavender';
+      const selectedColor = themes[_theme] || themes.lavender;
+      document.documentElement.style.setProperty('--brand-primary', selectedColor);
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', selectedColor);
+    })();
+  </script>
+</head>
+
+<body class="bg-white text-slate-900 pb-24 lg:pb-0 lg:pl-20">
+  <div id="appShell">
+
+    <header class="fixed top-0 left-0 lg:left-20 right-0 bg-white/80 backdrop-blur-md border-0 border-slate-200 z-50">
+      <div class="max-w-xl mx-auto px-4 h-14 flex items-center justify-between">
+        <a href="app.html" class="text-xl font-bold text-brand-500 tracking-tight no-underline">Freeform</a>
+        <span class="text-xs font-mono text-slate-400">FOLLOW US</span>
+      </div>
+    </header>
+
+    <main class="max-w-xl mx-auto w-full px-4">
+      <div class="h-20"></div>
+
+      <!-- Page intro -->
+      <section class="mb-10">
+        <h1 class="text-2xl font-bold mb-2">What we're building</h1>
+        <p class="text-sm text-slate-500 leading-relaxed">
+          One project, one team. A free, open social board built for everyone — web + app, one global feed, and anonymity by design.
+        </p>
+      </section>
+
+      <!-- ── FREEFORM ── -->
+      <section class="mb-8">
+        <div class="project-label mb-3">Freeform — Social</div>
+
+        <div class="border border-slate-100 rounded-2xl p-5 mb-4">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center flex-shrink-0">
+              <svg width="24" height="24" viewBox="1 -2 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-14h1.4c2 0 4 2 4 4v2" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 11l.01 0" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M15 11l.01 0" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <div class="font-bold text-slate-900 text-sm">Freeform</div>
+              <div class="text-xs text-slate-400">Free · Anonymous · Open</div>
+            </div>
+          </div>
+          <p class="text-sm text-slate-600 leading-relaxed mb-3">
+            A free, open social board available as web and native app. One global feed, full anonymity — built like an open-source alternative to Twitter without the noise.
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <span class="text-xs bg-slate-50 text-slate-500 border border-slate-100 rounded-full px-3 py-1">Anonymous by design</span>
+            <span class="text-xs bg-slate-50 text-slate-500 border border-slate-100 rounded-full px-3 py-1">1 global feed</span>
+            <span class="text-xs bg-slate-50 text-slate-500 border border-slate-100 rounded-full px-3 py-1">Web + App</span>
+          </div>
+        </div>
+
+        <!-- DeepL callout -->
+        <div class="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 flex gap-3 items-start mb-5">
+          <div class="mt-0.5 flex-shrink-0 text-brand-500">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M8 12c0-2.2 1.8-4 4-4s4 1.8 4 4-1.8 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M12 16v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <div class="text-xs font-semibold text-slate-700 mb-0.5">Language barriers? Gone.</div>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Posts are translated via DeepL at storage time and served in your language — not at read time. No pop-up prompts, no delays. The feed just speaks your language.
+            </p>
+          </div>
+        </div>
+
+        <!-- Freeform social links -->
+        <div class="space-y-2">
+          <a href="https://x.com/myfreeform" target="_blank" rel="noopener noreferrer" class="link-row">
+            <div class="icon-wrap">
+              <!-- X / Twitter -->
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" class="text-slate-700">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.261 5.632 5.903-5.632Zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+            </div>
+            <span>Follow on X</span>
+            <span class="text-xs text-slate-400 ml-1">@myfreeform</span>
+            <span class="arrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </span>
+          </a>
+
+          <a href="https://www.threads.com/@myfr.eeform" target="_blank" rel="noopener noreferrer" class="link-row">
+            <div class="icon-wrap">
+              <!-- Threads -->
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" class="text-slate-700">
+                <path d="M6.321 6.016c-.27-.18-1.166-.802-1.166-.802.756-1.081 1.753-1.502 3.132-1.502.975 0 1.803.327 2.394.948s.928 1.509 1.005 2.644q.492.207.905.484c1.109.745 1.719 1.86 1.719 3.137 0 2.716-2.226 5.075-6.256 5.075C4.594 16 1 13.987 1 7.994 1 2.034 4.482 0 8.044 0 9.69 0 13.55.243 15 5.036l-1.36.353C12.516 1.974 10.163 1.43 8.006 1.43c-3.565 0-5.582 2.171-5.582 6.79 0 4.143 2.254 6.343 5.63 6.343 2.777 0 4.847-1.443 4.847-3.556 0-1.438-1.208-2.127-1.27-2.127-.236 1.234-.868 3.31-3.644 3.31-1.618 0-3.013-1.118-3.013-2.582 0-2.09 1.984-2.847 3.55-2.847.586 0 1.294.04 1.663.114 0-.637-.54-1.728-1.9-1.728-1.25 0-1.566.405-1.967.868ZM8.716 8.19c-2.04 0-2.304.87-2.304 1.416 0 .878 1.043 1.168 1.6 1.168 1.02 0 2.067-.282 2.232-2.423a6.2 6.2 0 0 0-1.528-.161"/>
+              </svg>
+            </div>
+            <span>Follow on Threads</span>
+            <span class="text-xs text-slate-400 ml-1">@myfr.eeform</span>
+            <span class="arrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </span>
+          </a>
+
+          <a href="https://t.me/myfreeform_official" target="_blank" rel="noopener noreferrer" class="link-row">
+            <div class="icon-wrap">
+              <!-- Telegram -->
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" class="text-slate-700">
+                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+              </svg>
+            </div>
+            <span>Join us on Telegram</span>
+            <span class="text-xs text-slate-400 ml-1">My Freeform Official</span>
+            <span class="arrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </span>
+          </a>
+
+          <a href="https://pump.fun/coin/9KgZ7RbfJdUftzxcEmzg6Rz2AUsb8z8MsCVkScHHpump" target="_blank" rel="noopener noreferrer" class="link-row">
+            <div class="icon-wrap">
+              <!-- Pump.fun -->
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" class="text-slate-700">
+                <path d="M12 3c3.8 2.2 6 5.4 6 9.6 0 2.3-.7 4.5-2 6.3-1.2 1.6-2.8 2.9-4.7 3.7-1.9-.8-3.5-2.1-4.7-3.7-1.3-1.8-2-4-2-6.3C6 8.4 8.2 5.2 12 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                <circle cx="12" cy="11.5" r="1.4" stroke="currentColor" stroke-width="1.8"/>
+                <path d="M12 18.5c-1.2 0-2.3.4-3.2 1.1.7-2.2 1.8-3.3 3.2-3.3s2.5 1.1 3.2 3.3c-.9-.7-2-1.1-3.2-1.1Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <span>The Freeform Token</span>
+            <span class="text-xs text-slate-400 ml-1">Pump.fun</span>
+            <span class="arrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </span>
+          </a>
+
+          <a href="https://dexscreener.com/solana/bea4piif1tm3yzdpnwtczncyh1bf9k59gvu5epgf4a5o" target="_blank" rel="noopener noreferrer" class="link-row">
+            <div class="icon-wrap">
+              <!-- Dexscreener -->
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" class="text-slate-700">
+                <rect x="4.5" y="4.5" width="15" height="15" rx="3.2" stroke="currentColor" stroke-width="1.8"/>
+                <path d="M8 15l3-3 2 2 3.5-4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 9v6M11 11v4M14 10v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span>Chart & Stats</span>
+            <span class="text-xs text-slate-400 ml-1">Dexscreener</span>
+            <span class="arrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </span>
+          </a>
+        </div>
+      </section>
+
+      <div class="mt-8">
+        <a href="app.html" class="text-brand-500 font-medium text-sm hover:underline">
+          &larr; Back to App
+        </a>
+      </div>
+    </main>
+
+    <footer class="max-w-xl mx-auto px-4 py-12 text-center text-slate-400 text-xs">
+      <p>&copy; <span id="year"></span> My Freeform</p>
+    </footer>
+
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

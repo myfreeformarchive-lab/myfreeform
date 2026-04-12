@@ -1,0 +1,896 @@
+/* input.css - Main CSS entry file for the My Freeform app */
+/* Imports Tailwind's layers and defines custom styles, variables, and overrides */
+
+/* ✅ TAILWIND IMPORTS: Pull in Tailwind's base styles, components, and utilities */
+/* These provide the foundation for utility classes used throughout the app */
+@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* This is the master switch. Changing this via JS updates everything elsee. */
+  --brand-primary: #9D60FF;
+
+  /* Logic to calculate shades based on the master switch */
+  --brand-50:  color-mix(in srgb, var(--brand-primary), white 92%);
+  --brand-100: color-mix(in srgb, var(--brand-primary), white 80%);
+  --brand-200: color-mix(in srgb, var(--brand-primary), white 60%);
+  --brand-300: color-mix(in srgb, var(--brand-primary), white 40%);
+  --brand-400: color-mix(in srgb, var(--brand-primary), white 20%);
+  --brand-500: var(--brand-primary);
+  --brand-600: color-mix(in srgb, var(--brand-primary), black 15%);
+  --brand-700: color-mix(in srgb, var(--brand-primary), black 30%);
+}
+
+@layer base {
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  }
+
+  /* Improve Inter's default rendering */
+  .font-sans {
+    font-feature-settings: "cv05", "cv11", "tnum", "ss01", "ss03";
+    font-variation-settings: "opsz" 32; /* Optical sizing for better readability */
+  }
+
+  /* Better number alignment in mono contexts */
+  .font-mono {
+    font-feature-settings: "tnum", "zero", "ss02";
+  }
+
+  /* Smooth serif rendering for headings */
+  .font-serif {
+    font-kerning: normal;
+    font-feature-settings: "kern", "liga", "dlig", "swsh" 1;
+  }
+
+  /* Smooth handwriting rendering */
+  .font-hand {
+    -webkit-font-smoothing: antialiased;
+    font-smoothing: antialiased;
+    font-feature-settings: "kern", "liga";
+  }
+}
+
+/* inter-regular - latin */
+@font-face {
+  font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  src: url('fonts/inter-v20-latin-regular.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* inter-600 - latin */
+@font-face {
+  font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  src: url('fonts/inter-v20-latin-600.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+
+/* lora-regular - latin */
+@font-face {
+  font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  src: url('fonts/lora-v37-latin-regular.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* lora-700 - latin */
+@font-face {
+  font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  src: url('fonts/lora-v37-latin-700.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+
+/* roboto-mono-regular - latin */
+@font-face {
+  font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+  font-family: 'Roboto Mono';
+  font-style: normal;
+  font-weight: 400;
+  src: url('fonts/roboto-mono-v31-latin-regular.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* roboto-mono-500 - latin */
+@font-face {
+  font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+  font-family: 'Roboto Mono';
+  font-style: normal;
+  font-weight: 500;
+  src: url('fonts/roboto-mono-v31-latin-500.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+
+/* caveat-regular - latin */
+@font-face {
+  font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+  font-family: 'Caveat';
+  font-style: normal;
+  font-weight: 400;
+  src: url('fonts/caveat-v23-latin-regular.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+/* caveat-700 - latin */
+@font-face {
+  font-display: swap; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+  font-family: 'Caveat';
+  font-style: normal;
+  font-weight: 700;
+  src: url('fonts/caveat-v23-latin-700.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+}
+
+@theme inline {
+  /* Fonts remain static as they don't change with the color theme */
+  --font-sans: "Inter", ui-sans-serif, system-ui;
+  --font-serif: "Lora", ui-serif, Georgia;
+  --font-mono: "Roboto Mono", ui-monospace, SFMono-Regular;
+  --font-hand: "Caveat", cursive;
+
+  /* Map the Tailwind classes to the dynamic :root variables */
+  --color-brand-50:  var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+}
+
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration {
+  display: none;
+}
+
+/* ✅ FORM ELEMENT OVERRIDES: Custom styles for textarea and input */
+/* Ensures consistent cursor (text insertion beam) and prevents word breaking for better UX */
+textarea, input {
+  /* Word-break: Keeps words intact to avoid awkward line breaks in input */
+  word-break: keep-all; 
+}
+
+
+/* Continuing from the theme variables and form overrides... */
+
+/* ✅ LOAD TRIGGER: Styles for the infinite scroll trigger element */
+/* This is the element that detects when to load more posts */
+/* Hidden initially but takes up space to prevent layout shifts */
+#loadTrigger {
+  width: 100%;
+  min-height: 50px; /* Crucial: Chrome needs to see height for proper detection */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s; /* Smooth fade in/out */
+  /* Start hidden but with physical size to maintain layout */
+  visibility: hidden; 
+}
+
+/* 1. GLOBAL RESET & SCROLLBAR HIDING */
+/* Resets and hides scrollbars for a cleaner, mobile-like UI */
+
+/* Box-sizing reset: Ensures padding/borders are included in width calculationss */
+* {
+  box-sizing: border-box;
+}
+
+/* Hide scrollbars globally on all elements for a sleek look */
+html, body, #feedList, textarea, #appShell {
+  scrollbar-width: none !important;         /* Firefox */
+  -ms-overflow-style: none !important;      /* IE/Edge */
+}
+
+html::-webkit-scrollbar, 
+body::-webkit-scrollbar, 
+#feedList::-webkit-scrollbar, 
+textarea::-webkit-scrollbar,
+#appShell::-webkit-scrollbar,
+#dmMessagesContainer::-webkit-scrollbar {
+  display: none !important; /* WebKit browsers (Chrome, Safarii) */
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+#dmMessagesContainer {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+/* Media elements: Responsive sizing to fit containers */
+img, video, canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+/* HTML root: Full width, prevent forced scrolling for dynamic content */
+html {
+  width: 100%;
+ /* overflow: visible !important; /* Allow content to expand naturally */
+ /* height: auto !important;      /* Dynamic height based on content */
+ height: 100%;
+  overflow: hidden;
+  scrollbar-gutter: stable;
+  overscroll-behavior: none;
+}
+
+/* 3. THE MASTER SCROLLER (The Engine): Body styles for smooth scrolling */
+/* Configures the main scroll container for the app's feed behavior */
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+/*  overflow: visible !important; */
+/*  height: auto !important; */
+height: 100%;
+  overflow: hidden;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+ /* overscroll-behavior-y: contain; */
+ overscroll-behavior: none;
+  touch-action: pan-y pinch-zoom;
+}
+
+#appShell {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 4. THE HEADER (Fixed Anchor): Styles for the fixed top navigation */
+/* Keeps the header in place while content scrolls beneath it */
+header {
+  /* Existing */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: white;
+  height: 56px;
+  /* Stabilization */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  overscroll-behavior: contain;
+  /* Safe containment */
+  /* contain: layout style paint; */  /* Comment out if issues persist */
+}
+
+nav {
+  /* Stabilization without overriding position */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  /* Safe containment (remove if still causing issues) */
+  /* contain: layout style paint; */  /* Comment out or test without */
+  /* Ensure height is consistent */
+  height: 56px; /* For mobile; Tailwind handles lg:h-full */
+}
+
+@media (max-width: 768px) {
+  /* Disable GPU-heavy effects causing repaints */
+  header {
+    background: white !important; /* Solid color—no transparency */
+    backdrop-filter: none !important; /* Remove blur entirely */
+    border: none !important; /* Simplify borders to reduce rendering */
+    box-shadow: none !important; /* No shadows for stability */
+  }
+
+  /* Disable GPU-heavy effects causing repaints */
+  nav {
+    background: white !important; /* Solid color—no transparency */
+    backdrop-filter: none !important; /* Remove blur entirely */
+    box-shadow: none !important; /* No shadows for stability */
+  }
+  
+  /* Prevent scroll snapping, which can cause stutter */
+  #feedList {
+    scroll-snap-type: none !important; /* Disable snapping on mobile */
+  }
+  
+  /* Lock everything down */
+  header, nav, #feedList, #loadTrigger {
+    contain: layout style; /* Isolate elements from each other */
+    transform: translateZ(0); /* Hardware acceleration */
+    will-change: transform; /* Hint for GPU */
+    backface-visibility: hidden;
+    -webkit-transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    transition: none !important; /* No animations during scroll */
+  }
+  
+  /* Body tweaks for smoother scroll */
+  body {
+    overscroll-behavior: contain; /* No bounce */
+    -webkit-overflow-scrolling: touch; /* iOS smooth scroll */
+    scroll-behavior: auto; /* Disable smooth for performance */
+  }
+}
+
+#inputTrigger {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  padding-top: 56px;
+  margin-top: 0 !important;
+  scroll-margin-top: 0px;
+  position: relative;
+  z-index: 10;
+  min-height: auto;
+  background: white;
+  transition: transform 0.3s ease;
+}
+
+/* Tabs Container: Becomes fixed below header when scrolling/active */
+/* Updated: Added fixed positioning logic for "float solid" behavior */
+
+/* Sticky Elements: General class for sticky positioning */
+.sticky {
+  z-index: 40; /* Lower than header/modal z-indexes for layering */
+}
+
+/* 3. THE FEED CONTAINER: Styles for the main posts list */
+
+#feedList {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 20vh;
+  /* FIX: Added scroll snapping to container for better post control */
+  scroll-snap-type: y proximity; /* Moved from body for per-element snapping */
+  min-height: 100vh;
+}
+
+/* FeedList Optimizations: Kept for performance */
+#feedList {
+  will-change: transform, opacity;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  
+  /* The Magic Property */
+  overflow-anchor: auto; 
+  
+  /* Help the browser identify this as a stable container */
+  contain-anchor: content;
+}
+
+/* Feed Item: Snapping for dynamic post sizes */
+/* Updated: Adjusted offset for fixed tabs below header */
+.feed-item {
+  width: 100%;
+  scroll-snap-align: start;
+  /* FIX: Updated for fixed tabs (header 56px + tabs 56px = 112px, no extra margin) */
+  scroll-margin-top: 112px !important; /* Accounts for fixed header + fixed tabs */
+  
+  overflow-anchor: none;
+}
+
+/* Responsive Adjustments: Tabs behavior on smaller screens */
+@media (max-width: 768px) {
+  #tabs {
+    top: 56px; /* Still below header on mobile */
+    z-index: 50;
+  }
+}
+
+/* Main Container: Ensures the main content area adapts properly */
+main.max-w-xl.mx-auto {
+  overflow: visible !important; /* Allows content to expand */
+  height: auto !important;      /* Dynamic height */
+}
+
+@media (max-width: 768px) {
+  header {
+    /* Prevent any shaking or shifts from animations */
+    transform: none !important;
+    will-change: auto; /* Reset GPU hints that might cause issues */
+  }
+}
+
+/* Tabs Container: Sticky positioning for tab navigation */
+#tabs {
+  position: fixed;
+  top: 56px; /* Below header */
+  left: 50%; /* Start at center of viewport */
+  transform: translateX(-50%); /* Shift back to center properly */
+  max-width: 36rem; /* Matches main's max-w-xl (576px) */
+  width: 100%; /* Full width within the max-width constraint */
+  z-index: 50;
+  background: white;
+  height: 56px;
+  /* Stability fixes */
+  will-change: transform;
+  backface-visibility: hidden;
+  overflow-anchor: none;
+}
+
+/* 3. Modal Animations: Keyframes and triggers for modal appearance */
+/* Smooth fade and slide effects for better UXX */
+
+/* Fade In: Simple opacity transition for overlays */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Trigger fade for modal overlay when visible */
+#commentModal:not(.hidden) #closeModalOverlay,
+#profileModal:not(.hidden) #profileOverlay,
+#chatModal:not(.hidden) #chatOverlay,
+#dmModal:not(.hidden) #dmOverlay,
+#inputModal:not(.hidden) #inputModalOverlay {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+/* Slide Up: Bottom-to-top entrance for modal content */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; } /* Starts below viewport */
+  to { transform: translateY(0); opacity: 1; }     /* Slides to center */
+}
+
+/* Trigger slide for modal card with easing */
+#commentModal:not(.hidden) #modalCard,
+#profileModal:not(.hidden) > div:last-child,
+#chatModal:not(.hidden) > div:last-child,
+#dmModal:not(.hidden) > div:last-child,
+#inputModal:not(.hidden) > div:last-child {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 4. Comment Bubbles: Animation for comment appearances */
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.95); } /* Slightly smaller and transparent */
+  to { opacity: 1; transform: scale(1); }      /* Full size and visible */
+}
+
+/* Apply pop-in animation to comment bubbles */
+.comment-bubble {
+  animation: popIn 0.2s ease-out forwards; /* Quick, subtle entrance */
+}
+
+.chat-item {
+  animation: popIn 0.2s ease-out forwards;
+}
+
+.relative.w-full.h-full {
+  will-change: transform, opacity;
+}
+
+/* Styling for the messages that will eventually be injected */
+.dm-message-received {
+    align-self: flex-start;
+    background-color: white;
+    border: 1px border-slate-100;
+    color: #1e293b; /* slate-800 */
+    border-bottom-left-radius: 4px;
+}
+
+.dm-message-sent {
+    align-self: flex-end;
+    background-color: var(--brand-primary, #3b82f6);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+/* =========================================
+    SHARE SYSTEM 
+   ========================================= */
+
+.share-trigger-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8fafc; 
+  border: 1px solid #f1f5f9; 
+  color: #94a3b8; 
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.share-trigger-btn:hover,
+.share-trigger-btn.active {
+  background-color: #eef2ff; 
+  border-color: #c7d2fe; 
+  color: #4f46e5; 
+  transform: scale(1.05);
+}
+
+.share-menu {
+  position: absolute;
+  right: 0;
+  bottom: 100%; 
+  margin-bottom: 8px; 
+  display: flex;
+  gap: 6px;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  padding: 6px;
+  border-radius: 9999px; 
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f1f5f9;
+  z-index: 50;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px) scale(0.95);
+  transform-origin: bottom right;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.share-menu.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.share-icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e8f0;
+  transition: transform 0.2s, background-color 0.2s, color 0.2s;
+  cursor: pointer;
+}
+
+.share-icon-btn:hover {
+  transform: translateY(-2px);
+}
+
+.share-icon-btn:active {
+  transform: scale(0.95);
+}
+
+/* =========================================
+   TOAST ANIMATIONS 
+   ========================================= */
+
+.toast-glass {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  color: #1e293b; /* slate-800 */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+}
+
+@keyframes toastSlideUp {
+  0% { 
+    opacity: 0; 
+    transform: translateY(40px) scale(0.9); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: translateY(0) scale(1); 
+  }
+}
+
+@keyframes toastFadeDown {
+  0% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(20px); }
+}
+
+.toast-enter {
+  animation: toastSlideUp 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+
+.toast-exit {
+  animation: toastFadeDown 0.3s ease-in forwards;
+}
+
+/* =========================================
+   DIALOG ANIMATIONS 
+   ========================================= */
+
+/* Ensure the overlay is invisible but ready */
+#custom-dialog {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease-out;
+}
+
+/* The card's starting state (shrunk) */
+#custom-dialog .relative {
+  transform: scale(0.9);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* State when active */
+#custom-dialog.dialog-open {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+#custom-dialog.dialog-open .relative {
+  transform: scale(1) !important;
+}
+
+/* =========================================
+   Rotation Lock
+   ========================================= */
+
+/* 🚀 THE STUBBORN LOCK */
+/* Detects if the screen is wider than it is tall (Landscape) */
+@media (orientation: landscape) and (min-aspect-ratio: 1.2/1) and (max-device-width: 932px) {
+    #orientation-shield {
+        display: flex !important;
+    }
+    
+    /* Targeting your specific shell ID */
+    #appShell { 
+        display: none !important;
+    }
+}
+
+#orientation-shield {
+    /* Ensures it covers absolutely everything including the body margins */
+    width: 100vw;
+    height: 100vh;
+}
+
+#orientation-shield svg {
+    /* Makes the stroke color follow the text-brand-500 class */
+    stroke: currentColor;
+}
+
+/* =========================================
+   Modal Content
+   ========================================= */
+
+.post-body a {
+  overflow-wrap: break-word;
+  word-break: break-word; 
+  text-decoration-skip-ink: auto; 
+}
+
+#link-exit-modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-content {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 12px;
+    max-width: 400px;
+    width: 100%;
+    padding: 24px;
+    text-align: center;
+}
+
+.modal-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+/* =========================================
+   innerHTML design frames
+   ========================================= */
+
+/* Custom animations for bot-generated messages */
+@keyframes pulse {
+    0%, 100% { 
+        opacity: 1; 
+    }
+    50% { 
+        opacity: 0.5; 
+    }
+}
+
+@keyframes shake {
+    0%, 100% { 
+        transform: translateX(0); 
+    }
+    25% { 
+        transform: translateX(-5px); 
+    }
+    75% { 
+        transform: translateX(5px); 
+    }
+}
+
+/* =========================================
+   Injection Animation for Feed
+   ========================================= */
+
+/* Graceful Fade-In */
+.fade-in {
+  animation: fadeIn 1.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modern Slide-In-from-Top with Bounce */
+.slide-in-from-top-4 {
+  animation: slideInFromTop 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes slideInFromTop {
+  0% {
+    transform: translateY(-1.5rem);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Combined Animationn */
+.animate-in {
+  animation: combinedFadeSlide 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes combinedFadeSlide {
+  0% {
+    transform: translateY(-1.5rem);
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+  60% {
+    transform: translateY(0); /* undershoot */
+    opacity: 0.8;
+    will-change: transform, opacity;
+  }
+  80% {
+    transform: translateY(0); /* Start slowing down */
+    opacity: 1;
+	will-change: transform, opacity;
+  }
+  100% {
+    transform: translateY(0); /* Rest at final position */
+    opacity: 1;
+    will-change: auto;
+  }
+}
+
+/* Only affects the icon inside our specific stencil container */
+.stencil-avatar svg {
+    transition: transform 0.2s ease;
+}
+
+/* Fun hover effect: make the icon pop or rotate slightly */
+.stencil-avatar:hover svg {
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* If you REALLY want to show the initials on hover as a 'secret' */
+.stencil-avatar .initials {
+    display: none;
+}
+
+.stencil-avatar:hover .initials {
+    display: block;
+}
+
+.stencil-avatar:hover svg {
+    display: none;
+}
+
+.dm-pretty-link {
+    display: inline-flex;
+    align-items: center;
+    color: inherit;               
+    font-weight: 800;             
+    text-decoration: none;        
+    padding: 0 2px;               
+    gap: 4px; 
+    max-width: 180px; 
+    min-width: 0; 
+    vertical-align: baseline; 
+    
+    /* 1. Set the initial faint border */
+    border-bottom: 1.5px solid rgba(71, 85, 105, 0.2);
+    
+    /* 2. Transition only the border and colors, not the whole element opacity */
+    transition: border-color 0.25s ease, color 0.2s ease;
+}
+
+/* Specific fix for the "Me" bubble: make the initial line a faint white */
+.bg-brand-500 .dm-pretty-link {
+    border-bottom-color: rgba(255, 255, 255, 0.3);
+}
+
+.dm-pretty-link span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+}
+
+.dm-pretty-link::after {
+    content: '';
+    flex-shrink: 0;
+    width: 5px;
+    height: 5px;
+    border-top: 1.5px solid currentColor;
+    border-right: 1.5px solid currentColor;
+    transform: rotate(45deg);
+    opacity: 0.4;             
+    transition: all 0.2s ease;
+    margin-bottom: 2px;       
+}
+
+/* --- THE NEW HOVER LOGIC ---- */
+
+.dm-pretty-link:hover {
+    cursor: pointer;
+    /* The word stays solid, only the border-color "wakes up" */
+    border-bottom-color: currentColor; 
+}
+
+.dm-pretty-link:hover::after {
+    opacity: 1;               /* Arrow still wakes up */
+    transform: rotate(45deg) translate(1.5px, -1.5px);
+}
+
+.hidden {
+  display: none !important;
+  pointer-events: none;
+}
+
+.feed-item-enter {
+  animation: slideInFromTop 0.7s ease forwards;
+}
+
+@keyframes slideInFromTop2 {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+	will-change: transform, opacity;
+  }
+  50% {
+    transform: translateY(0);
+    opacity: 0.5;
+	will-change: transform, opacity;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+	will-change: auto;
+  }
+}
+
+.feed-item-enter-2 {
+  animation: slideInFromTop2 0.7s ease forwards;
+}
+
+#keyboard_adjuster {
+  height: 100dvh;
+  /* Layer 2: CSS env() — supported browsers never need thee JS */
+  height: calc(100dvh - env(keyboard-inset-height, 0px));
+  max-height: 100dvh;
+}

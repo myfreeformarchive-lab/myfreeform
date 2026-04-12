@@ -1,0 +1,9 @@
+1. code clean up , structural 
+
+2. character count limitations (Post, comments, messages) 
+
+3. translation migration from DeepL to M2M-100 via cloudflare
+
+4. translation buckets on demand translation 
+
+5. notification design 
