@@ -134,7 +134,7 @@ export default function Home() {
             href="/app.html" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="text-[9px] text-zinc-700 hover:text-zinc-400 transition-colors flex items-center gap-1 opacity-30 hover:opacity-100 font-sans tracking-widest uppercase mt-4"
+            className="text-[9px] text-zinc-500 hover:text-meme-purple transition-colors flex items-center gap-1 opacity-60 hover:opacity-100 font-sans tracking-widest uppercase mt-4"
           >
             back to app <span className="text-[7px]">↗</span>
           </a>
