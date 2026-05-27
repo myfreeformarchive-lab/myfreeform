@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Meme Generator</title>
+    <style>
+        /* This fixes the width issue where the control group expanded outside the frame */
+        * {
+            box-sizing: border-box;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            background: #1e1e1e; 
+            color: white; 
+            padding: 2rem; 
+            margin: 0;
+        }
+        
+        .meme-container { 
+            position: relative; 
+            width: 400px; 
+            height: 400px; 
+            margin-bottom: 2rem; 
+            background: #9D60FF; 
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: background 0.2s;
+        }
+        
+        .meme-container svg {
+            position: absolute;
+            top: 40px;
+            left: 40px;
+            width: 320px;
+            height: 320px;
+        }
+        
+        /* Classic meme text styling: Impact font, white text, black outline */
+        .meme-text {
+            position: absolute;
+            width: 90%;
+            left: 5%;
+            text-align: center;
+            color: white;
+            font-family: 'Impact', sans-serif;
+            font-size: 40px;
+            text-transform: uppercase;
+            -webkit-text-stroke: 2px black;
+            word-wrap: break-word;
+            line-height: 1.1;
+            pointer-events: none;
+        }
+        
+        .top-text { top: 15px; }
+        .bottom-text { bottom: 15px; }
+        
+        .controls { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+            width: 400px; 
+        }
+
+        .control-group {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        
+        .control-group input[type="text"] {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .colors {
+            justify-content: space-between;
+            align-items: center;
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #444;
+        }
+
+        .colors-wrapper {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .colors label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #ccc;
+        }
+        
+        input[type="text"] { 
+            padding: 12px; 
+            font-size: 16px; 
+            border-radius: 6px; 
+            border: 1px solid #444; 
+            background: #2d2d2d; 
+            color: white; 
+        }
+
+        /* Styling the color pickers */
+        input[type="color"] {
+            padding: 0;
+            width: 36px;
+            height: 36px;
+            border: 2px solid #555;
+            border-radius: 6px;
+            cursor: pointer;
+            background: none;
+        }
+        
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 4px;
+        }
+        
+        button { 
+            padding: 15px; 
+            font-size: 18px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            background: #F5F0FF; 
+            color: #9D60FF; 
+            border: none; 
+            border-radius: 6px; 
+            transition: 0.2s;
+        }
+        
+        button:hover { 
+            background: #ffffff; 
+            transform: scale(1.02); 
+        }
+
+        .btn-random {
+            padding: 10px 12px;
+            font-size: 14px;
+            margin-top: 0;
+            background: #444;
+            color: #fff;
+            border: 1px solid #666;
+        }
+        
+        .btn-random:hover {
+            background: #555;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <h1>Make a Meme!</h1>
+    
+    <!-- This is the container that will be captured as an image -->
+    <div class="meme-container" id="meme-node">
+        <!-- We moved the stroke color directly onto the paths so we can change them independently -->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="1 -2 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path id="c-shape" stroke="#F5F0FF" d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 1 1-7.6-14h1.4c2 0 4 2 4 4v2"/>
+            <path class="eye" stroke="#F5F0FF" d="M9 11l.01 0"/>
+            <path class="eye" stroke="#F5F0FF" d="M15 11l.01 0"/>
+        </svg>
+        
+        <div class="meme-text top-text" id="topTextDisplay">WHEN THE CODE</div>
+        <div class="meme-text bottom-text" id="bottomTextDisplay">WORKS ON FIRST TRY</div>
+    </div>
+    
+    <div class="controls">
+        <div class="control-group">
+            <input type="text" id="topTextInput" placeholder="Top Text" value="WHEN THE CODE">
+            <input type="text" id="bottomTextInput" placeholder="Bottom Text" value="WORKS ON FIRST TRY">
+        </div>
+        
+        <!-- Color pickers with randomize button -->
+        <div class="control-group colors">
+            <div class="colors-wrapper">
+                <label>
+                    Background
+                    <input type="color" id="bgColor" value="#9d60ff">
+                </label>
+                <label>
+                    C-Shape
+                    <input type="color" id="cShapeColor" value="#f5f0ff">
+                </label>
+                <label>
+                    Eyes
+                    <input type="color" id="eyesColor" value="#f5f0ff">
+                </label>
+            </div>
+            <button class="btn-random" onclick="randomizeColors()">🎲 Random</button>
+        </div>
+
+        <button onclick="downloadMeme()">Download Meme Image</button>
+    </div>
+
+    <script>
+        // Text inputs
+        const topTextInput = document.getElementById('topTextInput');
+        const bottomTextInput = document.getElementById('bottomTextInput');
+        const topTextDisplay = document.getElementById('topTextDisplay');
+        const bottomTextDisplay = document.getElementById('bottomTextDisplay');
+
+        topTextInput.addEventListener('input', (e) => {
+            topTextDisplay.textContent = e.target.value;
+        });
+
+        bottomTextInput.addEventListener('input', (e) => {
+            bottomTextDisplay.textContent = e.target.value;
+        });
+
+        // Color inputs
+        const bgColor = document.getElementById('bgColor');
+        const cShapeColor = document.getElementById('cShapeColor');
+        const eyesColor = document.getElementById('eyesColor');
+        
+        // SVG & Container Elements
+        const memeNode = document.getElementById('meme-node');
+        const cShape = document.getElementById('c-shape');
+        const eyes = document.querySelectorAll('.eye');
+
+        // Event listeners to update colors in real-time
+        bgColor.addEventListener('input', (e) => {
+            memeNode.style.background = e.target.value;
+        });
+
+        cShapeColor.addEventListener('input', (e) => {
+            cShape.setAttribute('stroke', e.target.value);
+        });
+
+        eyesColor.addEventListener('input', (e) => {
+            eyes.forEach(eye => eye.setAttribute('stroke', e.target.value));
+        });
+
+        // Random Color Generator Function
+        function getRandomHexColor() {
+            return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+        }
+
+        // Randomize all 3 colors when the button is clicked
+        function randomizeColors() {
+            const newBg = getRandomHexColor();
+            const newCShape = getRandomHexColor();
+            const newEyes = getRandomHexColor();
+
+            // Update inputs
+            bgColor.value = newBg;
+            cShapeColor.value = newCShape;
+            eyesColor.value = newEyes;
+
+            // Update visual elements
+            memeNode.style.background = newBg;
+            cShape.setAttribute('stroke', newCShape);
+            eyes.forEach(eye => eye.setAttribute('stroke', newEyes));
+        }
+
+        // Function to build the meme natively using HTML5 Canvas (100% reliable)
+        function downloadMeme() {
+            const canvas = document.createElement('canvas');
+            // High resolution output (800x800)
+            canvas.width = 800;
+            canvas.height = 800;
+            const ctx = canvas.getContext('2d');
+
+            // 1. Draw Background
+            ctx.fillStyle = document.getElementById('bgColor').value;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. Prepare SVG
+            const svg = document.querySelector('.meme-container svg');
+            const svgData = new XMLSerializer().serializeToString(svg);
+            
+            // Ensure SVG has proper dimensions for the canvas
+            let formattedSvgData = svgData;
+            if (!formattedSvgData.includes('xmlns=')) {
+                formattedSvgData = formattedSvgData.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+            }
+            if (!formattedSvgData.includes('width=')) {
+                formattedSvgData = formattedSvgData.replace('<svg', '<svg width="640" height="640"');
+            }
+
+            const img = new Image();
+            // Data URI is much more reliable than Blob for canvas rendering
+            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(formattedSvgData);
+            
+            img.onload = function() {
+                // Draw SVG centered (80px padding on 800x800 canvas)
+                ctx.drawImage(img, 80, 80, 640, 640);
+                
+                // 3. Setup Text Styles
+                ctx.textAlign = 'center';
+                ctx.font = '80px Impact, sans-serif';
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = 'black';
+                ctx.fillStyle = 'white';
+                ctx.lineJoin = 'round'; // Makes text stroke look smooth
+
+                const topText = document.getElementById('topTextInput').value.toUpperCase();
+                const bottomText = document.getElementById('bottomTextInput').value.toUpperCase();
+
+                // Helper to wrap text just like the browser does
+                function wrapText(text, x, y, maxWidth, lineHeight, isBottom) {
+                    const words = text.split(' ');
+                    let line = '';
+                    const lines = [];
+
+                    for (let n = 0; n < words.length; n++) {
+                        const testLine = line + words[n] + ' ';
+                        const metrics = ctx.measureText(testLine);
+                        if (metrics.width > maxWidth && n > 0) {
+                            lines.push(line);
+                            line = words[n] + ' ';
+                        } else {
+                            line = testLine;
+                        }
+                    }
+                    lines.push(line);
+
+                    let currentY = y;
+                    if (isBottom) {
+                        currentY = y - (lines.length - 1) * lineHeight;
+                    }
+
+                    for (let i = 0; i < lines.length; i++) {
+                        ctx.strokeText(lines[i].trim(), x, currentY);
+                        ctx.fillText(lines[i].trim(), x, currentY);
+                        currentY += lineHeight;
+                    }
+                }
+
+                // Draw Top Text
+                ctx.textBaseline = 'top';
+                wrapText(topText, 400, 30, 760, 90, false);
+
+                // Draw Bottom Text
+                ctx.textBaseline = 'bottom';
+                wrapText(bottomText, 400, 770, 760, 90, true);
+
+                // Download image
+                const link = document.createElement('a');
+                link.download = 'my-svg-meme.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            };
+            
+            img.onerror = function(err) {
+                console.error("Canvas SVG rendering failed", err);
+                alert("Failed to render SVG image. Try again.");
+            };
+        }
+    </script>
+</body>
+</html>

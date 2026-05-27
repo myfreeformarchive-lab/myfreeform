@@ -1,11 +1,27 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Twitter, Send, Rocket, LineChart, Copy, Check } from "lucide-react";
 import LemmyMascot from "@/components/LemmyMascot";
 
 export default function Home() {
   const [copied, setCopied] = useState(false);
+  const [lemmyScore, setLemmyScore] = useState(0);
+  const [lemmyPops, setLemmyPops] = useState<Array<{ id: string; xPct: number; yPct: number }>>([]);
+  const popSeqRef = useRef(0);
   const CA = "9KgZ7RbfJdUftzxcEmzg6Rz2AUsb8z8MsCVkScHHpump";
+  const LEMMY_SCORE_KEY = "lemmy_click_score_v1";
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(LEMMY_SCORE_KEY);
+    const parsed = raw ? Number(raw) : 0;
+    setLemmyScore(Number.isFinite(parsed) ? parsed : 0);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(LEMMY_SCORE_KEY, String(lemmyScore));
+  }, [lemmyScore]);
 
   const handleCopy = async () => {
     try {
@@ -23,6 +39,18 @@ export default function Home() {
     { name: "Pump.fun", icon: Rocket, href: "https://pump.fun/coin/9KgZ7RbfJdUftzxcEmzg6Rz2AUsb8z8MsCVkScHHpump", color: "bg-meme-neon text-black hover:bg-green-400" },
     { name: "Dexscreener", icon: LineChart, href: "https://dexscreener.com/solana/bea4piif1tm3yzdpnwtczncyh1bf9k59gvu5epgf4a5o", color: "bg-meme-purple text-white hover:bg-purple-500" },
   ];
+
+  const handleLemmyClick: React.MouseEventHandler<HTMLButtonElement> = (e) => {
+    setLemmyScore((s) => s + 1);
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const hasRect = rect.width > 0 && rect.height > 0;
+    const xPct = hasRect ? ((e.clientX - rect.left) / rect.width) * 100 : 50;
+    const yPct = hasRect ? ((e.clientY - rect.top) / rect.height) * 100 : 50;
+
+    const id = `${Date.now()}-${popSeqRef.current++}`;
+    setLemmyPops((prev) => [...prev, { id, xPct, yPct }]);
+  };
 
   return (
     <div className="min-h-screen bg-meme-dark text-meme-light font-russo overflow-hidden relative selection:bg-meme-neon selection:text-black">
@@ -52,7 +80,33 @@ export default function Home() {
           transition={{ type: "spring", stiffness: 200, damping: 10, duration: 0.8 }}
           className="mb-8"
         >
-          <LemmyMascot className="w-48 h-48 md:w-72 md:h-72" />
+          <div className="relative inline-block">
+            <LemmyMascot className="w-48 h-48 md:w-72 md:h-72" onClick={handleLemmyClick} />
+            <div className="pointer-events-none absolute inset-0">
+              <AnimatePresence>
+                {lemmyPops.map((pop) => (
+                  <motion.span
+                    key={pop.id}
+                    className="absolute font-bangers text-4xl text-meme-neon drop-shadow-[0_3px_0_rgba(0,0,0,1)]"
+                    style={{
+                      left: `${pop.xPct}%`,
+                      top: `${pop.yPct}%`,
+                      transform: "translate(-50%, -50%)",
+                    }}
+                    initial={{ opacity: 0, y: 0, scale: 0.9 }}
+                    animate={{ opacity: [0, 1, 1, 0], y: -90, scale: [0.9, 1.05, 1] }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1.1, ease: "easeOut" }}
+                    onAnimationComplete={() => {
+                      setLemmyPops((prev) => prev.filter((p) => p.id !== pop.id));
+                    }}
+                  >
+                    +1
+                  </motion.span>
+                ))}
+              </AnimatePresence>
+            </div>
+          </div>
         </motion.div>
 
         <motion.div 
@@ -67,6 +121,12 @@ export default function Home() {
           <p className="text-2xl md:text-4xl text-meme-neon mb-6 uppercase drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">
             Lemmy The Ghost
           </p>
+          <div className="flex items-center justify-center">
+            <div className="inline-flex items-center gap-3 bg-black/40 backdrop-blur-sm border-2 border-meme-purple px-5 py-2 rounded-full shadow-[3px_3px_0_0_#000]">
+              <span className="font-bangers text-xl tracking-wider text-meme-yellow">Lemmy Score</span>
+              <span className="font-mono text-lg text-meme-light">{lemmyScore}</span>
+            </div>
+          </div>
         </motion.div>
 
         {/* Contract Address Section */}
