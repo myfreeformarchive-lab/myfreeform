@@ -2500,6 +2500,7 @@ function getSmartShareButtons(text) {
   let urlToShare = window.location.href;
   try {
     const url = new URL(urlToShare);
+    if (url.hostname.startsWith('www.')) url.hostname = url.hostname.slice(4);
     if (url.pathname === '/' || url.pathname === '') url.pathname = '/app.html';
     url.pathname = url.pathname.replace(/\/index\.html$/, '/app.html');
     urlToShare = url.toString();
@@ -2582,6 +2583,7 @@ async function sharePost(text, platform) {
   let currentUrl = window.location.href;
   try {
     const url = new URL(currentUrl);
+    if (url.hostname.startsWith('www.')) url.hostname = url.hostname.slice(4);
     if (url.pathname === '/' || url.pathname === '') url.pathname = '/app.html';
     url.pathname = url.pathname.replace(/\/index\.html$/, '/app.html');
     currentUrl = url.toString();
