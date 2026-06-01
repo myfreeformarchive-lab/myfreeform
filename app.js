@@ -2499,10 +2499,10 @@ window.addEventListener('popstate', (event) => {
 function getSmartShareButtons(text) {
   let urlToShare = window.location.href;
   try {
-    const url = new URL(urlToShare);
-    if (url.hostname.startsWith('www.')) url.hostname = url.hostname.slice(4);
-    if (url.pathname === '/' || url.pathname === '') url.pathname = '/app.html';
-    url.pathname = url.pathname.replace(/\/index\.html$/, '/app.html');
+    const url = new URL(window.location.origin.replace('://www.', '://'));
+    url.pathname = '/app.html';
+    url.search = '';
+    url.hash = '';
     urlToShare = url.toString();
   } catch (e) {}
   const totalLength = (text ? text.length : 0) + urlToShare.length;
@@ -2582,10 +2582,10 @@ async function sharePost(text, platform) {
   // --- Clean up URL ---
   let currentUrl = window.location.href;
   try {
-    const url = new URL(currentUrl);
-    if (url.hostname.startsWith('www.')) url.hostname = url.hostname.slice(4);
-    if (url.pathname === '/' || url.pathname === '') url.pathname = '/app.html';
-    url.pathname = url.pathname.replace(/\/index\.html$/, '/app.html');
+    const url = new URL(window.location.origin.replace('://www.', '://'));
+    url.pathname = '/app.html';
+    url.search = '';
+    url.hash = '';
     currentUrl = url.toString();
   } catch (e) {}
 
