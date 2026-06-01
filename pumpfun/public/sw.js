@@ -1,4 +1,4 @@
-const CACHE_NAME = 'site-cache-2026-4-2';
+const CACHE_NAME = 'site-cache-2026-4-3';
 const NUKE_VERSION = 'nuke-v3'; // ← bump this ONLY when you need to wipe users again
 const NUKE_FLAG_KEY = 'nuke-applied';
 

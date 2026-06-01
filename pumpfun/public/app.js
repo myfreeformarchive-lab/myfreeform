@@ -2497,7 +2497,14 @@ window.addEventListener('popstate', (event) => {
 // Each platform has a character limit — longer posts automatically hide
 // platforms that can't fit the content (e.g. X drops off at 280 chars).
 function getSmartShareButtons(text) {
-  const urlToShare = window.location.href;
+  let urlToShare = window.location.href;
+  try {
+    const url = new URL(window.location.origin.replace('://www.', '://'));
+    url.pathname = '/app.html';
+    url.search = '';
+    url.hash = '';
+    urlToShare = url.toString();
+  } catch (e) {}
   const totalLength = (text ? text.length : 0) + urlToShare.length;
 
   const platforms = [
@@ -2575,8 +2582,10 @@ async function sharePost(text, platform) {
   // --- Clean up URL ---
   let currentUrl = window.location.href;
   try {
-    const url = new URL(currentUrl);
-    url.pathname = url.pathname.replace(/\/(index|app)\.html$/, '/');
+    const url = new URL(window.location.origin.replace('://www.', '://'));
+    url.pathname = '/app.html';
+    url.search = '';
+    url.hash = '';
     currentUrl = url.toString();
   } catch (e) {}
 

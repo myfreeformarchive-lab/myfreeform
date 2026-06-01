@@ -2,7 +2,7 @@
   "name": "Freeform Archive",
   "short_name": "Freeform",
   "description": "A minimalist digital archive for your thoughts.",
-  "start_url": "https://myfreeform.page/",
+  "start_url": "/app.html",
   "display": "standalone",
   "background_color": "#F5F0FF",
   "theme_color": "#F5F0FF",
